@@ -1,0 +1,38 @@
+# ============================================================================
+# Medini CRM Backend — PRODUCTION Dockerfile (S10 T2)
+# Multi-stage: deps → build → runtime (non-root, minimal surface).
+# NOTE: wget is available in alpine (busybox) — no extra install needed.
+# ============================================================================
+
+FROM node:20-alpine AS base
+WORKDIR /app
+
+# ---- deps: install production dependencies only (build tools for argon2 native) ----
+FROM base AS deps
+RUN apk add --no-cache python3 make g++
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev --no-audit --no-fund
+
+# ---- build: install dev deps + compile TypeScript (build tools for argon2) ----
+FROM base AS build
+RUN apk add --no-cache python3 make g++
+COPY package.json package-lock.json* ./
+RUN npm ci --no-audit --no-fund
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY src ./src
+COPY drizzle ./drizzle
+RUN npm run build
+
+# ---- runtime: non-root, production deps + compiled output only ----
+FROM base AS runtime
+ENV NODE_ENV=production
+RUN addgroup -S medini && adduser -S medini -G medini
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/drizzle ./drizzle
+COPY package.json ./
+USER medini
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/health/ready || exit 1
+CMD ["node", "dist/main.js"]

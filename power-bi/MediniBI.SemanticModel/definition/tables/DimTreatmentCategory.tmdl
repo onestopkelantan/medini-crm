@@ -1,0 +1,47 @@
+/// Treatment catalog dimension (active treatments only).
+table DimTreatmentCategory
+	lineageTag: 9f0a1b2c-0050-4a11-9a01-000000000050
+
+	/// Treatment UUID (key, hidden).
+	column TreatmentId
+		dataType: string
+		isKey
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0051-4a11-9a01-000000000051
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Treatment code TRT-####.
+	column Code
+		dataType: string
+		lineageTag: 9f0a1b2c-0052-4a11-9a01-000000000052
+		summarizeBy: none
+		sourceColumn: code
+
+	/// Treatment name.
+	column Name
+		dataType: string
+		lineageTag: 9f0a1b2c-0053-4a11-9a01-000000000053
+		summarizeBy: none
+		sourceColumn: name
+
+	/// Treatment category (mix grouping).
+	column Category
+		dataType: string
+		lineageTag: 9f0a1b2c-0054-4a11-9a01-000000000054
+		summarizeBy: none
+		sourceColumn: category
+
+	partition DimTreatmentCategory = m
+		mode: import
+		queryGroup: Dimensions
+		source =
+				let
+					Source = #"MediniSource Query",
+					Data = Source{[Name = "treatment_catalog"]}[Data],
+					Active = Table.SelectRows(Data, each [deleted_at] = null and [is_active] = true)
+				in
+					Active
+
+	annotation PBI_ResultType = Table

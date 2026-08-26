@@ -1,0 +1,44 @@
+# ============================================================================
+# Medini CRM — Caddy reverse proxy (S10 T2)
+# HTTPS termination + routing. Caddy auto-provisions Let's Encrypt certs.
+#
+# Placeholders: replace {$DOMAIN} with the production domain.
+# ============================================================================
+
+{$DOMAIN:localhost} {
+	# --- Security headers ---
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# --- /metrics: internal monitoring only (S9 R-01) ---
+	# Public internet → 404. Internal Prometheus scrapes via the Docker network.
+	@metrics path /metrics
+	respond @metrics 404
+
+	# --- /health: liveness/readiness (public-safe, no sensitive data) ---
+	@health path /health/*
+	reverse_proxy @health backend:3000
+
+	# --- API: /api/v1 → NestJS backend ---
+	@api path /api/*
+	reverse_proxy @api backend:3000 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# --- Everything else → frontend static SPA ---
+	reverse_proxy frontend:80
+
+	# --- Logging ---
+	log {
+		output file /data/access.log
+		format json
+	}
+}

@@ -1,0 +1,67 @@
+/// Treatment items fact — plan items joined to plans (branch + date from plan).
+table FactTreatmentItems
+	lineageTag: 9f0a1b2c-0090-4a11-9a01-000000000090
+
+	/// Item UUID (hidden).
+	column ItemId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0091-4a11-9a01-000000000091
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Branch FK via plan (hidden).
+	column BranchId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0092-4a11-9a01-000000000092
+		summarizeBy: none
+		sourceColumn: branch_id
+
+	/// Treatment FK (hidden).
+	column TreatmentId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0093-4a11-9a01-000000000093
+		summarizeBy: none
+		sourceColumn: treatment_id
+
+	/// Plan created date FK (hidden).
+	column ItemDate
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0094-4a11-9a01-000000000094
+		summarizeBy: none
+		sourceColumn: item_date
+
+	/// Item quantity (additive).
+	column Quantity
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 9f0a1b2c-0095-4a11-9a01-000000000095
+		summarizeBy: sum
+		sourceColumn: quantity
+
+	partition FactTreatmentItems = m
+		mode: import
+		queryGroup: Facts
+		source =
+				let
+					Source = #"MediniSource Query",
+					Items = Source{[Name = "treatment_plan_items"]}[Data],
+					ActiveItems = Table.SelectRows(Items, each [deleted_at] = null),
+					Plans = Source{[Name = "treatment_plans"]}[Data],
+					ActivePlans = Table.SelectRows(Plans, each [deleted_at] = null),
+					Joined = Table.NestedJoin(ActiveItems, {"plan_id"}, ActivePlans, {"id"}, "plan", JoinKind.Inner),
+					Expanded = Table.ExpandTableColumn(Joined, "plan", {"branch_id", "created_at"}, {"branch_id", "plan_created_at"}),
+					WithDate = Table.AddColumn(Expanded, "item_date", each DateTime.Date([plan_created_at]), type date)
+				in
+					WithDate
+
+	annotation PBI_ResultType = Table
+
+	annotation TabularEditor_TableGroup = 02. Fact Tables

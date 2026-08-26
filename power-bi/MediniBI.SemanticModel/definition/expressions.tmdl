@@ -1,0 +1,15 @@
+expression PgServer = "localhost" meta [IsParameterQuery = true, IsParameterQueryRequired = true, Type = "Text"]
+	lineageTag: 9f0a1b2c-0010-4a11-9a01-000000000010
+	queryGroup: Parameters
+
+expression PgDatabase = "medini_prod" meta [IsParameterQuery = true, IsParameterQueryRequired = true, Type = "Text"]
+	lineageTag: 9f0a1b2c-0011-4a11-9a01-000000000011
+	queryGroup: Parameters
+
+expression 'MediniSource Query' =
+		let
+			Source = PostgreSQL.Database(PgServer, PgDatabase)
+		in
+			Source
+	lineageTag: 9f0a1b2c-0012-4a11-9a01-000000000012
+	queryGroup: Parameters

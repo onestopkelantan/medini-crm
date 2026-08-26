@@ -1,0 +1,41 @@
+model MediniBI
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+
+	discourageImplicitMeasures
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+queryGroup Parameters
+
+	annotation PBI_QueryGroupOrder = 0
+
+queryGroup Dimensions
+
+	annotation PBI_QueryGroupOrder = 1
+
+queryGroup Facts
+
+	annotation PBI_QueryGroupOrder = 2
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation MediniBI_CanonicalTruth = "KPI measures mirror RPT_KPIS registry (kpi_definitions). Do not add parallel revenue definitions."
+
+ref expression PgServer
+ref expression PgDatabase
+ref expression 'MediniSource Query'
+
+ref table DimDate
+ref table DimBranch
+ref table DimDoctor
+ref table DimTreatmentCategory
+ref table FactRevenue
+ref table FactAppointments
+ref table FactRecallCases
+ref table FactTreatmentItems
+ref table _Measures
+
+annotation MediniBI_BPA_Exceptions = "TE3 built-in accepted exceptions: FactRevenue[Amount] + FactTreatmentItems[Quantity] keep summarizeBy=sum (they ARE the additive facts); DimDate Year/Month/Day summarizeBy=none set but rule still flags calculated columns (documented TE3 built-in behaviour)."

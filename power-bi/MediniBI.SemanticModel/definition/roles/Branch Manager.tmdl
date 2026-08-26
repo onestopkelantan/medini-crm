@@ -1,0 +1,4 @@
+role 'Branch Manager (placeholder)'
+	modelPermission: read
+
+	tablePermission DimBranch = FALSE()

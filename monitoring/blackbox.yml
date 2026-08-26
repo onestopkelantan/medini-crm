@@ -1,0 +1,26 @@
+# ============================================================================
+# Medini CRM — Blackbox exporter config (Tier 1, P7-F8)
+# Probes HTTP endpoints (health/readiness/WAHA) from INSIDE the Docker network.
+# ============================================================================
+modules:
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: []        # default = 2xx
+      method: GET
+      no_follow_redirects: true
+
+  # WAHA session probe — expects 2xx/4xx from an AUTHENTICATED check.
+  # WAHA /api/sessions without a key returns 401 (service UP, auth enforced);
+  # we treat 401 as "up" (a 5xx/timeout would be a real outage). The API key
+  # is injected via WAHA_API_KEY if set, so a 200 also passes.
+  waha:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 401, 403]
+      method: GET
+      no_follow_redirects: true

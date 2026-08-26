@@ -1,0 +1,53 @@
+/// Recall cases fact — marketing recall pipeline (open/completed/cancelled).
+table FactRecallCases
+	lineageTag: 9f0a1b2c-0080-4a11-9a01-000000000080
+
+	/// Recall case UUID (hidden).
+	column RecallCaseId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0081-4a11-9a01-000000000081
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Branch FK (hidden).
+	column BranchId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0082-4a11-9a01-000000000082
+		summarizeBy: none
+		sourceColumn: branch_id
+
+	/// Recall due date FK (hidden).
+	column DueDate
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0083-4a11-9a01-000000000083
+		summarizeBy: none
+		sourceColumn: due_date
+
+	/// recall_status enum: open|completed|cancelled
+	/// Recall status enum.
+	column Status
+		dataType: string
+		lineageTag: 9f0a1b2c-0084-4a11-9a01-000000000084
+		summarizeBy: none
+		sourceColumn: status
+
+	partition FactRecallCases = m
+		mode: import
+		queryGroup: Facts
+		source =
+				let
+					Source = #"MediniSource Query",
+					Data = Source{[Name = "recall_cases"]}[Data],
+					Active = Table.SelectRows(Data, each [deleted_at] = null)
+				in
+					Active
+
+	annotation PBI_ResultType = Table
+
+	annotation TabularEditor_TableGroup = 02. Fact Tables

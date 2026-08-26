@@ -1,0 +1,143 @@
+# ============================================================================
+# Medini CRM — Alert rules (Tier 1, P7-F8)
+#
+# Covers the 10 mandated monitoring areas. Extends the S9 OBSERVABILITY.md
+# hooks (A1–A6) with infrastructure + backup + WAHA rules. Cardinality
+# discipline preserved (no org/branch/patient labels).
+#
+# Areas: 1 backend down, 2 postgres down, 3 redis down, 4 backup failure,
+#        5 disk pressure, 6 API 5xx, 7 auth-failure spike, 8 latency,
+#        9 container restart loop, 10 WAHA availability.
+# ============================================================================
+groups:
+  - name: medini-availability
+    rules:
+      # 1. Backend unavailable
+      - alert: BackendDown
+        expr: up{job="medini-backend"} == 0
+        for: 1m
+        labels: { severity: critical, area: backend }
+        annotations:
+          summary: "Medini backend is DOWN"
+          description: "Prometheus cannot scrape backend:3000/metrics for >1m."
+
+      # 6. Excessive API 5xx (S9 hook A4)
+      - alert: Api5xxRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels: { severity: high, area: api }
+        annotations:
+          summary: "Elevated API 5xx error rate"
+          description: "5xx rate {{ $value }}/s over 5m exceeds 0.1/s."
+
+      # 8. Excessive latency (S9 hook A3)
+      - alert: ApiLatencyHigh
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels: { severity: medium, area: api }
+        annotations:
+          summary: "API p95 latency degradation"
+          description: "p95 {{ $value }}s over 5m exceeds 2s."
+
+      # 7. Authentication failure spike (401s on auth routes)
+      - alert: AuthFailureSpike
+        expr: rate(http_requests_total{route=~".*auth/login.*", status=~"4.."}[5m]) > 0.5
+        for: 5m
+        labels: { severity: high, area: auth }
+        annotations:
+          summary: "Authentication failure spike"
+          description: "Login 4xx rate {{ $value }}/s over 5m — possible credential attack or outage."
+
+  - name: medini-dependencies
+    rules:
+      # 2. PostgreSQL unavailable (postgres_exporter /health/ready probe + pg_up)
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels: { severity: critical, area: postgres }
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "postgres_exporter cannot reach the database for >1m."
+
+      # Backend readiness probe failing (PG dependency via /health/ready)
+      - alert: BackendNotReady
+        expr: probe_success{job="medini-health", instance=~".*health/ready"} == 0
+        for: 2m
+        labels: { severity: critical, area: backend }
+        annotations:
+          summary: "Backend readiness failing"
+          description: "/health/ready returns non-2xx — dependency (PostgreSQL) unreachable."
+
+      # 3. Redis unavailable (redis_exporter)
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels: { severity: critical, area: redis }
+        annotations:
+          summary: "Redis is DOWN"
+          description: "redis_exporter cannot reach Redis for >1m (BullMQ queue impacted)."
+
+      # 10. WAHA availability/session failure
+      - alert: WahaDown
+        expr: probe_success{job="waha"} == 0
+        for: 2m
+        labels: { severity: high, area: waha }
+        annotations:
+          summary: "WAHA unavailable / session check failing"
+          description: "WAHA API probe failing for >2m — WhatsApp transport degraded."
+
+  - name: medini-infrastructure
+    rules:
+      # 5. Disk / storage pressure (node_exporter)
+      - alert: DiskPressure
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) > 0.85
+        for: 10m
+        labels: { severity: high, area: disk }
+        annotations:
+          summary: "Root filesystem >85% full"
+          description: "{{ $value | humanizePercentage }} used — risk to pgdata/backupdata/walarchive."
+
+      # 9. Container restart loop (cadvisor)
+      - alert: ContainerRestartLoop
+        expr: changes(container_start_time_seconds[15m]) > 3
+        for: 5m
+        labels: { severity: high, area: container }
+        annotations:
+          summary: "Container restart loop detected"
+          description: "Container {{ $labels.name }} restarted >3 times in 15m."
+
+      # 4. Backup failure / staleness (heartbeat file via textfile collector)
+      - alert: BackupStale
+        expr: (time() - medini_backup_last_success_timestamp_seconds) > 93600
+        for: 5m
+        labels: { severity: high, area: backup }
+        annotations:
+          summary: "Medini backup is stale (>26h)"
+          description: "No successful backup heartbeat in >26h — backup sidecar may be broken."
+
+      # WAL archive staleness (PITR chain broken)
+      - alert: WalArchiveStale
+        expr: (time() - medini_wal_last_archive_timestamp_seconds) > 900
+        for: 5m
+        labels: { severity: medium, area: backup }
+        annotations:
+          summary: "WAL archive is stale (>15m)"
+          description: "No WAL segment archived in >15m despite archive_timeout=300 — PITR chain may be broken."
+
+      # S9 hook A1 — outbox durability
+      - alert: OutboxBacklog
+        expr: outbox_unpublished_events > 100
+        for: 10m
+        labels: { severity: high, area: worker }
+        annotations:
+          summary: "Outbox unpublished events backlog"
+          description: "{{ $value }} unpublished domain events — dispatcher down or DB pressure."
+
+      # S9 hook A2 — worker failure storm
+      - alert: WorkerFailureStorm
+        expr: rate(worker_jobs_total{status="failed"}[5m]) > 0.2
+        for: 5m
+        labels: { severity: high, area: worker }
+        annotations:
+          summary: "Worker job failure storm"
+          description: "Failed job rate {{ $value }}/s over 5m."

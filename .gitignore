@@ -1,0 +1,26 @@
+# Dependencies / build output
+node_modules/
+dist/
+coverage/
+
+# Secrets & local env — NEVER commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# Logs / temp / OS
+*.log
+tmp/
+.DS_Store
+Thumbs.db
+
+# Test/QA runtime artifacts (large, regenerable)
+app/smoke-shots/
+_archive/
+*.tsbuildinfo
+staging.env
+*.zip 
+*.zip 

@@ -1,0 +1,54 @@
+/// Revenue fact — confirmed sale_records only (canonical RPT_KPIS source).
+table FactRevenue
+	lineageTag: 9f0a1b2c-0060-4a11-9a01-000000000060
+
+	/// Sale UUID (hidden).
+	column SaleId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0061-4a11-9a01-000000000061
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Branch FK (hidden).
+	column BranchId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0062-4a11-9a01-000000000062
+		summarizeBy: none
+		sourceColumn: branch_id
+
+	/// Sale date FK (hidden).
+	column SaleDate
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0063-4a11-9a01-000000000063
+		summarizeBy: none
+		sourceColumn: sale_date
+
+	/// Canonical revenue fact: confirmed sales only (RPT_KPIS revenue sourceDomain=finance).
+	/// Confirmed sale amount (MYR).
+	column Amount
+		dataType: decimal
+		formatString: #,##0.00
+		lineageTag: 9f0a1b2c-0064-4a11-9a01-000000000064
+		summarizeBy: sum
+		sourceColumn: amount
+
+	partition FactRevenue = m
+		mode: import
+		queryGroup: Facts
+		source =
+				let
+					Source = #"MediniSource Query",
+					Data = Source{[Name = "sale_records"]}[Data],
+					Confirmed = Table.SelectRows(Data, each [status] = "confirmed" and [deleted_at] = null)
+				in
+					Confirmed
+
+	annotation PBI_ResultType = Table
+
+	annotation TabularEditor_TableGroup = 02. Fact Tables

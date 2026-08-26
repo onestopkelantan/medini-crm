@@ -1,0 +1,43 @@
+relationship 9f0a1b2c-00a0-4a11-9a01-0000000000a0
+	fromColumn: FactRevenue.BranchId
+	toColumn: DimBranch.BranchId
+
+relationship 9f0a1b2c-00a1-4a11-9a01-0000000000a1
+	fromColumn: FactRevenue.SaleDate
+	toColumn: DimDate.Date
+
+relationship 9f0a1b2c-00a2-4a11-9a01-0000000000a2
+	fromColumn: FactAppointments.BranchId
+	toColumn: DimBranch.BranchId
+
+relationship 9f0a1b2c-00a3-4a11-9a01-0000000000a3
+	fromColumn: FactAppointments.DoctorId
+	toColumn: DimDoctor.DoctorId
+
+relationship 9f0a1b2c-00a4-4a11-9a01-0000000000a4
+	fromColumn: FactAppointments.ScheduledDate
+	toColumn: DimDate.Date
+
+relationship 9f0a1b2c-00a5-4a11-9a01-0000000000a5
+	fromColumn: FactRecallCases.BranchId
+	toColumn: DimBranch.BranchId
+
+relationship 9f0a1b2c-00a6-4a11-9a01-0000000000a6
+	fromColumn: FactRecallCases.DueDate
+	toColumn: DimDate.Date
+
+relationship 9f0a1b2c-00a7-4a11-9a01-0000000000a7
+	fromColumn: FactTreatmentItems.BranchId
+	toColumn: DimBranch.BranchId
+
+relationship 9f0a1b2c-00a8-4a11-9a01-0000000000a8
+	fromColumn: FactTreatmentItems.TreatmentId
+	toColumn: DimTreatmentCategory.TreatmentId
+
+relationship 9f0a1b2c-00a9-4a11-9a01-0000000000a9
+	fromColumn: FactTreatmentItems.ItemDate
+	toColumn: DimDate.Date
+
+relationship 9f0a1b2c-00aa-4a11-9a01-0000000000aa
+	fromColumn: DimDoctor.BranchId
+	toColumn: DimBranch.BranchId

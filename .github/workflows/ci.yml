@@ -1,0 +1,117 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['backend/**', 'app/**', '.github/workflows/**']
+  pull_request:
+    paths: ['backend/**', 'app/**', '.github/workflows/**']
+
+jobs:
+  # RA-2: frontend quality gate — mandatory, no bypass. Any lint/typecheck/
+  # build failure makes CI red. No continue-on-error, no `|| true`.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install
+        run: npm ci || npm install
+      - name: TypeScript typecheck (project build — the real gate)
+        run: npm run check
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+
+  foundation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: medini
+          POSTGRES_PASSWORD: medini_dev_password
+          POSTGRES_DB: medini_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medini -d medini_dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://medini:medini_dev_password@localhost:5432/medini_dev
+      DATABASE_RUNTIME_URL: postgres://medini_app:medini_app_password@localhost:5432/medini_dev
+      JWT_SECRET: ci_only_insecure_jwt_secret_for_tests_0123456789
+      JWT_REFRESH_SECRET: ci_only_insecure_refresh_secret_for_tests_0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install
+        run: npm ci || npm install
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Migrate (clean PG16 — journal-driven, drift-proof)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client jq
+          # RA-1: derive migration set from the drizzle journal (authoritative),
+          # cross-check against on-disk files, apply in idx order. A journal/file
+          # mismatch or unexpected count fails loudly — no hardcoded list that can
+          # silently drift behind the real schema (the pre-RA-1 list stopped at 0028
+          # while migrations had already reached 0031).
+          mapfile -t JOURNAL_TAGS < <(jq -r '.entries | sort_by(.idx) | .[].tag' drizzle/meta/_journal.json)
+          mapfile -t FILES < <(ls drizzle/0*.sql | sed 's|drizzle/||; s|\.sql$||' | sort)
+          if [ "${#JOURNAL_TAGS[@]}" -ne "${#FILES[@]}" ]; then
+            echo "DRIFT: journal has ${#JOURNAL_TAGS[@]} entries but ${#FILES[@]} migration files"; exit 1
+          fi
+          for i in "${!JOURNAL_TAGS[@]}"; do
+            if [ "${JOURNAL_TAGS[$i]}" != "${FILES[$i]}" ]; then
+              echo "DRIFT: journal[$i]=${JOURNAL_TAGS[$i]} != file ${FILES[$i]}"; exit 1
+            fi
+          done
+          echo "Applying ${#FILES[@]} migrations (journal-verified, idx 0..$((${#FILES[@]}-1)))"
+          for tag in "${FILES[@]}"; do
+            echo "--- applying drizzle/${tag}.sql ---"
+            sed 's/--> statement-breakpoint//g' "drizzle/${tag}.sql" | PGPASSWORD=medini_dev_password psql -h localhost -U medini -d medini_dev -v ON_ERROR_STOP=1 -q
+          done
+      - name: Schema fingerprint (replay == expected current schema)
+        run: |
+          sudo apt-get install -y -qq postgresql-client
+          # RA-1: fingerprint the freshly replayed CI schema. These counts are the
+          # current 0000→0034 fingerprint; if a future migration changes the schema
+          # without updating this step, CI fails loudly instead of silently passing
+          # against a stale shape.
+          ACTUAL=$(PGPASSWORD=medini_dev_password psql -h localhost -U medini -d medini_dev -tAc "
+            SELECT 'tables='||count(*) FROM information_schema.tables WHERE table_schema='public';
+            SELECT 'policies='||count(*) FROM pg_policies;
+            SELECT 'rls_enabled='||count(*) FROM pg_class WHERE relrowsecurity=true AND relnamespace='public'::regnamespace;
+            SELECT 'migrations='||count(*) FROM (SELECT 1 FROM pg_tables WHERE schemaname='public') t;
+          " | tr '\n' ' ')
+          echo "Fingerprint: $ACTUAL"
+          echo "$ACTUAL" | grep -q "tables=76" || { echo "DRIFT: tables != 76"; exit 1; }
+          echo "$ACTUAL" | grep -q "policies=308" || { echo "DRIFT: policies != 308"; exit 1; }
+          echo "$ACTUAL" | grep -q "rls_enabled=76" || { echo "DRIFT: rls_enabled != 76"; exit 1; }
+      - name: Seed (14 branches + 4 demo users, Argon2id)
+        run: node dist/infrastructure/database/seed.js
+      - name: Tests (unit + contract + architecture + live DB integration)
+        run: npm test
