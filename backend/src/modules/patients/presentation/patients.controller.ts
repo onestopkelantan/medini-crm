@@ -20,12 +20,14 @@ export class PatientsController {
     @Query('q') q?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('branchId') branchId?: string,
   ) {
     return this.service.search(
       req.principal!,
       q,
       limit ? Number(limit) : undefined,
       offset ? Number(offset) : undefined,
+      branchId,
     );
   }
 

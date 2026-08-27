@@ -178,9 +178,9 @@ export class PatientsService {
   }
 
   async search(
-    principal: Principal, q: string | undefined, limit?: number, offset?: number,
+    principal: Principal, q: string | undefined, limit?: number, offset?: number, selectedBranchId?: string,
   ): Promise<Patient[]> {
-    const branchId = this.readBranch(principal);
+        const branchId = principal.role === 'hq' ? (selectedBranchId ?? null) : this.readBranch(principal);
     return this.dbCtx.runAs(principal, async (tx) => {
       const rows = await this.repo.search(tx, principal.orgId, branchId, { q, limit, offset });
       if (principal.role === 'doctor') {
