@@ -17,7 +17,7 @@ export class WhatsappWebhookController {
   @Public()
   @Post('webhook')
   async webhook(@Body() body: any) {
-    this.logger.log('PAYLOAD MASUK: ' + JSON.stringify(body));
+    this.logger.warn('PAYLOAD MASUK: ' + JSON.stringify(body));
 
     const event = body?.event ?? '';
     const payload = body?.payload ?? {};
@@ -25,15 +25,15 @@ export class WhatsappWebhookController {
     const text: string = payload.body ?? payload.text ?? payload?.message?.text ?? '';
     const fromMe: boolean = payload.fromMe ?? payload?.key?.fromMe ?? false;
 
-    this.logger.log(`event=${event} chatId=${chatId} fromMe=${fromMe} text=${text}`);
+    this.logger.warn(`event=${event} chatId=${chatId} fromMe=${fromMe} text=${text}`);
 
-    if (fromMe) { this.logger.log('SKIP: fromMe'); return { ok: true }; }
-    if (!chatId) { this.logger.log('SKIP: no chatId'); return { ok: true }; }
-    if (!text || !text.trim()) { this.logger.log('SKIP: no text'); return { ok: true }; }
+    if (fromMe) { this.logger.warn('SKIP: fromMe'); return { ok: true }; }
+    if (!chatId) { this.logger.warn('SKIP: no chatId'); return { ok: true }; }
+    if (!text || !text.trim()) { this.logger.warn('SKIP: no text'); return { ok: true }; }
 
     try {
       const reply = await this.minimax.chat(NUR_PROMPT, text);
-      this.logger.log('NUR REPLY: ' + reply);
+      this.logger.warn('NUR REPLY: ' + reply);
       await this.sendText(chatId, reply);
     } catch (e) {
       this.logger.error('Gagal proses mesej: ' + (e as Error).message);
@@ -50,7 +50,7 @@ export class WhatsappWebhookController {
     if (!res.ok) {
       this.logger.error(`sendText gagal ${res.status}: ${await res.text()}`);
     } else {
-      this.logger.log('sendText OK ke ' + chatId);
+      this.logger.warn('sendText OK ke ' + chatId);
     }
   }
 }
