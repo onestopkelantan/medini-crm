@@ -27,7 +27,7 @@ interface Staff {
   status: string;
   branchId: string | null;
 }
-interface Branch { id: string; name: string; code: string }
+interface Branch { id: string; shortName: string; code: string }
 
 /* ---------- Invite Staff dialog (HQ sets org/branch/role → generate single-use link) ---------- */
 function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -80,7 +80,7 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
                   <Label>Branch *</Label>
                   <Select value={form.branchId} onValueChange={(v) => setForm({ ...form, branchId: v })}>
                     <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{(branches.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(branches.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.shortName}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}

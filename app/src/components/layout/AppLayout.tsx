@@ -154,14 +154,14 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = navByRole[user?.role ?? "doctor"] ?? [];
-  const branches = useQuery({ queryKey: ["admin", "branches"], queryFn: () => api.get<Array<{ id: string; name: string }>>("/admin/branches"), enabled: user?.role === "hq" });
+  const branches = useQuery({ queryKey: ["admin", "branches"], queryFn: () => api.get<Array<{ id: string; shortName: string }>>("/admin/branches"), enabled: user?.role === "hq" });
   /* S10 T1: WhatsApp unread badge requires the whatsapp sessions endpoint; deferred. */
   const unread = 0;
 
   const currentBranchName =
     user?.role === "hq"
       ? branchId
-        ? (branches.data ?? []).find((b) => b.id === branchId)?.name ?? "All Branches"
+        ? (branches.data ?? []).find((b) => b.id === branchId)?.shortName ?? "All Branches"
         : "All Branches"
       : branch?.name ?? "—";
 
@@ -288,7 +288,7 @@ export default function AppLayout() {
               <SelectContent>
                 <SelectItem value="all">All Branches</SelectItem>
                 {(branches.data ?? []).map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  <SelectItem key={b.id} value={b.id}>{b.shortName}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

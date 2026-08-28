@@ -17,7 +17,7 @@ import { age, initials } from "@/lib/format";
 import { UserPlus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
-interface Branch { id: string; name: string; code: string }
+interface Branch { id: string; shortName: string; code: string }
 interface Patient {
   id: string; mrn: string; name: string; phone: string | null; email: string | null;
   dob: string | null; gender: string | null; branchId: string;
@@ -59,7 +59,7 @@ function NewPatientDialog({ open, onClose, onCreated }: { open: boolean; onClose
               <Label>Branch *</Label>
               <Select value={branch} onValueChange={setBranch}>
                 <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
-                <SelectContent>{(branches.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{(branches.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.shortName}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           )}
