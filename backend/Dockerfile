@@ -15,3 +15,5 @@ RUN npm run build
 ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["npm", "run", "start:prod"]
+
+# trigger deploy 2026-08-28 15:32:17
