@@ -1,61 +1,43 @@
-﻿/* WhatsApp webhook - terima mesej dari WAHA, tanya Nur, balas balik ke WhatsApp. */
+﻿/* WhatsApp webhook - Nur reply + booking intake to booking_requests. */
 import { Body, Controller, Post, Logger } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
 import { MinimaxAdapter } from '../infrastructure/minimax.adapter';
+import { DbContextService } from '../../../core/auth/db-context.service';
+
+const ORG_ID = '00000000-0000-0000-0000-000000000001';
 
 const NUR_PROMPT = `Awak Nur, staf AI Klinik Pergigian Medini (klinik gigi). Tugas: bantu customer faham rawatan, jawab soalan lazim, beri panduan awal (tapi doktor akan check), dan kumpul detail booking sebelum pass ke admin sebenar.
 
 CARA BERCAKAP:
 - Professional, mesra, warm, tak skema. Bahasa Melayu campur simple English.
 - Boleh guna: Hi, Baik, Boleh je, Okay, Done. Singkatan ok: kat, nak, tu, ni, utk, yg, tgh.
-- Guna 1 emoji ringkas setiap mesej (contoh muka senyum, gigi, tick).
+- Guna 1 emoji ringkas setiap mesej.
 - Panggil Cik/Tuan/Puan. Guna Cik kalau tak pasti jantina. JANGAN guna sis/bro.
-- Balas RINGKAS, maksimum 2-3 ayat pendek. JANGAN karangan panjang.
+- Balas RINGKAS, maksimum 2-3 ayat pendek.
 
-HARGA RAWATAN (RM, ikut keadaan gigi - sarankan checkup dulu utk harga tepat):
-- Consultation/Check up: 30-150. X-ray: OPG/2D 100, CBCT/3D 150-400, PA 50-70.
-- Scaling & polishing: regular 120-250, deep 250-350, kids 60-120.
-- Cabut gigi: mobile 120-180, normal 150-350, hard 350-700, kids 80-120, wisdom 1000-1800.
-- Fluoride: 100-180.
-- Tambal gigi: composite 130-350, capsule 120-250, kids 80-150, temporary 80-120.
-- Root canal (RCT): gigi depan 1000-1200, tengah 1200-1500, belakang 1500-1800, gigi susu 350-600.
-- Crown: PFM 1200-1500, ceramic 1500-1800, zirconia 1600-2000.
-- Veneer: composite 350-450, ceramic 1500-1800.
-- Whitening: 1 cycle 399, 2 cycle 599, full 799.
-- Denture: acrylic base 500-600, flexible 1000-1300, cobalt chrome 1300-1400; full acrylic 14 gigi 1150; full flexible/cobalt 2020-2370.
-- Braces: traditional 5500-7000, self-ligating 7500-10000, ceramic 10000-15000, retainer 450-750.
-- Clear aligner: 12000-16000.
-- Implant: basic 7000-8000, bone graft 2000-2500.
-- Kanak-kanak: scaling 60-120, filling 80-150, pulpectomy 350-600.
+HARGA (RM, ikut keadaan - sarankan checkup dulu): Consult 30-150; Scaling 120-350; Cabut gigi 120-1800 (wisdom 1000-1800); Tambal 130-350; Root canal 1000-1800; Crown 1200-2000; Veneer 350-1800; Whitening 399-799; Denture 500-2370; Braces 5500-15000; Clear aligner 12000-16000; Implant 7000-8000; Kanak-kanak 60-600.
 
-CAWANGAN (Johor Bahru kecuali dinyatakan):
-Mutiara Mas (Skudai, depan Hutan Bandar Mutiara Rini), Taman Daya (depan Petron roundabout), Uda Business Centre (Bandar Baru Uda, depan Plaza Angsana), Gelang Patah (sebaris Pizza Hut & Hong Leong Bank), Bukit Indah (depan Aeon Bukit Indah), Setia Tropika (dekat JPN Johor), Pasir Gudang (dekat KPJ Pasir Gudang), Taman Molek (dekat Balai Polis Johor Jaya), Taman Sentosa (dekat Grand Sentosa Hotel), Uda Padi Ria (dekat Masjid Jamik Bandar Baru Uda), Pearl Kebun Teh, Metropoint (Kajang, Selangor), Norfaizah (Kajang, Selangor), Meor Ahmad (Keramat, KL).
-Waktu operasi: kebanyakan cawangan 9 pagi - 9 malam. Sesetengah cawangan waktu lebih pendek atau tutup hari tertentu (banyak pendek/tutup hari Jumaat). Utk waktu & alamat tepat sesuatu cawangan, beritahu admin akan sahkan.
+CAWANGAN (JB kecuali dinyatakan): Mutiara Mas, Taman Daya, Uda Business Centre, Gelang Patah, Bukit Indah, Setia Tropika, Pasir Gudang, Taman Molek, Taman Sentosa, Uda Padi Ria, Pearl Kebun Teh, Metropoint (Kajang), Norfaizah (Kajang), Meor Ahmad (KL). Kebanyakan buka 9 pagi-9 malam; utk waktu/alamat tepat, admin akan sahkan.
 
-FAQ:
-- Walk in boleh, tapi galakkan appointment dulu utk elak tunggu lama.
-- Sakit gigi: sarankan datang check segera (mungkin jangkitan/saraf). Tanya customer area mana, cadang cawangan berhampiran.
-- Cabut gigi sakit tak: doktor bius dulu, biasanya cuma rasa tekanan sikit.
-- Panel/perkeso: minta nama company/panel utk semak eligibility.
-- Whitening tahan berapa lama: ikut lifestyle (kopi, teh, rokok).
+FAQ: Walk in boleh tapi galakkan appointment. Sakit gigi - sarankan check segera, tanya area mana. Cabut gigi - doktor bius dulu. Panel/perkeso - minta nama company.
 
-PANTANG LARANG (WAJIB):
-1. JANGAN reka harga atau discount yang tak wujud. Kalau tak pasti, cadang checkup atau rujuk admin.
-2. JANGAN confirm slot booking. Sentiasa beritahu admin akan verify dulu.
-3. JANGAN bagi nasihat pergigian yang berat. Sakit kronik - rujuk doktor.
-4. JANGAN balas panjang. Maksimum 2-3 ayat.
-5. JANGAN guna panggilan santai (sis/bro). Guna Cik/Tuan/Puan.
+PANTANG LARANG: JANGAN reka harga/discount. JANGAN confirm slot booking - sentiasa beritahu admin akan verify dulu. Sakit kronik - rujuk doktor. Maksimum 2-3 ayat. Guna Cik/Tuan/Puan.
 
-BOOKING: bila customer setuju nak buat, kumpul: (1) Nama penuh (2) Tarikh & masa (3) Rawatan (4) Cawangan pilihan. Bila lengkap, beritahu admin akan verify & confirm slot.`;
+BOOKING: bila customer nak buat, kumpul: nama penuh, tarikh, masa, rawatan, cawangan. Bila lengkap, beritahu admin akan verify & confirm slot.`;
 
-const WAHA_URL = process.env.WAHA_URL ?? 'https://waha-production-f5bc.up.railway.app';
-const WAHA_API_KEY = process.env.WAHA_API_KEY ?? '';
-const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default';
+const EXTRACT_PROMPT = `Kamu adalah pengekstrak data booking. Baca mesej customer klinik gigi. Kalau ia MENGANDUNGI niat tempahan/booking (ada nama ATAU tarikh ATAU masa ATAU rawatan ATAU cawangan), pulangkan JSON SAHAJA dalam format:
+{"is_booking":true,"name":"","date":"","time":"","treatment":"","branch":""}
+Isi field yang ada, biar kosong "" untuk yang tiada. Kalau mesej BUKAN tentang booking (cuma tanya harga/soalan am/borak), pulangkan {"is_booking":false}.
+JANGAN tulis apa-apa selain JSON. Tiada markdown, tiada penjelasan.`;
 
 @Controller({ path: 'whatsapp', version: '1' })
 export class WhatsappWebhookController {
   private readonly logger = new Logger('WhatsappWebhook');
-  constructor(private readonly minimax: MinimaxAdapter) {}
+  constructor(
+    private readonly minimax: MinimaxAdapter,
+    private readonly dbCtx: DbContextService,
+  ) {}
 
   @Public()
   @Post('webhook')
@@ -75,19 +57,56 @@ export class WhatsappWebhookController {
       const reply = await this.minimax.chat(NUR_PROMPT, text);
       await this.sendText(chatId, reply);
     } catch (e) {
-      this.logger.error('Gagal proses mesej: ' + (e as Error).message);
+      this.logger.error('Gagal balas: ' + (e as Error).message);
+    }
+
+    /* Booking intake (best-effort, never blocks the reply). */
+    try {
+      await this.maybeSaveBooking(chatId, text);
+    } catch (e) {
+      this.logger.error('Gagal simpan booking: ' + (e as Error).message);
     }
     return { ok: true };
   }
 
+  private async maybeSaveBooking(chatId: string, text: string) {
+    const raw = await this.minimax.chat(EXTRACT_PROMPT, text);
+    const jsonStr = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    let data: any;
+    try { data = JSON.parse(jsonStr); } catch { return; }
+    if (!data || data.is_booking !== true) return;
+
+    const name = (data.name ?? '').toString().trim();
+    const date = (data.date ?? '').toString().trim();
+    const time = (data.time ?? '').toString().trim();
+    const treatment = (data.treatment ?? '').toString().trim();
+    const branch = (data.branch ?? '').toString().trim();
+
+    /* Need at least a name plus one scheduling detail to be worth saving. */
+    if (!name && !date && !time) return;
+
+    const phone = chatId.replace('@c.us', '');
+    await this.dbCtx.runAsWorker(
+      { orgId: ORG_ID, branchIds: [], correlationId: 'wa-booking', source: 'system_worker' },
+      async (tx) => {
+        await tx.execute(sql`
+          INSERT INTO booking_requests
+            (org_id, branch_id, contact_phone, patient_name, preferred_date, preferred_time, treatment, branch_name, raw_message, status)
+          VALUES
+            (${ORG_ID}, NULL, ${phone}, ${name || null}, ${date || null}, ${time || null}, ${treatment || null}, ${branch || null}, ${text}, 'pending')
+        `);
+      },
+    );
+    this.logger.warn('Booking request saved for ' + phone);
+  }
+
   private async sendText(chatId: string, text: string) {
-    const res = await fetch(`${WAHA_URL}/api/sendText`, {
+    const url = process.env.WAHA_URL ?? 'https://waha-production-f5bc.up.railway.app';
+    const res = await fetch(`${url}/api/sendText`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-      body: JSON.stringify({ session: WAHA_SESSION, chatId, text }),
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.WAHA_API_KEY ?? '' },
+      body: JSON.stringify({ session: process.env.WAHA_SESSION ?? 'default', chatId, text }),
     });
-    if (!res.ok) {
-      this.logger.error(`sendText gagal ${res.status}: ${await res.text()}`);
-    }
+    if (!res.ok) this.logger.error(`sendText gagal ${res.status}: ${await res.text()}`);
   }
 }

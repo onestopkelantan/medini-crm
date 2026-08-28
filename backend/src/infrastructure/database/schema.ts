@@ -1740,3 +1740,30 @@ export const refreshTokens = pgTable('refresh_tokens', {
 ]);
 
 export type RefreshToken = typeof refreshTokens.$inferSelect;
+
+
+/* ============================================================================
+   BOOKING_REQUESTS - raw WhatsApp booking intake (pre-verification inbox).
+   Written by system_worker (WhatsApp webhook), read/managed by hq+branch admin.
+   NOT patient data yet - free-text fields from AI extraction, admin verifies
+   then converts to a real appointment via the appointments module.
+   ==========================================================================*/
+export const bookingRequestStatusEnum = pgEnum('booking_request_status', ['pending', 'confirmed', 'rejected']);
+
+export const bookingRequests = pgTable('booking_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id').notNull(),
+  branchId: uuid('branch_id'),
+  contactPhone: varchar('contact_phone', { length: 64 }).notNull(),
+  patientName: varchar('patient_name', { length: 256 }),
+  preferredDate: varchar('preferred_date', { length: 64 }),
+  preferredTime: varchar('preferred_time', { length: 64 }),
+  treatment: varchar('treatment', { length: 256 }),
+  branchName: varchar('branch_name', { length: 256 }),
+  rawMessage: text('raw_message'),
+  status: bookingRequestStatusEnum('status').notNull().default('pending'),
+  linkedAppointmentId: uuid('linked_appointment_id').references(() => appointments.id, { onDelete: 'set null' }),
+  ...auditCols,
+});
+
+export type BookingRequest = typeof bookingRequests.$inferSelect;
