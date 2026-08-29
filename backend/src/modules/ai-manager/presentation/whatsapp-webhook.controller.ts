@@ -1,4 +1,4 @@
-﻿/* WhatsApp webhook - Nur reply + booking intake to booking_requests. */
+/* WhatsApp webhook - Nur reply + booking intake to booking_requests. */
 import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
@@ -43,6 +43,7 @@ export class WhatsappWebhookController {
   @Post('webhook')
   async webhook(@Body() body: any) {
     if (body?.event !== 'message') return { ok: true };
+    this.logger.warn('WA PAYLOAD: ' + JSON.stringify(body?.payload ?? {}));
     const payload = body?.payload ?? {};
     const chatId: string = payload.from ?? payload.chatId ?? '';
     const text: string = payload.body ?? payload.text ?? '';

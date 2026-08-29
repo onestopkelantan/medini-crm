@@ -25,3 +25,5 @@ CMD ["npm", "run", "start:prod"]
 # trigger deploy booking 20:36:22
 
 # trigger deploy booking-api 10:38:12
+
+# trigger deploy wa-payload-log 11:25:43
