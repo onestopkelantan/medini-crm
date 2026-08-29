@@ -29,3 +29,5 @@ CMD ["npm", "run", "start:prod"]
 # trigger deploy wa-payload-log 11:25:43
 
 # trigger deploy real-phone 11:44:31
+
+# trigger deploy booking-notify 13:03:17
