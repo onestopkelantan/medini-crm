@@ -33,3 +33,5 @@ CMD ["npm", "run", "start:prod"]
 # trigger deploy booking-notify 13:03:17
 
 # trigger deploy setia-branch 14:42:43
+
+# trigger deploy resolve-lid 15:08:48

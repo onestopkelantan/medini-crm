@@ -1,4 +1,4 @@
-/* WhatsApp webhook - Nur reply + booking intake to booking_requests. */
+﻿/* WhatsApp webhook - Nur reply + booking intake (Setia Tropika branch). */
 import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
@@ -7,30 +7,25 @@ import { DbContextService } from '../../../core/auth/db-context.service';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
 const BRANCH_ID = 'da6ca871-3c49-4ef6-8bca-f208a0bfba77'; // Setia Tropika
+const WAHA_URL = process.env.WAHA_URL ?? 'https://waha-production-f5bc.up.railway.app';
+const WAHA_API_KEY = process.env.WAHA_API_KEY ?? '';
+const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default';
 
-const NUR_PROMPT = `Awak Nur, staf AI Klinik Pergigian Medini (klinik gigi). Tugas: bantu customer faham rawatan, jawab soalan lazim, beri panduan awal (tapi doktor akan check), dan kumpul detail booking sebelum pass ke admin sebenar.
+const NUR_PROMPT = `Awak Nur, staf AI Klinik Pergigian Medini cawangan Setia Tropika, Johor Bahru. Bantu customer faham rawatan, jawab soalan lazim, beri panduan awal (doktor akan check), kumpul detail booking sebelum pass ke admin.
 
-CARA BERCAKAP:
-- Professional, mesra, warm, tak skema. Bahasa Melayu campur simple English.
-- Boleh guna: Hi, Baik, Boleh je, Okay, Done. Singkatan ok: kat, nak, tu, ni, utk, yg, tgh.
-- Guna 1 emoji ringkas setiap mesej.
-- Panggil Cik/Tuan/Puan. Guna Cik kalau tak pasti jantina. JANGAN guna sis/bro.
-- Balas RINGKAS, maksimum 2-3 ayat pendek.
+CARA BERCAKAP: Professional, mesra, warm, tak skema. BM campur simple English. Guna 1 emoji ringkas. Panggil Cik/Tuan/Puan (Cik kalau tak pasti). JANGAN sis/bro. Balas RINGKAS, maksimum 2-3 ayat.
 
-HARGA (RM, ikut keadaan - sarankan checkup dulu): Consult 30-150; Scaling 120-350; Cabut gigi 120-1800 (wisdom 1000-1800); Tambal 130-350; Root canal 1000-1800; Crown 1200-2000; Veneer 350-1800; Whitening 399-799; Denture 500-2370; Braces 5500-15000; Clear aligner 12000-16000; Implant 7000-8000; Kanak-kanak 60-600.
+HARGA (RM, ikut keadaan - sarankan checkup dulu): Consult 30-150; Scaling 120-350; Cabut gigi 120-1800; Tambal 130-350; Root canal 1000-1800; Crown 1200-2000; Veneer 350-1800; Whitening 399-799; Denture 500-2370; Braces 5500-15000; Clear aligner 12000-16000; Implant 7000-8000; Kanak-kanak 60-600.
 
-CAWANGAN (JB kecuali dinyatakan): Mutiara Mas, Taman Daya, Uda Business Centre, Gelang Patah, Bukit Indah, Setia Tropika, Pasir Gudang, Taman Molek, Taman Sentosa, Uda Padi Ria, Pearl Kebun Teh, Metropoint (Kajang), Norfaizah (Kajang), Meor Ahmad (KL). Kebanyakan buka 9 pagi-9 malam; utk waktu/alamat tepat, admin akan sahkan.
+CAWANGAN: Awak khusus untuk Setia Tropika (dekat JPN Johor, Taman Setia Tropika, JB). Buka 9 pagi-9 malam. Utk waktu/alamat tepat, admin akan sahkan.
 
-FAQ: Walk in boleh tapi galakkan appointment. Sakit gigi - sarankan check segera, tanya area mana. Cabut gigi - doktor bius dulu. Panel/perkeso - minta nama company.
+FAQ: Walk in boleh tapi galakkan appointment. Sakit gigi - sarankan check segera. Cabut gigi - doktor bius dulu. Panel/perkeso - minta nama company.
 
-PANTANG LARANG: JANGAN reka harga/discount. JANGAN confirm slot booking - sentiasa beritahu admin akan verify dulu. Sakit kronik - rujuk doktor. Maksimum 2-3 ayat. Guna Cik/Tuan/Puan.
+PANTANG LARANG: JANGAN reka harga/discount. JANGAN confirm slot - beritahu admin akan verify dulu. Sakit kronik - rujuk doktor. Maksimum 2-3 ayat. Guna Cik/Tuan/Puan.
 
-BOOKING: bila customer nak buat, kumpul: nama penuh, tarikh, masa, rawatan, cawangan. Bila lengkap, beritahu admin akan verify & confirm slot.`;
+BOOKING: kumpul nama penuh, tarikh, masa, rawatan. Bila lengkap, beritahu admin akan verify & confirm slot.`;
 
-const EXTRACT_PROMPT = `Kamu adalah pengekstrak data booking. Baca mesej customer klinik gigi. Kalau ia MENGANDUNGI niat tempahan/booking (ada nama ATAU tarikh ATAU masa ATAU rawatan ATAU cawangan), pulangkan JSON SAHAJA dalam format:
-{"is_booking":true,"name":"","date":"","time":"","treatment":"","branch":""}
-Isi field yang ada, biar kosong "" untuk yang tiada. Kalau mesej BUKAN tentang booking (cuma tanya harga/soalan am/borak), pulangkan {"is_booking":false}.
-JANGAN tulis apa-apa selain JSON. Tiada markdown, tiada penjelasan.`;
+const EXTRACT_PROMPT = `Kamu pengekstrak data booking klinik gigi. Kalau mesej ADA niat booking (nama/tarikh/masa/rawatan), pulangkan JSON: {"is_booking":true,"name":"","date":"","time":"","treatment":"","branch":""}. Isi yang ada, kosong "" untuk tiada. Kalau BUKAN booking, pulangkan {"is_booking":false}. JANGAN tulis apa-apa selain JSON. Tiada markdown.`;
 
 @Controller({ path: 'whatsapp', version: '1' })
 export class WhatsappWebhookController {
@@ -61,13 +56,34 @@ export class WhatsappWebhookController {
       this.logger.error('Gagal balas: ' + (e as Error).message);
     }
 
-    /* Booking intake (best-effort, never blocks the reply). */
     try {
       await this.maybeSaveBooking(chatId, text, payload);
     } catch (e) {
       this.logger.error('Gagal simpan booking: ' + (e as Error).message);
     }
     return { ok: true };
+  }
+
+  private async resolvePhone(chatId: string, payload: any): Promise<string> {
+    const altJid = payload?._data?.key?.remoteJidAlt ?? '';
+    if (altJid.includes('@s.whatsapp.net')) return altJid.replace('@s.whatsapp.net', '');
+    if (chatId.endsWith('@c.us')) return chatId.replace('@c.us', '');
+    if (chatId.endsWith('@lid')) {
+      const lid = chatId.replace('@lid', '');
+      try {
+        const res = await fetch(`${WAHA_URL}/api/default/lids/${lid}`, {
+          headers: { 'X-Api-Key': WAHA_API_KEY },
+        });
+        if (res.ok) {
+          const data = await res.json() as { pn?: string };
+          if (data?.pn) return data.pn.replace('@c.us', '');
+        }
+      } catch (e) {
+        this.logger.error('resolvePhone gagal: ' + (e as Error).message);
+      }
+      return lid;
+    }
+    return chatId.replace('@c.us', '').replace('@lid', '');
   }
 
   private async maybeSaveBooking(chatId: string, text: string, payload: any) {
@@ -82,12 +98,9 @@ export class WhatsappWebhookController {
     const time = (data.time ?? '').toString().trim();
     const treatment = (data.treatment ?? '').toString().trim();
     const branch = (data.branch ?? '').toString().trim();
-
-    /* Need at least a name plus one scheduling detail to be worth saving. */
     if (!name && !date && !time) return;
 
-    const altJid = payload?._data?.key?.remoteJidAlt ?? '';
-    const phone = altJid ? altJid.replace('@s.whatsapp.net', '') : chatId.replace('@c.us', '').replace('@lid', '');
+    const phone = await this.resolvePhone(chatId, payload);
     await this.dbCtx.runAsWorker(
       { orgId: ORG_ID, branchIds: [BRANCH_ID], correlationId: 'wa-booking', source: 'system_worker' },
       async (tx) => {
@@ -103,11 +116,10 @@ export class WhatsappWebhookController {
   }
 
   private async sendText(chatId: string, text: string) {
-    const url = process.env.WAHA_URL ?? 'https://waha-production-f5bc.up.railway.app';
-    const res = await fetch(`${url}/api/sendText`, {
+    const res = await fetch(`${WAHA_URL}/api/sendText`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': process.env.WAHA_API_KEY ?? '' },
-      body: JSON.stringify({ session: process.env.WAHA_SESSION ?? 'default', chatId, text }),
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
+      body: JSON.stringify({ session: WAHA_SESSION, chatId, text }),
     });
     if (!res.ok) this.logger.error(`sendText gagal ${res.status}: ${await res.text()}`);
   }
