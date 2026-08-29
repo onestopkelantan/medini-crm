@@ -6,6 +6,7 @@ import { MinimaxAdapter } from '../infrastructure/minimax.adapter';
 import { DbContextService } from '../../../core/auth/db-context.service';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
+const BRANCH_ID = 'da6ca871-3c49-4ef6-8bca-f208a0bfba77'; // Setia Tropika
 
 const NUR_PROMPT = `Awak Nur, staf AI Klinik Pergigian Medini (klinik gigi). Tugas: bantu customer faham rawatan, jawab soalan lazim, beri panduan awal (tapi doktor akan check), dan kumpul detail booking sebelum pass ke admin sebenar.
 
@@ -88,13 +89,13 @@ export class WhatsappWebhookController {
     const altJid = payload?._data?.key?.remoteJidAlt ?? '';
     const phone = altJid ? altJid.replace('@s.whatsapp.net', '') : chatId.replace('@c.us', '').replace('@lid', '');
     await this.dbCtx.runAsWorker(
-      { orgId: ORG_ID, branchIds: [], correlationId: 'wa-booking', source: 'system_worker' },
+      { orgId: ORG_ID, branchIds: [BRANCH_ID], correlationId: 'wa-booking', source: 'system_worker' },
       async (tx) => {
         await tx.execute(sql`
           INSERT INTO booking_requests
             (org_id, branch_id, contact_phone, patient_name, preferred_date, preferred_time, treatment, branch_name, raw_message, status)
           VALUES
-            (${ORG_ID}, NULL, ${phone}, ${name || null}, ${date || null}, ${time || null}, ${treatment || null}, ${branch || null}, ${text}, 'pending')
+            (${ORG_ID}, ${BRANCH_ID}, ${phone}, ${name || null}, ${date || null}, ${time || null}, ${treatment || null}, ${branch || null}, ${text}, 'pending')
         `);
       },
     );

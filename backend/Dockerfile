@@ -31,3 +31,5 @@ CMD ["npm", "run", "start:prod"]
 # trigger deploy real-phone 11:44:31
 
 # trigger deploy booking-notify 13:03:17
+
+# trigger deploy setia-branch 14:42:43
