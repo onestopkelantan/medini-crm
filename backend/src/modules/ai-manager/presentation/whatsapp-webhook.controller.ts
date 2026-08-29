@@ -43,7 +43,6 @@ export class WhatsappWebhookController {
   @Post('webhook')
   async webhook(@Body() body: any) {
     if (body?.event !== 'message') return { ok: true };
-    this.logger.warn('WA PAYLOAD: ' + JSON.stringify(body?.payload ?? {}));
     const payload = body?.payload ?? {};
     const chatId: string = payload.from ?? payload.chatId ?? '';
     const text: string = payload.body ?? payload.text ?? '';
@@ -63,14 +62,14 @@ export class WhatsappWebhookController {
 
     /* Booking intake (best-effort, never blocks the reply). */
     try {
-      await this.maybeSaveBooking(chatId, text);
+      await this.maybeSaveBooking(chatId, text, payload);
     } catch (e) {
       this.logger.error('Gagal simpan booking: ' + (e as Error).message);
     }
     return { ok: true };
   }
 
-  private async maybeSaveBooking(chatId: string, text: string) {
+  private async maybeSaveBooking(chatId: string, text: string, payload: any) {
     const raw = await this.minimax.chat(EXTRACT_PROMPT, text);
     const jsonStr = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
     let data: any;
@@ -86,7 +85,8 @@ export class WhatsappWebhookController {
     /* Need at least a name plus one scheduling detail to be worth saving. */
     if (!name && !date && !time) return;
 
-    const phone = chatId.replace('@c.us', '');
+    const altJid = payload?._data?.key?.remoteJidAlt ?? '';
+    const phone = altJid ? altJid.replace('@s.whatsapp.net', '') : chatId.replace('@c.us', '').replace('@lid', '');
     await this.dbCtx.runAsWorker(
       { orgId: ORG_ID, branchIds: [], correlationId: 'wa-booking', source: 'system_worker' },
       async (tx) => {
