@@ -4,6 +4,7 @@ import { AiPolicyPort } from '../../shared/ports/ai-policy.port';
 import { AiManagerController } from './presentation/ai-manager.controller';
 import { NurTestController } from './presentation/nur-test.controller';
 import { WhatsappWebhookController } from './presentation/whatsapp-webhook.controller';
+import { BookingRequestsController } from './presentation/booking-requests.controller';
 import { AiSummaryController } from './presentation/ai-summary.controller';
 import { AiManagerService } from './application/ai-manager.service';
 import { AiSummaryService } from './application/ai-summary.service';
@@ -12,7 +13,7 @@ import { MinimaxAdapter } from './infrastructure/minimax.adapter';
 
 @Module({
   imports: [AuthModule],
-  controllers: [AiManagerController, AiSummaryController, NurTestController, WhatsappWebhookController],
+  controllers: [AiManagerController, AiSummaryController, NurTestController, WhatsappWebhookController, BookingRequestsController],
   providers: [AiManagerService, AiManagerRepository, AiPolicyPort, AiSummaryService, MinimaxAdapter],
   exports: [AiManagerService, AiManagerRepository, AiPolicyPort],
 })
