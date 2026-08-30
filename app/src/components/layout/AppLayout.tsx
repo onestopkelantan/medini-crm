@@ -31,6 +31,7 @@ const navByRole: Record<string, NavSection[]> = {
     { section: "Clinical Care", items: [
       { label: "Patients", path: "/patients", icon: Users },
       { label: "Appointments", path: "/appointments", icon: CalendarDays },
+      { label: "Booking WhatsApp", path: "/booking-requests", icon: MessageSquare },
       { label: "Clinical", path: "/clinical", icon: Stethoscope },
       { label: "X-Ray & Documents", path: "/documents", icon: FolderOpen },
     ]},
@@ -54,6 +55,7 @@ const navByRole: Record<string, NavSection[]> = {
     { section: "Clinical Care", items: [
       { label: "Patients", path: "/patients", icon: Users },
       { label: "Appointments", path: "/appointments", icon: CalendarDays },
+      { label: "Booking WhatsApp", path: "/booking-requests", icon: MessageSquare },
       { label: "Clinical", path: "/clinical", icon: Stethoscope },
       { label: "X-Ray & Documents", path: "/documents", icon: FolderOpen },
     ]},
@@ -73,6 +75,7 @@ const navByRole: Record<string, NavSection[]> = {
     { section: "Daily Operations", items: [
       { label: "Patients", path: "/patients", icon: Users },
       { label: "Appointments", path: "/appointments", icon: CalendarDays },
+      { label: "Booking WhatsApp", path: "/booking-requests", icon: MessageSquare },
       { label: "WhatsApp Hub", path: "/whatsapp", icon: MessageSquare },
     ]},
     { section: "System", items: [

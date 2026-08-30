@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useBranch } from "@/hooks/useBranch";
@@ -40,24 +40,46 @@ function NewExpenseDialog({ open, onClose }: { open: boolean; onClose: () => voi
   });
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Record Expense</DialogTitle><DialogDescription>Log a branch operational expense.</DialogDescription></DialogHeader>
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">Record Expense</DialogTitle>
+          <DialogDescription className="text-slate-500">Log a branch operational expense.</DialogDescription>
+        </DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
-          <div className="space-y-1.5"><Label>Category *</Label>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Category *</Label>
             <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{EXPENSE_CATEGORIES.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+              <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-2.5 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label>Payee *</Label><Input required value={form.payee} onChange={(e) => setForm({ ...form, payee: e.target.value })} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Amount (RM) *</Label><Input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Date *</Label><Input required type="date" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} /></div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Payee *</Label>
+            <Input required value={form.payee} onChange={(e) => setForm({ ...form, payee: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
           </div>
-          <div className="space-y-1.5"><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending}>{create.isPending ? "Saving…" : "Record Expense"}</Button>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-medium">Amount (RM) *</Label>
+              <Input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-medium">Date *</Label>
+              <Input required type="date" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Notes</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</Button>
+            <Button className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={create.isPending}>
+              {create.isPending ? "Saving…" : "Record Expense"}
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -87,40 +109,58 @@ export default function Finance() {
       <PageHeader
         title="Finance"
         description="Revenue, sales, expenses, recurring, treatment costs, lab payables and commissions (status-layer only)"
-        actions={<Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowExpense(true)}><Plus className="h-4 w-4 mr-1.5" /> Record Expense</Button>}
+        actions={
+          <Button size="sm" className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 shadow-lg shadow-teal-200/50" onClick={() => setShowExpense(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Record Expense
+          </Button>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <StatCard title="Total Revenue" value={rm(totalRevenue, 0)} icon={<TrendingUp className="h-4 w-4" />} loading={revenue.isLoading} />
-        <StatCard title="Sales Records" value={salesRows.length} icon={<Receipt className="h-4 w-4" />} loading={sales.isLoading} />
-        <StatCard title="Total Expenses" value={rm(totalExpenses, 0)} icon={<CreditCard className="h-4 w-4" />} loading={expenses.isLoading} />
-        <StatCard title="Active Alerts" value={(alerts.data ?? []).length} icon={<AlertCircle className="h-4 w-4" />} loading={alerts.isLoading} />
+        <StatCard title="Total Revenue" value={rm(totalRevenue, 0)} icon={<TrendingUp className="h-4 w-4" />} loading={revenue.isLoading} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4" />
+        <StatCard title="Sales Records" value={salesRows.length} icon={<Receipt className="h-4 w-4" />} loading={sales.isLoading} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4" />
+        <StatCard title="Total Expenses" value={rm(totalExpenses, 0)} icon={<CreditCard className="h-4 w-4" />} loading={expenses.isLoading} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4" />
+        <StatCard title="Active Alerts" value={(alerts.data ?? []).length} icon={<AlertCircle className="h-4 w-4" />} loading={alerts.isLoading} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4" />
       </div>
 
       <Tabs defaultValue="sales">
-        <TabsList className="bg-white border">
-          <TabsTrigger value="sales"><Receipt className="h-3.5 w-3.5 mr-1.5" />Sales</TabsTrigger>
-          <TabsTrigger value="expenses"><CreditCard className="h-3.5 w-3.5 mr-1.5" />Expenses</TabsTrigger>
-          <TabsTrigger value="recurring"><Repeat className="h-3.5 w-3.5 mr-1.5" />Recurring</TabsTrigger>
-          <TabsTrigger value="treatments"><Trophy className="h-3.5 w-3.5 mr-1.5" />Treatments</TabsTrigger>
-          <TabsTrigger value="lab"><FlaskConical className="h-3.5 w-3.5 mr-1.5" />Lab Payables</TabsTrigger>
-          <TabsTrigger value="commissions"><Percent className="h-3.5 w-3.5 mr-1.5" />Commissions</TabsTrigger>
-          <TabsTrigger value="alerts"><AlertCircle className="h-3.5 w-3.5 mr-1.5" />Alerts</TabsTrigger>
+        <TabsList className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-1 shadow-md flex flex-wrap gap-1">
+          <TabsTrigger value="sales" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Receipt className="h-3.5 w-3.5 mr-1.5" />Sales
+          </TabsTrigger>
+          <TabsTrigger value="expenses" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <CreditCard className="h-3.5 w-3.5 mr-1.5" />Expenses
+          </TabsTrigger>
+          <TabsTrigger value="recurring" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Repeat className="h-3.5 w-3.5 mr-1.5" />Recurring
+          </TabsTrigger>
+          <TabsTrigger value="treatments" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Trophy className="h-3.5 w-3.5 mr-1.5" />Treatments
+          </TabsTrigger>
+          <TabsTrigger value="lab" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <FlaskConical className="h-3.5 w-3.5 mr-1.5" />Lab Payables
+          </TabsTrigger>
+          <TabsTrigger value="commissions" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Percent className="h-3.5 w-3.5 mr-1.5" />Commissions
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <AlertCircle className="h-3.5 w-3.5 mr-1.5" />Alerts
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales" className="mt-4">
-          <Panel title="Recent Sales">
+          <Panel title="Recent Sales" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {sales.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {salesRows.slice(0, 25).map((s) => (
                 <div key={s.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-700">{s.saleCode ?? "Sale"}</p>
+                    <p className="text-sm font-semibold text-slate-800">{s.saleCode ?? "Sale"}</p>
                     <p className="text-xs text-slate-400">{fmtDate(s.saleDate)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{rm(s.amount ?? 0)}</span>
-                    <StatusBadge status={s.status ?? "pending"} />
+                    <span className="text-sm font-semibold text-slate-700">{rm(s.amount ?? 0)}</span>
+                    <StatusBadge status={s.status ?? "pending"} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                   </div>
                 </div>
               ))}
@@ -130,18 +170,18 @@ export default function Finance() {
         </TabsContent>
 
         <TabsContent value="expenses" className="mt-4">
-          <Panel title="Expenses">
+          <Panel title="Expenses" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {expenses.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(expenses.data ?? []).map((e) => (
                 <div key={e.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-700">{e.payee ?? "Expense"}</p>
+                    <p className="text-sm font-semibold text-slate-800">{e.payee ?? "Expense"}</p>
                     <p className="text-xs text-slate-400 capitalize">{e.category} · {fmtDate(e.expenseDate)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{rm(e.amount ?? 0)}</span>
-                    <StatusBadge status={e.status ?? "pending"} />
+                    <span className="text-sm font-semibold text-slate-700">{rm(e.amount ?? 0)}</span>
+                    <StatusBadge status={e.status ?? "pending"} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                   </div>
                 </div>
               ))}
@@ -151,18 +191,18 @@ export default function Finance() {
         </TabsContent>
 
         <TabsContent value="recurring" className="mt-4">
-          <Panel title="Recurring Commitments">
+          <Panel title="Recurring Commitments" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {recurring.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(recurring.data ?? []).map((r) => (
                 <div key={r.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-700">{r.payee ?? "Recurring"}</p>
+                    <p className="text-sm font-semibold text-slate-800">{r.payee ?? "Recurring"}</p>
                     <p className="text-xs text-slate-400 capitalize">{r.frequency ?? "—"}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{rm(r.amount ?? 0)}</span>
-                    <StatusBadge status={r.status ?? "active"} />
+                    <span className="text-sm font-semibold text-slate-700">{rm(r.amount ?? 0)}</span>
+                    <StatusBadge status={r.status ?? "active"} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                   </div>
                 </div>
               ))}
@@ -173,25 +213,25 @@ export default function Finance() {
 
         <TabsContent value="treatments" className="mt-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Top Treatments">
+            <Panel title="Top Treatments" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
               {topTreatments.isLoading && <Skeleton className="h-40 w-full" />}
               <div className="divide-y divide-slate-100">
                 {(topTreatments.data ?? []).slice(0, 10).map((t) => (
                   <div key={t.id} className="py-2.5 flex items-center justify-between">
-                    <p className="text-sm text-slate-700">{t.treatmentName ?? t.name ?? "Treatment"}</p>
-                    <span className="text-sm font-semibold">{t.count ?? 0}× {t.revenue ? `· ${rm(t.revenue, 0)}` : ""}</span>
+                    <p className="text-sm font-semibold text-slate-800">{t.treatmentName ?? t.name ?? "Treatment"}</p>
+                    <span className="text-sm font-semibold text-slate-700">{t.count ?? 0}× {t.revenue ? `· ${rm(t.revenue, 0)}` : ""}</span>
                   </div>
                 ))}
                 {!topTreatments.isLoading && !(topTreatments.data ?? []).length && <EmptyState title="No treatment data" description="Top treatments by volume/revenue will appear here." />}
               </div>
             </Panel>
-            <Panel title="Treatment Costs">
+            <Panel title="Treatment Costs" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
               {treatmentCosts.isLoading && <Skeleton className="h-40 w-full" />}
               <div className="divide-y divide-slate-100">
                 {(treatmentCosts.data ?? []).slice(0, 10).map((t) => (
                   <div key={t.id} className="py-2.5 flex items-center justify-between">
-                    <p className="text-sm text-slate-700">{t.treatmentName ?? "Treatment"}</p>
-                    <span className="text-sm font-semibold">{rm(t.cost ?? 0)}</span>
+                    <p className="text-sm font-semibold text-slate-800">{t.treatmentName ?? "Treatment"}</p>
+                    <span className="text-sm font-semibold text-slate-700">{rm(t.cost ?? 0)}</span>
                   </div>
                 ))}
                 {!treatmentCosts.isLoading && !(treatmentCosts.data ?? []).length && <EmptyState title="No treatment costs" description="Cost configuration per treatment will appear here." />}
@@ -201,18 +241,18 @@ export default function Finance() {
         </TabsContent>
 
         <TabsContent value="lab" className="mt-4">
-          <Panel title="Lab Payables">
+          <Panel title="Lab Payables" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {labPayables.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(labPayables.data ?? []).map((l) => (
                 <div key={l.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-700">{l.labVendor ?? "Lab"}</p>
+                    <p className="text-sm font-semibold text-slate-800">{l.labVendor ?? "Lab"}</p>
                     <p className="text-xs text-slate-400">{l.dueDate ? `due ${fmtDate(l.dueDate)}` : "—"}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{rm(l.amount ?? 0)}</span>
-                    <StatusBadge status={l.status ?? "pending"} />
+                    <span className="text-sm font-semibold text-slate-700">{rm(l.amount ?? 0)}</span>
+                    <StatusBadge status={l.status ?? "pending"} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                   </div>
                 </div>
               ))}
@@ -222,18 +262,18 @@ export default function Finance() {
         </TabsContent>
 
         <TabsContent value="commissions" className="mt-4">
-          <Panel title="Doctor Commissions">
+          <Panel title="Doctor Commissions" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {commissions.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(commissions.data ?? []).map((c) => (
                 <div key={c.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-700">Dr. {(c.doctorId ?? "").slice(0, 8)}…</p>
+                    <p className="text-sm font-semibold text-slate-800">Dr. {(c.doctorId ?? "").slice(0, 8)}…</p>
                     <p className="text-xs text-slate-400">{c.period ?? "—"}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{rm(c.amount ?? 0)}</span>
-                    <StatusBadge status={c.status ?? "pending"} />
+                    <span className="text-sm font-semibold text-slate-700">{rm(c.amount ?? 0)}</span>
+                    <StatusBadge status={c.status ?? "pending"} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                   </div>
                 </div>
               ))}
@@ -243,12 +283,12 @@ export default function Finance() {
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-4">
-          <Panel title="Finance Alerts">
+          <Panel title="Finance Alerts" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {alerts.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(alerts.data ?? []).map((a) => (
                 <div key={a.id} className="py-2.5">
-                  <p className="text-sm text-slate-700">{a.message ?? "Alert"}</p>
+                  <p className="text-sm font-semibold text-slate-800">{a.message ?? "Alert"}</p>
                   <p className="text-xs text-slate-400 capitalize">{a.severity ?? "info"}</p>
                 </div>
               ))}

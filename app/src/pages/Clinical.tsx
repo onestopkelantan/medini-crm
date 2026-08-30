@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,13 +70,18 @@ function NewEncounterDialog({ open, onClose, onCreated }: { open: boolean; onClo
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Open Encounter</DialogTitle><DialogDescription>Start a clinical encounter from a queued appointment.</DialogDescription></DialogHeader>
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">Open Encounter</DialogTitle>
+          <DialogDescription className="text-slate-500">Start a clinical encounter from a queued appointment.</DialogDescription>
+        </DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
           <div className="space-y-1.5">
-            <Label>Appointment *</Label>
+            <Label className="text-slate-700 font-medium">Appointment *</Label>
             <Select value={apptId} onValueChange={setApptId}>
-              <SelectTrigger><SelectValue placeholder="Select queued appointment" /></SelectTrigger>
+              <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-2.5 text-sm">
+                <SelectValue placeholder="Select queued appointment" />
+              </SelectTrigger>
               <SelectContent>
                 {candidates.map((a) => <SelectItem key={a.id} value={a.id}>{a.patientName} ({a.code}) — {a.status}</SelectItem>)}
                 {!candidates.length && <SelectItem value="__none" disabled>No queued appointments today</SelectItem>}
@@ -84,12 +89,12 @@ function NewEncounterDialog({ open, onClose, onCreated }: { open: boolean; onClo
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Chief complaint</Label>
-            <Input value={complaint} onChange={(e) => setComplaint(e.target.value)} placeholder="e.g. Toothache lower left 3 days" />
+            <Label className="text-slate-700 font-medium">Chief complaint</Label>
+            <Input value={complaint} onChange={(e) => setComplaint(e.target.value)} placeholder="e.g. Toothache lower left 3 days" className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending || !apptId || apptId === "__none"}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</Button>
+            <Button className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={create.isPending || !apptId || apptId === "__none"}>
               {create.isPending ? "Opening…" : "Open Encounter"}
             </Button>
           </div>
@@ -142,35 +147,35 @@ function SoapDialog({ open, onClose, encounter }: { open: boolean; onClose: () =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Clinical Note — {encounter.patientName ?? "Patient"}</DialogTitle>
-          <DialogDescription>{encounter.chiefComplaint ?? encounter.chief_complaint ?? "No complaint recorded"}</DialogDescription>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">Clinical Note — {encounter.patientName ?? "Patient"}</DialogTitle>
+          <DialogDescription className="text-slate-500">{encounter.chiefComplaint ?? encounter.chief_complaint ?? "No complaint recorded"}</DialogDescription>
         </DialogHeader>
 
         {existing && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs space-y-1">
-            <p className="font-semibold text-emerald-700">Existing note {signed ? "(signed)" : "(draft)"}</p>
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs space-y-1">
+            <p className="font-semibold text-teal-700">Existing note {signed ? "(signed)" : "(draft)"}</p>
             <p><b>S:</b> {existing.soapSubjective ?? existing.soap_subjective}</p>
           </div>
         )}
 
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
-          <div className="space-y-1.5"><Label>Subjective *</Label><Textarea required minLength={2} value={s} onChange={(e) => setS(e.target.value)} rows={2} placeholder="Patient's reported symptoms…" /></div>
-          <div className="space-y-1.5"><Label>Objective *</Label><Textarea required minLength={2} value={o} onChange={(e) => setO(e.target.value)} rows={2} placeholder="Clinical findings on examination…" /></div>
-          <div className="space-y-1.5"><Label>Assessment *</Label><Textarea required minLength={2} value={a} onChange={(e) => setA(e.target.value)} rows={2} placeholder="Diagnosis / assessment…" /></div>
-          <div className="space-y-1.5"><Label>Plan *</Label><Textarea required minLength={2} value={p} onChange={(e) => setP(e.target.value)} rows={2} placeholder="Treatment plan, medication, review…" /></div>
+          <div className="space-y-1.5"><Label className="text-slate-700 font-medium">Subjective *</Label><Textarea required minLength={2} value={s} onChange={(e) => setS(e.target.value)} rows={2} placeholder="Patient's reported symptoms…" className="rounded-xl border-slate-200 bg-white/80 p-3" /></div>
+          <div className="space-y-1.5"><Label className="text-slate-700 font-medium">Objective *</Label><Textarea required minLength={2} value={o} onChange={(e) => setO(e.target.value)} rows={2} placeholder="Clinical findings on examination…" className="rounded-xl border-slate-200 bg-white/80 p-3" /></div>
+          <div className="space-y-1.5"><Label className="text-slate-700 font-medium">Assessment *</Label><Textarea required minLength={2} value={a} onChange={(e) => setA(e.target.value)} rows={2} placeholder="Diagnosis / assessment…" className="rounded-xl border-slate-200 bg-white/80 p-3" /></div>
+          <div className="space-y-1.5"><Label className="text-slate-700 font-medium">Plan *</Label><Textarea required minLength={2} value={p} onChange={(e) => setP(e.target.value)} rows={2} placeholder="Treatment plan, medication, review…" className="rounded-xl border-slate-200 bg-white/80 p-3" /></div>
           <div className="flex flex-wrap justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Close</Button>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={save.isPending}>
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Close</Button>
+            <Button type="submit" className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={save.isPending}>
               {save.isPending ? "Saving…" : existing ? "Save Amendment" : "Save Note"}
             </Button>
             {existing && !signed && (
-              <Button type="button" className="bg-blue-600 hover:bg-blue-700" disabled={sign.isPending} onClick={() => sign.mutate(existing.id)}>
+              <Button type="button" className="rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50" disabled={sign.isPending} onClick={() => sign.mutate(existing.id)}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" /> Sign Note
               </Button>
             )}
-            <Button type="button" className="bg-slate-700 hover:bg-slate-800" disabled={complete.isPending} onClick={() => complete.mutate()}>
+            <Button type="button" className="rounded-xl bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-50" disabled={complete.isPending} onClick={() => complete.mutate()}>
               Complete Encounter
             </Button>
           </div>
@@ -202,36 +207,46 @@ export default function Clinical() {
         title="Clinical"
         description={isDoctor ? "Encounters, SOAP notes, treatments, prescriptions" : "Treatments, prescriptions, adverse events, referrals"}
         actions={isDoctor && (
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowNew(true)}>
+          <Button size="sm" className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 shadow-lg shadow-teal-200/50" onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Open Encounter
           </Button>
         )}
       />
 
       <Tabs defaultValue={isDoctor ? "encounters" : "treatments"}>
-        <TabsList className="bg-white border">
-          <TabsTrigger value="encounters"><FileText className="h-3.5 w-3.5 mr-1.5" />Encounters</TabsTrigger>
-          <TabsTrigger value="treatments"><Stethoscope className="h-3.5 w-3.5 mr-1.5" />Treatments</TabsTrigger>
-          <TabsTrigger value="prescriptions"><Pill className="h-3.5 w-3.5 mr-1.5" />Prescriptions</TabsTrigger>
-          <TabsTrigger value="adverse"><AlertTriangle className="h-3.5 w-3.5 mr-1.5" />Adverse Events</TabsTrigger>
-          <TabsTrigger value="referrals"><Share2 className="h-3.5 w-3.5 mr-1.5" />Referrals</TabsTrigger>
+        <TabsList className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-1 shadow-md">
+          <TabsTrigger value="encounters" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <FileText className="h-3.5 w-3.5 mr-1.5" />Encounters
+          </TabsTrigger>
+          <TabsTrigger value="treatments" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Stethoscope className="h-3.5 w-3.5 mr-1.5" />Treatments
+          </TabsTrigger>
+          <TabsTrigger value="prescriptions" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Pill className="h-3.5 w-3.5 mr-1.5" />Prescriptions
+          </TabsTrigger>
+          <TabsTrigger value="adverse" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />Adverse Events
+          </TabsTrigger>
+          <TabsTrigger value="referrals" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Share2 className="h-3.5 w-3.5 mr-1.5" />Referrals
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="encounters" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {encounters.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {encRows.map((e) => (
                 <div key={e.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800 truncate">{e.patientName ?? "Patient"}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">{e.patientName ?? "Patient"}</p>
                     <p className="text-xs text-slate-400">{e.encounterCode ?? e.encounter_code} · {fmtDateTime(e.startedAt ?? e.started_at)}</p>
                     {(e.chiefComplaint ?? e.chief_complaint) && <p className="text-xs text-slate-500 mt-0.5 truncate">{e.chiefComplaint ?? e.chief_complaint}</p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={e.status} />
+                    <StatusBadge status={e.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                     {isDoctor && (
-                      <Button size="sm" variant="outline" className="text-xs" onClick={() => { setActiveEnc(e); setSoapOpen(true); }}>
+                      <Button size="sm" variant="outline" className="text-xs rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50" onClick={() => { setActiveEnc(e); setSoapOpen(true); }}>
                         SOAP / Complete
                       </Button>
                     )}
@@ -246,13 +261,13 @@ export default function Clinical() {
         </TabsContent>
 
         <TabsContent value="treatments" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {treatments.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(treatments.data ?? []).map((t) => (
                 <div key={t.id} className="py-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">{t.name ?? "Treatment"}</p>
-                  <StatusBadge status={t.status} />
+                  <p className="text-sm font-semibold text-slate-800">{t.name ?? "Treatment"}</p>
+                  <StatusBadge status={t.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!treatments.isLoading && !(treatments.data ?? []).length && <EmptyState title="No treatments" description="Treatment catalog records will appear here." />}
@@ -261,12 +276,12 @@ export default function Clinical() {
         </TabsContent>
 
         <TabsContent value="prescriptions" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {prescriptions.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(prescriptions.data ?? []).map((r) => (
                 <div key={r.id} className="py-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">{r.medication ?? "Prescription"}</p>
+                  <p className="text-sm font-semibold text-slate-800">{r.medication ?? "Prescription"}</p>
                   <span className="text-xs text-slate-400">{fmtDate(r.createdAt)}</span>
                 </div>
               ))}
@@ -276,7 +291,7 @@ export default function Clinical() {
         </TabsContent>
 
         <TabsContent value="adverse" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {adverse.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(adverse.data ?? []).map((a) => (
@@ -291,13 +306,13 @@ export default function Clinical() {
         </TabsContent>
 
         <TabsContent value="referrals" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {referrals.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(referrals.data ?? []).map((r) => (
                 <div key={r.id} className="py-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">Referral</p>
-                  <StatusBadge status={r.status} />
+                  <p className="text-sm font-semibold text-slate-800">Referral</p>
+                  <StatusBadge status={r.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!referrals.isLoading && !(referrals.data ?? []).length && <EmptyState title="No referrals" description="Patient referrals will appear here." />}

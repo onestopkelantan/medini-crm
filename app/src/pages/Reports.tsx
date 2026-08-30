@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PageHeader, StatCard, Panel, EmptyState } from "@/components/shared";
@@ -42,9 +42,15 @@ export default function Reports() {
         title="Reports & Analytics"
         description={`Live production data — last ${days} days`}
         actions={
-          <div className="flex rounded-lg border overflow-hidden">
+          <div className="flex rounded-xl border border-white/40 bg-white/70 backdrop-blur-xl shadow-md overflow-hidden p-1 gap-1">
             {[7, 30, 90].map((n) => (
-              <button key={n} onClick={() => setDays(n)} className={`px-3 py-1.5 text-xs font-medium ${days === n ? "bg-emerald-600 text-white" : "bg-white text-slate-500"}`}>{n}D</button>
+              <button
+                key={n}
+                onClick={() => setDays(n)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${days === n ? "bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md shadow-teal-200/50" : "bg-transparent text-slate-500 hover:bg-white/60"}`}
+              >
+                {n}D
+              </button>
             ))}
           </div>
         }
@@ -54,59 +60,64 @@ export default function Reports() {
         {kpis.isLoading
           ? [1, 2, 3, 4].map((i) => <StatCard key={i} title="" value="" loading />)
           : kpiList.slice(0, 4).map((k) => (
-              <StatCard key={k.key} title={k.name}
+              <StatCard
+                key={k.key}
+                title={k.name}
                 value={k.available === false || k.value == null ? "N/A" : k.unit === "MYR" ? rm(k.value, 0) : `${k.value}${k.unit === "percent" ? "%" : ""}`}
-                icon={<TrendingUp className="h-4 w-4" />} sub={`Last ${days} days`} />
+                icon={<TrendingUp className="h-4 w-4" />}
+                sub={`Last ${days} days`}
+                className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4"
+              />
             ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title={`Revenue by Branch — ${rm(totalRevenue, 0)} total`}>
+        <Panel title={`Revenue by Branch — ${rm(totalRevenue, 0)} total`} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
           {revenue.isLoading && <Skeleton className="h-40 w-full" />}
           <div className="divide-y divide-slate-100">
             {revenueRows.map((r, i) => (
               <div key={i} className="py-2.5 flex items-center justify-between">
-                <p className="text-sm text-slate-700">{r.branchName ?? r.branchId ?? "Branch"}</p>
-                <span className="text-sm font-semibold">{rm(r.revenue ?? 0)}</span>
+                <p className="text-sm font-semibold text-slate-800">{r.branchName ?? r.branchId ?? "Branch"}</p>
+                <span className="text-sm font-semibold text-slate-700">{rm(r.revenue ?? 0)}</span>
               </div>
             ))}
             {!revenue.isLoading && !revenueRows.length && <EmptyState title="No revenue data" />}
           </div>
         </Panel>
 
-        <Panel title="Treatment Mix">
+        <Panel title="Treatment Mix" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
           {mix.isLoading && <Skeleton className="h-40 w-full" />}
           <div className="divide-y divide-slate-100">
             {mixRows.slice(0, 15).map((m, i) => (
               <div key={i} className="py-2.5 flex items-center justify-between">
-                <p className="text-sm text-slate-700">{m.treatmentName ?? m.category ?? "Treatment"}</p>
-                <span className="text-sm font-semibold">{m.count}×</span>
+                <p className="text-sm font-semibold text-slate-800">{m.treatmentName ?? m.category ?? "Treatment"}</p>
+                <span className="text-sm font-semibold text-slate-700">{m.count}×</span>
               </div>
             ))}
             {!mix.isLoading && !mixRows.length && <EmptyState title="No treatment data" />}
           </div>
         </Panel>
 
-        <Panel title="Appointment Trends">
+        <Panel title="Appointment Trends" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
           {trends.isLoading && <Skeleton className="h-40 w-full" />}
           <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
             {trendRows.map((t, i) => (
               <div key={i} className="py-2 flex items-center justify-between">
-                <p className="text-sm text-slate-700">{t.date}</p>
-                <span className="text-sm font-semibold">{t.count} appts</span>
+                <p className="text-sm font-semibold text-slate-800">{t.date}</p>
+                <span className="text-sm font-semibold text-slate-700">{t.count} appts</span>
               </div>
             ))}
             {!trends.isLoading && !trendRows.length && <EmptyState title="No appointment data" />}
           </div>
         </Panel>
 
-        <Panel title="Doctor Production">
+        <Panel title="Doctor Production" className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
           {doctors.isLoading && <Skeleton className="h-40 w-full" />}
           <div className="divide-y divide-slate-100">
             {doctorRows.map((d, i) => (
               <div key={i} className="py-2.5 flex items-center justify-between">
-                <p className="text-sm text-slate-700">{d.doctorName ?? d.doctorId ?? "Doctor"}</p>
-                <span className="text-sm font-semibold">{rm(d.revenue ?? 0)}</span>
+                <p className="text-sm font-semibold text-slate-800">{d.doctorName ?? d.doctorId ?? "Doctor"}</p>
+                <span className="text-sm font-semibold text-slate-700">{rm(d.revenue ?? 0)}</span>
               </div>
             ))}
             {!doctors.isLoading && !doctorRows.length && <EmptyState title="No doctor production data" />}

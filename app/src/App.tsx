@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import Patients from "@/pages/Patients";
 import Patient360 from "@/pages/Patient360";
 import Appointments from "@/pages/Appointments";
+import BookingRequests from "@/pages/BookingRequests";
 import Clinical from "@/pages/Clinical";
 import Documents from "@/pages/Documents";
 import Finance from "@/pages/Finance";
@@ -78,6 +79,7 @@ function AppRoutes() {
         <Route path="/patients" element={<Patients />} />
         <Route path="/patients/:id" element={<Patient360 />} />
         <Route path="/appointments" element={<Appointments />} />
+        <Route path="/booking-requests" element={<BookingRequests />} />
         <Route path="/clinical" element={<Clinical />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/finance" element={<Guarded path="/finance"><Finance /></Guarded>} />

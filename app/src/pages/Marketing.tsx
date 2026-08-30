@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useBranch } from "@/hooks/useBranch";
@@ -42,21 +42,40 @@ function NewLeadDialog({ open, onClose }: { open: boolean; onClose: () => void }
   });
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New Lead</DialogTitle><DialogDescription>Register a prospective patient lead.</DialogDescription></DialogHeader>
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">New Lead</DialogTitle>
+          <DialogDescription className="text-slate-500">Register a prospective patient lead.</DialogDescription>
+        </DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
-          <div className="space-y-1.5"><Label>Name *</Label><Input required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Source *</Label>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Name *</Label>
+            <Input required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Phone</Label>
+            <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Source *</Label>
             <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{["Walk-in", "Google", "Facebook", "Referral", "WhatsApp", "Others"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-2.5 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {["Walk-in", "Google", "Facebook", "Referral", "WhatsApp", "Others"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label>Interested treatment</Label><Input value={form.treatment} onChange={(e) => setForm({ ...form, treatment: e.target.value })} /></div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending}>{create.isPending ? "Saving…" : "Create Lead"}</Button>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Interested treatment</Label>
+            <Input value={form.treatment} onChange={(e) => setForm({ ...form, treatment: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</Button>
+            <Button className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={create.isPending}>
+              {create.isPending ? "Saving…" : "Create Lead"}
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -78,14 +97,26 @@ function NewCampaignDialog({ open, onClose }: { open: boolean; onClose: () => vo
   });
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New Campaign</DialogTitle><DialogDescription>Draft a marketing campaign (pending approval workflow).</DialogDescription></DialogHeader>
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">New Campaign</DialogTitle>
+          <DialogDescription className="text-slate-500">Draft a marketing campaign (pending approval workflow).</DialogDescription>
+        </DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
-          <div className="space-y-1.5"><Label>Name *</Label><Input required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Intent *</Label><Input required value={form.intent} onChange={(e) => setForm({ ...form, intent: e.target.value })} placeholder="e.g. Recall overdue scaling patients" /></div>
-          <div className="space-y-1.5"><Label>Audience</Label>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Name *</Label>
+            <Input required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Intent *</Label>
+            <Input required value={form.intent} onChange={(e) => setForm({ ...form, intent: e.target.value })} placeholder="e.g. Recall overdue scaling patients" className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Audience</Label>
             <Select value={form.audience} onValueChange={(v) => setForm({ ...form, audience: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-2.5 text-sm">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all_active_patients">All active patients</SelectItem>
                 <SelectItem value="recall_due">Recall due</SelectItem>
@@ -93,9 +124,11 @@ function NewCampaignDialog({ open, onClose }: { open: boolean; onClose: () => vo
               </SelectContent>
             </Select>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending}>{create.isPending ? "Saving…" : "Create Campaign"}</Button>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</Button>
+            <Button className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={create.isPending}>
+              {create.isPending ? "Saving…" : "Create Campaign"}
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -132,10 +165,16 @@ export default function Marketing() {
       <PageHeader
         title="Marketing"
         description="Leads, campaigns, recall cases and follow-ups"
-        actions={<div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowCampaign(true)}><Megaphone className="h-4 w-4 mr-1.5" /> New Campaign</Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowLead(true)}><Plus className="h-4 w-4 mr-1.5" /> New Lead</Button>
-        </div>}
+        actions={
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="rounded-xl border-white/40 bg-white/70 backdrop-blur-xl shadow-md text-teal-700 hover:bg-white/90" onClick={() => setShowCampaign(true)}>
+              <Megaphone className="h-4 w-4 mr-1.5" /> New Campaign
+            </Button>
+            <Button size="sm" className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 shadow-lg shadow-teal-200/50" onClick={() => setShowLead(true)}>
+              <Plus className="h-4 w-4 mr-1.5" /> New Lead
+            </Button>
+          </div>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -145,35 +184,48 @@ export default function Marketing() {
           { label: "Recall Cases", value: (recalls.data ?? []).length, icon: <BellRing className="h-4 w-4" /> },
           { label: "Follow-ups", value: (followUps.data ?? []).length, icon: <Repeat className="h-4 w-4" /> },
         ].map((k) => (
-          <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-medium">{k.label}<span className="text-emerald-600 bg-emerald-50 rounded-lg p-1.5">{k.icon}</span></div>
+          <div key={k.label} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+              {k.label}
+              <span className="text-teal-600 bg-teal-50 rounded-xl p-1.5 ring-1 ring-teal-200">{k.icon}</span>
+            </div>
             <p className="mt-1.5 text-2xl font-bold text-slate-900">{k.value}</p>
           </div>
         ))}
       </div>
 
       <Tabs defaultValue="leads">
-        <TabsList className="bg-white border">
-          <TabsTrigger value="leads"><Users className="h-3.5 w-3.5 mr-1.5" />Leads</TabsTrigger>
-          <TabsTrigger value="campaigns"><Megaphone className="h-3.5 w-3.5 mr-1.5" />Campaigns</TabsTrigger>
-          <TabsTrigger value="recalls"><BellRing className="h-3.5 w-3.5 mr-1.5" />Recall</TabsTrigger>
-          <TabsTrigger value="followups"><Repeat className="h-3.5 w-3.5 mr-1.5" />Follow-ups</TabsTrigger>
+        <TabsList className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-1 shadow-md flex flex-wrap gap-1">
+          <TabsTrigger value="leads" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Users className="h-3.5 w-3.5 mr-1.5" />Leads
+          </TabsTrigger>
+          <TabsTrigger value="campaigns" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Megaphone className="h-3.5 w-3.5 mr-1.5" />Campaigns
+          </TabsTrigger>
+          <TabsTrigger value="recalls" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <BellRing className="h-3.5 w-3.5 mr-1.5" />Recall
+          </TabsTrigger>
+          <TabsTrigger value="followups" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Repeat className="h-3.5 w-3.5 mr-1.5" />Follow-ups
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {leads.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {leadRows.map((l) => (
                 <div key={l.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800">{l.name}</p>
+                    <p className="text-sm font-semibold text-slate-800">{l.name}</p>
                     <p className="text-xs text-slate-400">{l.source}{l.phone ? ` · ${l.phone}` : ""}{l.interestedTreatment ? ` · ${l.interestedTreatment}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={l.status} />
+                    <StatusBadge status={l.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                     {(leadFlow[l.status] ?? []).map((next) => (
-                      <Button key={next} size="sm" variant="outline" className="text-xs" disabled={leadStatus.isPending} onClick={() => leadStatus.mutate({ id: l.id, status: next })}>{next}</Button>
+                      <Button key={next} size="sm" variant="outline" className="text-xs rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50" disabled={leadStatus.isPending} onClick={() => leadStatus.mutate({ id: l.id, status: next })}>
+                        {next}
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -184,19 +236,21 @@ export default function Marketing() {
         </TabsContent>
 
         <TabsContent value="campaigns" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {campaigns.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {campRows.map((c) => (
                 <div key={c.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800">{c.name}</p>
+                    <p className="text-sm font-semibold text-slate-800">{c.name}</p>
                     <p className="text-xs text-slate-400 truncate">{c.intent}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={c.status} />
+                    <StatusBadge status={c.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                     {(campaignFlow[c.status] ?? []).map((next) => (
-                      <Button key={next} size="sm" variant="outline" className="text-xs" disabled={campaignStatus.isPending} onClick={() => campaignStatus.mutate({ id: c.id, status: next })}>{next.replace(/_/g, " ")}</Button>
+                      <Button key={next} size="sm" variant="outline" className="text-xs rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50" disabled={campaignStatus.isPending} onClick={() => campaignStatus.mutate({ id: c.id, status: next })}>
+                        {next.replace(/_/g, " ")}
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -207,13 +261,13 @@ export default function Marketing() {
         </TabsContent>
 
         <TabsContent value="recalls" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {recalls.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(recalls.data ?? []).map((r) => (
                 <div key={r.id} className="py-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">Recall due {fmtDate(r.dueDate)}</p>
-                  <StatusBadge status={r.status} />
+                  <p className="text-sm font-semibold text-slate-800">Recall due {fmtDate(r.dueDate)}</p>
+                  <StatusBadge status={r.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!recalls.isLoading && !(recalls.data ?? []).length && <EmptyState title="No recall cases" description="Recall cases are generated from recall rules and appointment history." />}
@@ -222,13 +276,13 @@ export default function Marketing() {
         </TabsContent>
 
         <TabsContent value="followups" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {followUps.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(followUps.data ?? []).map((f) => (
                 <div key={f.id} className="py-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">Follow-up {fmtDate(f.dueDate)}</p>
-                  <StatusBadge status={f.status} />
+                  <p className="text-sm font-semibold text-slate-800">Follow-up {fmtDate(f.dueDate)}</p>
+                  <StatusBadge status={f.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!followUps.isLoading && !(followUps.data ?? []).length && <EmptyState title="No follow-ups" description="Post-treatment follow-ups will appear here." />}

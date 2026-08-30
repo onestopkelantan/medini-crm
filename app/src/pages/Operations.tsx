@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useBranch } from "@/hooks/useBranch";
@@ -39,23 +39,36 @@ function NewTaskDialog({ open, onClose }: { open: boolean; onClose: () => void }
   });
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New Task</DialogTitle><DialogDescription>Create an operational task for the branch team.</DialogDescription></DialogHeader>
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">New Task</DialogTitle>
+          <DialogDescription className="text-slate-500">Create an operational task for the branch team.</DialogDescription>
+        </DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
-          <div className="space-y-1.5"><Label>Title *</Label><Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} /></div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Title *</Label>
+            <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Description</Label>
+            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="rounded-xl border-slate-200 bg-white/80 p-3" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Priority</Label>
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-medium">Priority</Label>
               <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-2.5 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{["urgent", "high", "normal", "low"].map((p) => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-medium">Due date</Label>
+              <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending}>{create.isPending ? "Saving…" : "Create Task"}</Button>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</Button>
+            <Button className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={create.isPending}>{create.isPending ? "Saving…" : "Create Task"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -77,20 +90,30 @@ function NewIncidentDialog({ open, onClose }: { open: boolean; onClose: () => vo
   });
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Report Incident</DialogTitle><DialogDescription>Log an operational incident for tracking and resolution.</DialogDescription></DialogHeader>
+      <DialogContent className="glass-card border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">Report Incident</DialogTitle>
+          <DialogDescription className="text-slate-500">Log an operational incident for tracking and resolution.</DialogDescription>
+        </DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}>
-          <div className="space-y-1.5"><Label>Title *</Label><Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} /></div>
-          <div className="space-y-1.5"><Label>Severity</Label>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Title *</Label>
+            <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="rounded-xl border-slate-200 bg-white/80 px-4 py-2.5" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Description</Label>
+            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="rounded-xl border-slate-200 bg-white/80 p-3" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Severity</Label>
             <Select value={form.severity} onValueChange={(v) => setForm({ ...form, severity: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-2.5 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>{["critical", "high", "medium", "low"].map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending}>{create.isPending ? "Reporting…" : "Report Incident"}</Button>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</Button>
+            <Button className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50" disabled={create.isPending}>{create.isPending ? "Reporting…" : "Report Incident"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -129,10 +152,16 @@ export default function Operations() {
       <PageHeader
         title="Operations"
         description="Tasks, checklists, incidents, lab cases and doctor availability"
-        actions={<div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowIncident(true)}><AlertOctagon className="h-4 w-4 mr-1.5" /> Report Incident</Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowTask(true)}><Plus className="h-4 w-4 mr-1.5" /> New Task</Button>
-        </div>}
+        actions={
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="rounded-xl border-white/40 bg-white/70 backdrop-blur-xl shadow-md text-teal-700 hover:bg-white/90" onClick={() => setShowIncident(true)}>
+              <AlertOctagon className="h-4 w-4 mr-1.5" /> Report Incident
+            </Button>
+            <Button size="sm" className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600 shadow-lg shadow-teal-200/50" onClick={() => setShowTask(true)}>
+              <Plus className="h-4 w-4 mr-1.5" /> New Task
+            </Button>
+          </div>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -142,36 +171,49 @@ export default function Operations() {
           { label: "Incidents", value: incidentRows.length, icon: <AlertOctagon className="h-4 w-4" /> },
           { label: "Lab Cases", value: (labCases.data ?? []).length, icon: <FlaskConical className="h-4 w-4" /> },
         ].map((k) => (
-          <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-medium">{k.label}<span className="text-emerald-600 bg-emerald-50 rounded-lg p-1.5">{k.icon}</span></div>
+          <div key={k.label} className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-4">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+              {k.label}
+              <span className="text-teal-600 bg-teal-50 rounded-xl p-1.5 ring-1 ring-teal-200">{k.icon}</span>
+            </div>
             <p className="mt-1.5 text-2xl font-bold text-slate-900">{k.value}</p>
           </div>
         ))}
       </div>
 
       <Tabs defaultValue="tasks">
-        <TabsList className="bg-white border">
-          <TabsTrigger value="tasks"><CheckSquare className="h-3.5 w-3.5 mr-1.5" />Tasks</TabsTrigger>
-          <TabsTrigger value="checklists"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Checklists</TabsTrigger>
-          <TabsTrigger value="incidents"><AlertOctagon className="h-3.5 w-3.5 mr-1.5" />Incidents</TabsTrigger>
-          <TabsTrigger value="lab"><FlaskConical className="h-3.5 w-3.5 mr-1.5" />Lab Cases</TabsTrigger>
-          <TabsTrigger value="doctor"><Stethoscope className="h-3.5 w-3.5 mr-1.5" />Doctor Status</TabsTrigger>
+        <TabsList className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-1 shadow-md flex flex-wrap gap-1">
+          <TabsTrigger value="tasks" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <CheckSquare className="h-3.5 w-3.5 mr-1.5" />Tasks
+          </TabsTrigger>
+          <TabsTrigger value="checklists" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <ClipboardList className="h-3.5 w-3.5 mr-1.5" />Checklists
+          </TabsTrigger>
+          <TabsTrigger value="incidents" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <AlertOctagon className="h-3.5 w-3.5 mr-1.5" />Incidents
+          </TabsTrigger>
+          <TabsTrigger value="lab" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <FlaskConical className="h-3.5 w-3.5 mr-1.5" />Lab Cases
+          </TabsTrigger>
+          <TabsTrigger value="doctor" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white">
+            <Stethoscope className="h-3.5 w-3.5 mr-1.5" />Doctor Status
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="tasks" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {tasks.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {taskRows.map((t) => (
                 <div key={t.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800">{t.title}</p>
+                    <p className="text-sm font-semibold text-slate-800">{t.title}</p>
                     <p className="text-xs text-slate-400 capitalize">{t.priority}{t.dueDate ? ` · due ${fmtDate(t.dueDate)}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={t.status} />
+                    <StatusBadge status={t.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                     {(taskFlow[t.status] ?? []).map((next) => (
-                      <Button key={next} size="sm" variant="outline" className="text-xs" disabled={taskStatus.isPending} onClick={() => taskStatus.mutate({ id: t.id, status: next })}>{next.replace(/_/g, " ")}</Button>
+                      <Button key={next} size="sm" variant="outline" className="text-xs rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50" disabled={taskStatus.isPending} onClick={() => taskStatus.mutate({ id: t.id, status: next })}>{next.replace(/_/g, " ")}</Button>
                     ))}
                   </div>
                 </div>
@@ -182,16 +224,16 @@ export default function Operations() {
         </TabsContent>
 
         <TabsContent value="checklists" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {checklists.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(checklists.data ?? []).map((c) => (
                 <div key={c.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">{c.title}</p>
+                    <p className="text-sm font-semibold text-slate-800">{c.title}</p>
                     <p className="text-xs text-slate-400">{fmtDate(c.checklistDate)}{c.shift ? ` · ${c.shift}` : ""}</p>
                   </div>
-                  <StatusBadge status={c.status} />
+                  <StatusBadge status={c.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!checklists.isLoading && !(checklists.data ?? []).length && <EmptyState title="No checklists" description="Daily opening/closing checklists will appear here." />}
@@ -200,19 +242,19 @@ export default function Operations() {
         </TabsContent>
 
         <TabsContent value="incidents" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {incidents.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {incidentRows.map((i) => (
                 <div key={i.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800">{i.title}</p>
+                    <p className="text-sm font-semibold text-slate-800">{i.title}</p>
                     <p className="text-xs text-slate-400 capitalize">severity: {i.severity}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={i.status} />
+                    <StatusBadge status={i.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                     {(incidentFlow[i.status] ?? []).map((next) => (
-                      <Button key={next} size="sm" variant="outline" className="text-xs" disabled={incidentStatus.isPending} onClick={() => incidentStatus.mutate({ id: i.id, status: next })}>{next}</Button>
+                      <Button key={next} size="sm" variant="outline" className="text-xs rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50" disabled={incidentStatus.isPending} onClick={() => incidentStatus.mutate({ id: i.id, status: next })}>{next}</Button>
                     ))}
                   </div>
                 </div>
@@ -223,16 +265,16 @@ export default function Operations() {
         </TabsContent>
 
         <TabsContent value="lab" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {labCases.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(labCases.data ?? []).map((l) => (
                 <div key={l.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">{l.labVendor}</p>
+                    <p className="text-sm font-semibold text-slate-800">{l.labVendor}</p>
                     <p className="text-xs text-slate-400 truncate">{l.workDescription}{l.dueDate ? ` · due ${fmtDate(l.dueDate)}` : ""}</p>
                   </div>
-                  <StatusBadge status={l.status} />
+                  <StatusBadge status={l.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!labCases.isLoading && !(labCases.data ?? []).length && <EmptyState title="No lab cases" description="Dental lab work orders will appear here." />}
@@ -241,13 +283,13 @@ export default function Operations() {
         </TabsContent>
 
         <TabsContent value="doctor" className="mt-4">
-          <Panel>
+          <Panel className="glass-card bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-5">
             {doctorStatus.isLoading && <Skeleton className="h-40 w-full" />}
             <div className="divide-y divide-slate-100">
               {(doctorStatus.data ?? []).map((d) => (
                 <div key={d.id} className="py-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">Dr. {d.doctorId.slice(0, 8)}…</p>
-                  <StatusBadge status={d.status} />
+                  <p className="text-sm font-semibold text-slate-800">Dr. {d.doctorId.slice(0, 8)}…</p>
+                  <StatusBadge status={d.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
                 </div>
               ))}
               {!doctorStatus.isLoading && !(doctorStatus.data ?? []).length && <EmptyState title="No doctor status" description="Doctor availability statuses will appear here." />}

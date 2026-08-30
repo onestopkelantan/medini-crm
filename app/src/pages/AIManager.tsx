@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { PageHeader, Panel, EmptyState, StatusBadge } from "@/components/shared";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +30,7 @@ export default function AIManager() {
   const enabled = agentRows.filter((a) => a.status === "enabled").length;
 
   return (
-    <div className="space-y-5 -mt-6">
+    <div className="space-y-6 -mt-6">
       <PageHeader title="AI Manager" description="AI agents, guardrails, approval rules and audit trail" />
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -40,19 +40,19 @@ export default function AIManager() {
           { label: "Guardrails", value: (guardrails.data ?? []).length, icon: <ShieldCheck className="h-4 w-4" /> },
           { label: "Approval Rules", value: (approvals.data ?? []).length, icon: <ListChecks className="h-4 w-4" /> },
         ].map((k) => (
-          <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-medium">{k.label}<span className="text-emerald-600 bg-emerald-50 rounded-lg p-1.5">{k.icon}</span></div>
-            <p className="mt-1.5 text-2xl font-bold text-slate-900">{k.value}</p>
+          <div key={k.label} className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-medium">{k.label}<span className="rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 p-2 text-white shadow-lg shadow-teal-500/20">{k.icon}</span></div>
+            <p className="mt-2 text-2xl font-bold text-[#0B132B]">{k.value}</p>
           </div>
         ))}
       </div>
 
       <Tabs defaultValue="agents">
-        <TabsList className="bg-white border">
-          <TabsTrigger value="agents"><Bot className="h-3.5 w-3.5 mr-1.5" />Agents</TabsTrigger>
-          <TabsTrigger value="guardrails"><ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Guardrails</TabsTrigger>
-          <TabsTrigger value="approvals"><ListChecks className="h-3.5 w-3.5 mr-1.5" />Approval Rules</TabsTrigger>
-          <TabsTrigger value="audit"><ScrollText className="h-3.5 w-3.5 mr-1.5" />Audit</TabsTrigger>
+        <TabsList className="h-auto gap-1 rounded-2xl border border-white/60 bg-white/80 p-1.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+          <TabsTrigger className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white" value="agents"><Bot className="h-3.5 w-3.5 mr-1.5" />Agents</TabsTrigger>
+          <TabsTrigger className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white" value="guardrails"><ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Guardrails</TabsTrigger>
+          <TabsTrigger className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white" value="approvals"><ListChecks className="h-3.5 w-3.5 mr-1.5" />Approval Rules</TabsTrigger>
+          <TabsTrigger className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white" value="audit"><ScrollText className="h-3.5 w-3.5 mr-1.5" />Audit</TabsTrigger>
         </TabsList>
 
         <TabsContent value="agents" className="mt-4">
@@ -62,7 +62,7 @@ export default function AIManager() {
               {agentRows.map((a) => (
                 <div key={a.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="text-xl">{a.icon ?? "🤖"}</span>
+                    <span className="text-xl">{a.icon ?? "ðŸ¤–"}</span>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-800">{a.name}</p>
                       <p className="text-xs text-slate-400 truncate">{a.description ?? a.ownerDomain}</p>
@@ -92,7 +92,7 @@ export default function AIManager() {
                     <StatusBadge status={g.level === "HARD_BLOCK" ? "critical" : "high"} />
                   </div>
                   <p className="text-xs text-slate-500 mt-1">{g.rule}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{g.agentId ? `Agent ${g.agentId.slice(0, 8)}…` : "GLOBAL"}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{g.agentId ? `Agent ${g.agentId.slice(0, 8)}â€¦` : "GLOBAL"}</p>
                 </div>
               ))}
               {!guardrails.isLoading && !(guardrails.data ?? []).length && <EmptyState title="No guardrails" description="AI safety guardrails will appear here." />}
@@ -108,7 +108,7 @@ export default function AIManager() {
                 <div key={r.id} className="py-3 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-800">{r.actionKey}</p>
-                    <p className="text-xs text-slate-400">{r.agentId ? `Agent ${r.agentId.slice(0, 8)}…` : "GLOBAL"}{r.note ? ` · ${r.note}` : ""}</p>
+                    <p className="text-xs text-slate-400">{r.agentId ? `Agent ${r.agentId.slice(0, 8)}â€¦` : "GLOBAL"}{r.note ? ` Â· ${r.note}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={r.risk === "HIGH" ? "high" : r.risk === "MEDIUM" ? "medium" : "low"} />
@@ -128,7 +128,7 @@ export default function AIManager() {
               {(audit.data ?? []).map((a) => (
                 <div key={a.id} className="py-2.5">
                   <p className="text-sm text-slate-700">{a.action ?? "AI action"}</p>
-                  <p className="text-xs text-slate-400">{fmtDateTime(a.createdAt)}{a.agentId ? ` · agent ${a.agentId.slice(0, 8)}…` : ""}</p>
+                  <p className="text-xs text-slate-400">{fmtDateTime(a.createdAt)}{a.agentId ? ` Â· agent ${a.agentId.slice(0, 8)}â€¦` : ""}</p>
                 </div>
               ))}
               {!audit.isLoading && !(audit.data ?? []).length && <EmptyState title="No audit records" description="AI actions and evaluations will be audited here." />}
@@ -139,3 +139,4 @@ export default function AIManager() {
     </div>
   );
 }
+

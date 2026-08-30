@@ -1,8 +1,7 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { PageHeader, StatusBadge, Panel, EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +18,29 @@ interface Appointment {
 interface Staff { id: string; name: string; role: string }
 interface Patient { id: string; name: string; mrn: string }
 
+const GRAD = "linear-gradient(135deg, #0DC9B7, #12B5E5)";
+
 const statusFlow: Record<string, string[]> = {
   booked: ["confirmed", "cancelled", "no-show"],
   confirmed: ["checked-in", "cancelled", "no-show"],
   "checked-in": ["in-progress", "cancelled"],
   "in-progress": ["completed"],
   completed: [], cancelled: [], "no-show": [],
+};
+
+const statusStyle: Record<string, { bg: string; color: string; label: string }> = {
+  booked: { bg: "#f8fafc", color: "#64748b", label: "Ditempah" },
+  confirmed: { bg: "#f0fdfa", color: "#0d9488", label: "Disahkan" },
+  "checked-in": { bg: "#eff6ff", color: "#2563eb", label: "Daftar Masuk" },
+  "in-progress": { bg: "#f5f3ff", color: "#7c3aed", label: "Sedang Rawat" },
+  completed: { bg: "#f0fdfa", color: "#0d9488", label: "Selesai" },
+  cancelled: { bg: "#fff1f2", color: "#e11d48", label: "Dibatal" },
+  "no-show": { bg: "#fffbeb", color: "#d97706", label: "Tak Hadir" },
+};
+
+const statusLabel: Record<string, string> = {
+  confirmed: "Sahkan", cancelled: "Batal", "no-show": "Tak Hadir",
+  "checked-in": "Daftar Masuk", "in-progress": "Mula Rawat", completed: "Selesai",
 };
 
 function BookingDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -46,37 +62,37 @@ function BookingDialog({ open, onClose }: { open: boolean; onClose: () => void }
         notes: form.notes || null,
       });
     },
-    onSuccess: () => { toast.success("Appointment booked"); qc.invalidateQueries({ queryKey: ["appointments"] }); onClose(); },
-    onError: (e: unknown) => toast.error(errorMessage(e, "Booking failed")),
+    onSuccess: () => { toast.success("Appointment ditempah"); qc.invalidateQueries({ queryKey: ["appointments"] }); onClose(); },
+    onError: (e: unknown) => toast.error(errorMessage(e, "Tempahan gagal")),
   });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Book Appointment</DialogTitle><DialogDescription>Create a new appointment.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Tempah Appointment</DialogTitle><DialogDescription>Cipta appointment baru.</DialogDescription></DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); book.mutate(); }}>
           <div className="space-y-1.5">
-            <Label>Patient *</Label>
+            <Label>Pesakit *</Label>
             <Select value={form.patientId} onValueChange={(v) => setForm({ ...form, patientId: v })}>
-              <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Pilih pesakit" /></SelectTrigger>
               <SelectContent>{(patients.data ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.mrn})</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Doctor</Label>
+            <Label>Doktor</Label>
             <Select value={form.doctorId} onValueChange={(v) => setForm({ ...form, doctorId: v })}>
-              <SelectTrigger><SelectValue placeholder="Assign doctor (optional)" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Tetapkan doktor (pilihan)" /></SelectTrigger>
               <SelectContent>{(doctors.data ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Date *</Label><Input required type="date" value={form.scheduledDate} onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Time *</Label><Input required type="time" value={form.scheduledTime} onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Tarikh *</Label><Input required type="date" value={form.scheduledDate} onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Masa *</Label><Input required type="time" value={form.scheduledTime} onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })} /></div>
           </div>
-          <div className="space-y-1.5"><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label>Nota</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={book.isPending || !form.patientId}>Book</Button>
+            <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
+            <Button type="submit" style={{ background: GRAD }} className="text-white" disabled={book.isPending || !form.patientId}>Tempah</Button>
           </div>
         </form>
       </DialogContent>
@@ -98,8 +114,8 @@ export default function Appointments() {
 
   const changeStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/appointments/${id}/status`, { status }),
-    onSuccess: () => { toast.success("Status updated"); qc.invalidateQueries({ queryKey: ["appointments"] }); },
-    onError: (e: unknown) => toast.error(errorMessage(e, "Update failed")),
+    onSuccess: () => { toast.success("Status dikemaskini"); qc.invalidateQueries({ queryKey: ["appointments"] }); },
+    onError: (e: unknown) => toast.error(errorMessage(e, "Kemaskini gagal")),
   });
 
   const rows = list.data ?? [];
@@ -107,50 +123,60 @@ export default function Appointments() {
   const canBook = ["hq", "branch_manager", "branch_admin", "receptionist"].includes(user?.role ?? "");
 
   return (
-    <div className="space-y-5 -mt-6">
-      <PageHeader
-        title="Appointments"
-        description="Production appointment schedule"
-        actions={canBook && (
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowBook(true)}>
-            <CalendarPlus className="h-4 w-4 mr-1.5" /> Book Appointment
-          </Button>
-        )}
-      />
-
-      <Panel>
-        <div className="divide-y divide-slate-100">
-          {list.isLoading && Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 w-full my-2" />)}
-          {rows.map((a) => (
-            <div key={a.id} className="flex items-center gap-4 py-3">
-              <div className="w-32">
-                <p className="text-sm font-semibold text-slate-800">{a.scheduledDate}</p>
-                <p className="text-xs text-slate-400">{a.scheduledTime}</p>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-700">{a.patientName}</p>
-                <p className="text-xs text-slate-400 font-mono">{a.code}</p>
-              </div>
-              <StatusBadge status={a.status} />
-              <div className="flex gap-1">
-                {(statusFlow[a.status] ?? []).map((next) => (
-                  <Button key={next} size="sm" variant="outline" className="text-xs"
-                    onClick={() => changeStatus.mutate({ id: a.id, status: next })} disabled={changeStatus.isPending}>
-                    {next}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ))}
-          {!list.isLoading && !rows.length && <EmptyState title="No appointments" description="Book the first appointment to get started." />}
+    <div className="space-y-6" style={{ animation: "fadeIn .25s ease" }}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[24px] font-bold" style={{ color: "#0B132B", fontFamily: "'Outfit', sans-serif" }}>Appointments</h1>
+          <p className="text-sm text-slate-400 mt-0.5">Jadual temujanji produksi</p>
         </div>
-      </Panel>
+        {canBook && (
+          <button onClick={() => setShowBook(true)} className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white transition" style={{ background: GRAD, boxShadow: "0 6px 16px -4px rgba(13,201,183,.4)" }}>
+            <CalendarPlus className="h-4 w-4" /> Tempah Appointment
+          </button>
+        )}
+      </div>
+
+      {list.isLoading ? (
+        <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}</div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-2xl border border-slate-100 bg-white/80 p-12 text-center" style={{ backdropFilter: "blur(12px)" }}>
+          <p className="font-semibold text-slate-700">Tiada appointment</p>
+          <p className="text-xs text-slate-400 mt-1">Tempah appointment pertama untuk mula.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((a) => {
+            const st = statusStyle[a.status] ?? { bg: "#f8fafc", color: "#64748b", label: a.status };
+            return (
+              <div key={a.id} className="rounded-2xl border border-slate-100 p-4 flex flex-wrap items-center gap-4" style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", boxShadow: "0 4px 24px -6px rgba(15,23,42,0.08)" }}>
+                <div className="rounded-xl px-3 py-2 text-center shrink-0" style={{ background: "#f0fdfa" }}>
+                  <p className="text-[13px] font-bold" style={{ color: "#0d9488" }}>{a.scheduledDate}</p>
+                  <p className="text-[11px]" style={{ color: "#0d9488" }}>{a.scheduledTime}</p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-bold truncate" style={{ color: "#0B132B" }}>{a.patientName}</p>
+                  <p className="text-xs text-slate-400 font-mono">{a.code}</p>
+                </div>
+                <span className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(statusFlow[a.status] ?? []).map((next) => (
+                    <button key={next} onClick={() => changeStatus.mutate({ id: a.id, status: next })} disabled={changeStatus.isPending}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
+                      {statusLabel[next] ?? next}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-400">Page {page}</p>
+        <p className="text-sm text-slate-400">Halaman {page}</p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4" /> Prev</Button>
-          <Button variant="outline" size="sm" disabled={!hasMore} onClick={() => setPage(page + 1)}>Next <ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4" /> Sebelum</Button>
+          <Button variant="outline" size="sm" disabled={!hasMore} onClick={() => setPage(page + 1)}>Seterusnya <ChevronRight className="h-4 w-4" /></Button>
         </div>
       </div>
 

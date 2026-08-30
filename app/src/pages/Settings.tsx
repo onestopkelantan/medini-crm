@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { PageHeader, Panel, EmptyState, StatusBadge } from "@/components/shared";
@@ -47,7 +47,7 @@ function NewDefinitionDialog({ open, onClose }: { open: boolean; onClose: () => 
           <div className="space-y-1.5"><Label>Default value</Label><Input value={form.defaultValue} onChange={(e) => setForm({ ...form, defaultValue: e.target.value })} /></div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={create.isPending}>{create.isPending ? "Saving…" : "Create Definition"}</Button>
+            <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/20 hover:from-teal-600 hover:to-cyan-600" disabled={create.isPending}>{create.isPending ? "Savingâ€¦" : "Create Definition"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -70,13 +70,13 @@ function SetValueDialog({ def, onClose }: { def: Definition; onClose: () => void
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Set Value — {def.key}</DialogTitle><DialogDescription>{def.description ?? "Update the org-scoped value for this setting."}</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Set Value â€” {def.key}</DialogTitle><DialogDescription>{def.description ?? "Update the org-scoped value for this setting."}</DialogDescription></DialogHeader>
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setVal.mutate(); }}>
           <div className="space-y-1.5"><Label>Value ({def.valueType}) *</Label><Input required value={value} onChange={(e) => setValue(e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Reason *</Label><Textarea required minLength={2} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="Why is this change being made?" /></div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={setVal.isPending}>{setVal.isPending ? "Saving…" : "Save Value"}</Button>
+            <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/20 hover:from-teal-600 hover:to-cyan-600" disabled={setVal.isPending}>{setVal.isPending ? "Savingâ€¦" : "Save Value"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -96,11 +96,11 @@ export default function SettingsPage() {
   const secretsForbidden = secrets.isError;
 
   return (
-    <div className="space-y-5 -mt-6">
+    <div className="space-y-6 -mt-6">
       <PageHeader
         title="Settings"
         description="Configuration definitions, values and secret references"
-        actions={<Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowDef(true)}><Plus className="h-4 w-4 mr-1.5" /> New Definition</Button>}
+        actions={<Button size="sm" className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/20 hover:from-teal-600 hover:to-cyan-600" onClick={() => setShowDef(true)}><Plus className="h-4 w-4 mr-1.5" /> New Definition</Button>}
       />
 
       <Panel title="Setting Definitions" subtitle="Org/branch configuration keys">
@@ -110,11 +110,11 @@ export default function SettingsPage() {
             <div key={d.id} className="py-3 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-mono font-medium text-slate-800">{d.key}</p>
-                <p className="text-xs text-slate-400">{d.description ?? "—"} · type {d.valueType}{d.category ? ` · ${d.category}` : ""}</p>
+                <p className="text-xs text-slate-400">{d.description ?? "â€”"} Â· type {d.valueType}{d.category ? ` Â· ${d.category}` : ""}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {d.locked && <StatusBadge status="locked" />}
-                <Button size="sm" variant="outline" className="text-xs" onClick={() => setEditDef(d)}>Set Value</Button>
+                <Button size="sm" variant="outline" className="text-xs rounded-full px-3 py-1 font-medium text-teal-700 bg-teal-50 ring-1 ring-teal-200" onClick={() => setEditDef(d)}>Set Value</Button>
               </div>
             </div>
           ))}
@@ -126,7 +126,7 @@ export default function SettingsPage() {
 
       <Panel
         title="Secret References"
-        subtitle="Vault paths only — secret values are never displayed"
+        subtitle="Vault paths only â€” secret values are never displayed"
         action={
           <Button size="sm" variant="outline" onClick={() => setShowSecrets(!showSecrets)}>
             {showSecrets ? <EyeOff className="h-4 w-4 mr-1.5" /> : <Eye className="h-4 w-4 mr-1.5" />} {showSecrets ? "Hide" : "Show"}
@@ -155,3 +155,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
