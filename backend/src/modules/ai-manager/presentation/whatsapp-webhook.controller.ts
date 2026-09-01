@@ -5,6 +5,7 @@ import { Public } from '../../../core/auth/decorators';
 import { MinimaxAdapter } from '../infrastructure/minimax.adapter';
 import { DbContextService } from '../../../core/auth/db-context.service';
 import { OrgAllocator } from '../../../shared/allocators/org-allocator';
+import IORedis from 'ioredis';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
 const BRANCH_ID = 'da6ca871-3c49-4ef6-8bca-f208a0bfba77';
@@ -14,45 +15,99 @@ const WAHA_URL =
 const WAHA_API_KEY = process.env.WAHA_API_KEY ?? '';
 const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default';
 
-const NUR_PROMPT = `Awak Nur, staf AI Klinik Pergigian Medini cawangan Setia Tropika, Johor Bahru. Bantu customer faham rawatan, jawab soalan lazim, beri panduan awal, dan kumpul detail booking.
+const NUR_PROMPT = `
+Awak ialah Nur, pembantu WhatsApp Klinik Pergigian Medini, cawangan Setia Tropika, Johor Bahru.
 
-CARA BERCAKAP: Professional, mesra, warm, BM campur simple English. Guna 1 emoji ringkas. Panggil Cik/Tuan/Puan. Balas maksimum 2-3 ayat.
+TUGAS:
+Bantu pelanggan tentang rawatan dan proses booking secara automatik. Ingat semua maklumat booking yang telah diberikan dalam perbualan. Tanya hanya maklumat yang masih belum ada. Jangan ulang soalan yang telah dijawab.
 
-BOOKING: Kumpul nama penuh, tarikh, masa dan rawatan. Jika maklumat lengkap, beritahu booking akan diproses secara automatik. Jangan reka harga atau discount.
+MAKLUMAT BOOKING:
+Nama penuh, tarikh, masa dan jenis rawatan.
 
-WAKTU BOOKING:
-Ahad-Khamis: 10 pagi hingga 9 malam.
-Jumaat-Sabtu: 10 pagi hingga 5 petang.
-Waktu rehat: 1 petang hingga 2 petang.
-Slot setiap 30 minit.`;
+CARA BERCAKAP:
+- Bahasa Melayu yang mesra, profesional dan ringkas.
+- Boleh campur sedikit English.
+- Panggil Cik, Puan atau Tuan; jika tidak pasti gunakan Cik.
+- Jangan guna sis atau bro.
+- Maksimum 2 atau 3 ayat dan maksimum 1 emoji.
 
-const EXTRACT_PROMPT = `Kamu pengekstrak data booking klinik gigi.
+WAKTU DAN SLOT:
+- Ahad hingga Khamis: 10:00 pagi hingga 9:00 malam.
+- Jumaat dan Sabtu: 10:00 pagi hingga 5:00 petang.
+- Waktu rehat: 1:00 hingga 2:00 petang.
+- Slot setiap 30 minit.
+- Slot terakhir Ahad-Khamis 8:30 malam.
+- Slot terakhir Jumaat-Sabtu 4:30 petang.
 
-Jika mesej mempunyai niat booking, pulangkan JSON sahaja:
+PERATURAN:
+- Fahami 10 pagi sebagai 10:00, 10.30 pagi sebagai 10:30, 2 petang sebagai 14:00 dan 6 malam sebagai 18:00.
+- Fahami esok dan lusa berdasarkan tarikh semasa sistem.
+- Jika maklumat belum lengkap, tanya satu perkara yang masih kosong.
+- Jika slot penuh, maklumkan slot penuh dan cadangkan slot kosong lain.
+- Jika waktu tidak sah, tawarkan slot yang sah.
+- Jika semua maklumat lengkap, maklumkan booking sedang diproses secara automatik.
+- Jangan minta staff mengesahkan booking.
+- Jangan kata berjaya sebelum sistem mengesahkan slot.
+- Jangan reka harga, discount, diagnosis atau maklumat klinik.
+
+CONTOH:
+Pelanggan: Nama saya Ali
+Nur: Baik Cik Ali 😊 Tarikh yang Cik mahu?
+
+Pelanggan: Esok, 10 pagi untuk scaling
+Nur: Baik Cik Ali. Saya sedang semak slot Scaling untuk esok pada 10:00 pagi.
+`;
+
+const EXTRACT_PROMPT = `
+Kamu ialah pengekstrak data booking Klinik Pergigian Medini.
+
+Pulangkan JSON sahaja tanpa markdown:
 {
   "is_booking": true,
   "name": "",
   "date": "YYYY-MM-DD",
   "time": "HH:MM",
   "treatment": "",
-  "branch": ""
+  "branch": "",
+  "missing": []
 }
 
-Tarikh mesti format YYYY-MM-DD.
-Masa mesti format 24 jam HH:MM.
-Contoh: 6pm menjadi 18:00.
-Jika maklumat tiada, kosongkan nilai tersebut.
-Jika bukan booking, pulangkan {"is_booking":false}.
-Jangan tulis markdown atau penerangan lain.`;
+PERATURAN:
+- is_booking true jika mesej ada niat membuat, menukar atau menyemak booking.
+- is_booking false jika bukan berkaitan booking.
+- Isi hanya maklumat yang wujud dalam mesej atau konteks yang diberikan.
+- Jangan padam maklumat lama yang sudah diberikan.
+- Tarikh mesti YYYY-MM-DD.
+- Masa mesti format 24 jam HH:MM.
+- 10 pagi = 10:00, 10.30 pagi = 10:30, 2 petang = 14:00, 6 malam = 18:00.
+- Jika tarikh disebut sebagai esok atau lusa, gunakan tarikh sebenar berdasarkan tarikh semasa sistem.
+- Jika tiada cawangan disebut, gunakan Setia Tropika.
+- missing hanya boleh mengandungi name, date, time atau treatment.
+- Jika semua lengkap, missing mesti [].
+`;
+
+type BookingMemory = {
+  name: string;
+  date: string;
+  time: string;
+  treatment: string;
+  branch: string;
+};
 
 @Controller({ path: 'whatsapp', version: '1' })
 export class WhatsappWebhookController {
   private readonly logger = new Logger('WhatsappWebhook');
+  private readonly redis: IORedis | null;
 
   constructor(
     private readonly minimax: MinimaxAdapter,
     private readonly dbCtx: DbContextService,
-  ) {}
+  ) {
+    const url = process.env.REDIS_URL;
+    this.redis = url
+      ? new IORedis(url, { lazyConnect: true, maxRetriesPerRequest: null })
+      : null;
+  }
 
   @Public()
   @Post('webhook')
@@ -81,8 +136,16 @@ export class WhatsappWebhookController {
     if (chatId.endsWith('@g.us')) return { ok: true };
     if (!text || !text.trim()) return { ok: true };
 
+    const previous = await this.getBookingMemory(chatId);
+    const context = previous
+      ? `\nMAKLUMAT BOOKING SEMENTARA YANG SUDAH DIKUMPUL:\n${JSON.stringify(previous)}\nGunakan maklumat ini dan tanya hanya perkara yang masih kosong.\n`
+      : '';
+
     try {
-      const reply = await this.minimax.chat(NUR_PROMPT, text);
+      const reply = await this.minimax.chat(
+        NUR_PROMPT + context,
+        text,
+      );
       await this.sendText(chatId, reply);
     } catch (e) {
       this.logger.error(
@@ -167,8 +230,10 @@ export class WhatsappWebhookController {
     text: string,
     payload: any,
   ) {
+    const previous = await this.getBookingMemory(chatId);
     const raw = await this.minimax.chat(
-      EXTRACT_PROMPT,
+      EXTRACT_PROMPT +
+        `\nKONTEKS BOOKING TERDAHULU:\n${JSON.stringify(previous ?? {})}`,
       text,
     );
 
@@ -190,19 +255,29 @@ export class WhatsappWebhookController {
       return;
     }
 
-    const name = String(data.name ?? '').trim();
+    const name = String(
+      data.name || previous?.name || '',
+    ).trim();
     const date = this.normalizeDate(
-      String(data.date ?? '').trim(),
+      String(data.date || previous?.date || '').trim(),
     );
     const time = this.normalizeTime(
-      String(data.time ?? '').trim(),
+      String(data.time || previous?.time || '').trim(),
     );
     const treatment = String(
-      data.treatment ?? '',
+      data.treatment || previous?.treatment || '',
     ).trim();
     const branch = String(
-      data.branch ?? '',
+      data.branch || previous?.branch || 'Setia Tropika',
     ).trim();
+
+    await this.setBookingMemory(chatId, {
+      name,
+      date,
+      time,
+      treatment,
+      branch,
+    });
 
     if (!name || !date || !time) {
       this.logger.warn(
@@ -251,6 +326,7 @@ export class WhatsappWebhookController {
           this.logger.warn(
             `Booking duplicate diabaikan untuk ${phone}`,
           );
+          await this.deleteBookingMemory(chatId);
           return;
         }
 
@@ -473,6 +549,7 @@ export class WhatsappWebhookController {
         this.logger.warn(
           `Auto appointment berjaya: ${code}`,
         );
+        await this.deleteBookingMemory(chatId);
       },
     );
   }
@@ -483,6 +560,39 @@ export class WhatsappWebhookController {
     );
 
     return match ? value : '';
+  }
+
+  private bookingKey(chatId: string): string {
+    return `medini:whatsapp:booking:${chatId}`;
+  }
+
+  private async getBookingMemory(chatId: string): Promise<BookingMemory | null> {
+    if (!this.redis) return null;
+    try {
+      const value = await this.redis.get(this.bookingKey(chatId));
+      return value ? JSON.parse(value) as BookingMemory : null;
+    } catch (e) {
+      this.logger.error('Gagal baca sesi booking Redis: ' + (e as Error).message);
+      return null;
+    }
+  }
+
+  private async setBookingMemory(chatId: string, value: BookingMemory): Promise<void> {
+    if (!this.redis) return;
+    try {
+      await this.redis.set(this.bookingKey(chatId), JSON.stringify(value), 'EX', 86400);
+    } catch (e) {
+      this.logger.error('Gagal simpan sesi booking Redis: ' + (e as Error).message);
+    }
+  }
+
+  private async deleteBookingMemory(chatId: string): Promise<void> {
+    if (!this.redis) return;
+    try {
+      await this.redis.del(this.bookingKey(chatId));
+    } catch (e) {
+      this.logger.error('Gagal padam sesi booking Redis: ' + (e as Error).message);
+    }
   }
 
   private getBookingSlots(date: string): string[] {
