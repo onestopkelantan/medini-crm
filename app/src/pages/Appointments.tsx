@@ -336,6 +336,9 @@ export default function Appointments() {
   });
 
   const rows = list.data ?? [];
+  const displayRows = view === 'day'
+    ? rows.filter((appointment) => appointment.scheduledDate.slice(0, 10) === selectedDate)
+    : rows;
   const hasMore = rows.length === pageSize;
   const canBook = [
     "hq",
@@ -358,7 +361,7 @@ export default function Appointments() {
             Appointments
           </h1>
           <p className="mt-0.5 text-sm text-slate-400">
-            {rows.length} appointments
+            {displayRows.length} appointments
           </p>
         </div>
 
@@ -413,7 +416,7 @@ export default function Appointments() {
             <Skeleton key={i} className="h-20 w-full rounded-2xl" />
           ))}
         </div>
-      ) : rows.length === 0 ? (
+      ) : displayRows.length === 0 ? (
         <div
           className="rounded-2xl border border-slate-100 bg-white/80 p-12 text-center"
           style={{ backdropFilter: "blur(12px)" }}
@@ -427,7 +430,7 @@ export default function Appointments() {
         </div>
       ) : (
         <div className="space-y-3">
-          {rows.map((a) => {
+          {displayRows.map((a) => {
             const st = statusStyle[a.status] ?? {
               bg: "#f8fafc",
               color: "#64748b",
