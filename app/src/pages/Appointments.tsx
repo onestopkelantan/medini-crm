@@ -93,6 +93,7 @@ function BookingDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
   const qc = useQueryClient();
 
   const patients = useQuery({
@@ -106,6 +107,7 @@ function BookingDialog({
       (await api.get<Staff[]>("/admin/staff?role=doctor")).filter(
         (s) => s.role === "doctor",
       ),
+    enabled: user?.role === "hq",
   });
 
   const [form, setForm] = useState({
