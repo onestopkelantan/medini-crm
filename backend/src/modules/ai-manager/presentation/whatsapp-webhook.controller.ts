@@ -84,9 +84,17 @@ export class WhatsappWebhookController {
     try {
       await this.maybeSaveBooking(chatId, text, payload);
     } catch (e) {
-      this.logger.error(
-        'Gagal proses auto booking: ' + (e as Error).message,
-      );
+      const err = e as any;
+      this.logger.error({
+        message: 'Gagal proses auto booking',
+        errorMessage: err?.message,
+        causeMessage: err?.cause?.message,
+        detail: err?.cause?.detail,
+        hint: err?.cause?.hint,
+        code: err?.cause?.code,
+        constraint: err?.cause?.constraint,
+        table: err?.cause?.table,
+      });
     }
 
     return { ok: true };
