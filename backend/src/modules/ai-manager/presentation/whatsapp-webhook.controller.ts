@@ -1,4 +1,4 @@
-﻿/* WhatsApp webhook - Nur reply + automatic booking intake. */
+/* WhatsApp webhook - Nur reply + automatic booking intake. */
 import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
