@@ -12,11 +12,27 @@ import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface Appointment {
-  id: string; code: string; patientName: string; doctorId: string | null;
-  scheduledDate: string; scheduledTime: string; status: string; branchId: string;
+  id: string;
+  code: string;
+  patientName: string;
+  doctorId: string | null;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: string;
+  branchId: string;
 }
-interface Staff { id: string; name: string; role: string }
-interface Patient { id: string; name: string; mrn: string }
+
+interface Staff {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface Patient {
+  id: string;
+  name: string;
+  mrn: string;
+}
 
 const GRAD = "linear-gradient(135deg, #0DC9B7, #12B5E5)";
 
@@ -25,7 +41,9 @@ const statusFlow: Record<string, string[]> = {
   confirmed: ["checked-in", "cancelled", "no-show"],
   "checked-in": ["in-progress", "cancelled"],
   "in-progress": ["completed"],
-  completed: [], cancelled: [], "no-show": [],
+  completed: [],
+  cancelled: [],
+  "no-show": [],
 };
 
 const statusStyle: Record<string, { bg: string; color: string; label: string }> = {
@@ -39,60 +57,225 @@ const statusStyle: Record<string, { bg: string; color: string; label: string }> 
 };
 
 const statusLabel: Record<string, string> = {
-  confirmed: "Sahkan", cancelled: "Batal", "no-show": "Tak Hadir",
-  "checked-in": "Daftar Masuk", "in-progress": "Mula Rawat", completed: "Selesai",
+  confirmed: "Sahkan",
+  cancelled: "Batal",
+  "no-show": "Tak Hadir",
+  "checked-in": "Daftar Masuk",
+  "in-progress": "Mula Rawat",
+  completed: "Selesai",
 };
 
-function BookingDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function getBookingSlots(date: string): string[] {
+  if (!date) return [];
+
+  const day = new Date(`${date}T00:00:00`).getDay();
+  const closingHour = day === 5 || day === 6 ? 17 : 21;
+  const slots: string[] = [];
+
+  for (let minutes = 10 * 60; minutes < closingHour * 60; minutes += 30) {
+    if (minutes >= 13 * 60 && minutes < 14 * 60) continue;
+
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+
+    slots.push(
+      `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    );
+  }
+
+  return slots;
+}
+
+function BookingDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
-  const patients = useQuery({ queryKey: ["patients", "all"], queryFn: () => api.get<Patient[]>("/patients?limit=100") });
+
+  const patients = useQuery({
+    queryKey: ["patients", "all"],
+    queryFn: () => api.get<Patient[]>("/patients?limit=100"),
+  });
+
   const doctors = useQuery({
     queryKey: ["admin", "doctors"],
-    queryFn: async () => (await api.get<Staff[]>("/admin/staff?role=doctor")).filter((s) => s.role === "doctor"),
+    queryFn: async () =>
+      (await api.get<Staff[]>("/admin/staff?role=doctor")).filter(
+        (s) => s.role === "doctor",
+      ),
   });
-  const [form, setForm] = useState({ patientId: "", doctorId: "", scheduledDate: "", scheduledTime: "", notes: "" });
+
+  const [form, setForm] = useState({
+    patientId: "",
+    doctorId: "",
+    scheduledDate: "",
+    scheduledTime: "",
+    notes: "",
+  });
+
+  const slots = getBookingSlots(form.scheduledDate);
 
   const book = useMutation({
     mutationFn: () => {
-      const patient = (patients.data ?? []).find((p) => p.id === form.patientId);
+      const patient = (patients.data ?? []).find(
+        (p) => p.id === form.patientId,
+      );
+
       return api.post<Appointment>("/appointments", {
-        patientId: form.patientId, patientName: patient?.name ?? "",
+        patientId: form.patientId,
+        patientName: patient?.name ?? "",
         doctorId: form.doctorId || null,
-        scheduledDate: form.scheduledDate, scheduledTime: form.scheduledTime,
+        scheduledDate: form.scheduledDate,
+        scheduledTime: form.scheduledTime,
         notes: form.notes || null,
       });
     },
-    onSuccess: () => { toast.success("Appointment ditempah"); qc.invalidateQueries({ queryKey: ["appointments"] }); onClose(); },
-    onError: (e: unknown) => toast.error(errorMessage(e, "Tempahan gagal")),
+    onSuccess: () => {
+      toast.success("Appointment ditempah");
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+      onClose();
+    },
+    onError: (e: unknown) =>
+      toast.error(errorMessage(e, "Tempahan gagal")),
   });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Tempah Appointment</DialogTitle><DialogDescription>Cipta appointment baru.</DialogDescription></DialogHeader>
-        <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); book.mutate(); }}>
+        <DialogHeader>
+          <DialogTitle>Tempah Appointment</DialogTitle>
+          <DialogDescription>
+            Pilih tarikh dan slot masa yang tersedia.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            book.mutate();
+          }}
+        >
           <div className="space-y-1.5">
             <Label>Pesakit *</Label>
-            <Select value={form.patientId} onValueChange={(v) => setForm({ ...form, patientId: v })}>
-              <SelectTrigger><SelectValue placeholder="Pilih pesakit" /></SelectTrigger>
-              <SelectContent>{(patients.data ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.mrn})</SelectItem>)}</SelectContent>
+            <Select
+              value={form.patientId}
+              onValueChange={(v) => setForm({ ...form, patientId: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih pesakit" />
+              </SelectTrigger>
+              <SelectContent>
+                {(patients.data ?? []).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} ({p.mrn})
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-1.5">
             <Label>Doktor</Label>
-            <Select value={form.doctorId} onValueChange={(v) => setForm({ ...form, doctorId: v })}>
-              <SelectTrigger><SelectValue placeholder="Tetapkan doktor (pilihan)" /></SelectTrigger>
-              <SelectContent>{(doctors.data ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+            <Select
+              value={form.doctorId}
+              onValueChange={(v) => setForm({ ...form, doctorId: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Tetapkan doktor (pilihan)" />
+              </SelectTrigger>
+              <SelectContent>
+                {(doctors.data ?? []).map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Tarikh *</Label><Input required type="date" value={form.scheduledDate} onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Masa *</Label><Input required type="time" value={form.scheduledTime} onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })} /></div>
+            <div className="space-y-1.5">
+              <Label>Tarikh *</Label>
+              <Input
+                required
+                type="date"
+                value={form.scheduledDate}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    scheduledDate: e.target.value,
+                    scheduledTime: "",
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Masa *</Label>
+              <Select
+                value={form.scheduledTime}
+                onValueChange={(v) =>
+                  setForm({ ...form, scheduledTime: v })
+                }
+                disabled={!form.scheduledDate}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      form.scheduledDate
+                        ? "Pilih slot masa"
+                        : "Pilih tarikh dahulu"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {slots.map((slot) => (
+                    <SelectItem key={slot} value={slot}>
+                      {slot}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1.5"><Label>Nota</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+
+          <p className="text-xs text-slate-400">
+            Ahad–Khamis: 10:00–21:00 · Jumaat–Sabtu: 10:00–17:00 · Rehat:
+            13:00–14:00
+          </p>
+
+          <div className="space-y-1.5">
+            <Label>Nota</Label>
+            <Input
+              value={form.notes}
+              onChange={(e) =>
+                setForm({ ...form, notes: e.target.value })
+              }
+            />
+          </div>
+
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
-            <Button type="submit" style={{ background: GRAD }} className="text-white" disabled={book.isPending || !form.patientId}>Tempah</Button>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Batal
+            </Button>
+
+            <Button
+              type="submit"
+              style={{ background: GRAD }}
+              className="text-white"
+              disabled={
+                book.isPending ||
+                !form.patientId ||
+                !form.scheduledDate ||
+                !form.scheduledTime
+              }
+            >
+              Tempah
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -109,59 +292,156 @@ export default function Appointments() {
 
   const list = useQuery({
     queryKey: ["appointments", "list", page],
-    queryFn: () => api.get<Appointment[]>(`/appointments?limit=${pageSize}&offset=${(page - 1) * pageSize}`),
+    queryFn: () =>
+      api.get<Appointment[]>(
+        `/appointments?limit=${pageSize}&offset=${(page - 1) * pageSize}`,
+      ),
   });
 
   const changeStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/appointments/${id}/status`, { status }),
-    onSuccess: () => { toast.success("Status dikemaskini"); qc.invalidateQueries({ queryKey: ["appointments"] }); },
-    onError: (e: unknown) => toast.error(errorMessage(e, "Kemaskini gagal")),
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      api.patch(`/appointments/${id}/status`, { status }),
+    onSuccess: () => {
+      toast.success("Status dikemaskini");
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+    onError: (e: unknown) =>
+      toast.error(errorMessage(e, "Kemaskini gagal")),
   });
 
   const rows = list.data ?? [];
   const hasMore = rows.length === pageSize;
-  const canBook = ["hq", "branch_manager", "branch_admin", "receptionist"].includes(user?.role ?? "");
+  const canBook = [
+    "hq",
+    "branch_manager",
+    "branch_admin",
+    "receptionist",
+  ].includes(user?.role ?? "");
 
   return (
     <div className="space-y-6" style={{ animation: "fadeIn .25s ease" }}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[24px] font-bold" style={{ color: "#0B132B", fontFamily: "'Outfit', sans-serif" }}>Appointments</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Jadual temujanji produksi</p>
+          <h1
+            className="text-[24px] font-bold"
+            style={{
+              color: "#0B132B",
+              fontFamily: "'Outfit', sans-serif",
+            }}
+          >
+            Appointments
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-400">
+            Jadual temujanji produksi
+          </p>
         </div>
+
         {canBook && (
-          <button onClick={() => setShowBook(true)} className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white transition" style={{ background: GRAD, boxShadow: "0 6px 16px -4px rgba(13,201,183,.4)" }}>
-            <CalendarPlus className="h-4 w-4" /> Tempah Appointment
+          <button
+            onClick={() => setShowBook(true)}
+            className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white transition"
+            style={{
+              background: GRAD,
+              boxShadow: "0 6px 16px -4px rgba(13,201,183,.4)",
+            }}
+          >
+            <CalendarPlus className="h-4 w-4" />
+            Tempah Appointment
           </button>
         )}
       </div>
 
       {list.isLoading ? (
-        <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}</div>
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-slate-100 bg-white/80 p-12 text-center" style={{ backdropFilter: "blur(12px)" }}>
-          <p className="font-semibold text-slate-700">Tiada appointment</p>
-          <p className="text-xs text-slate-400 mt-1">Tempah appointment pertama untuk mula.</p>
+        <div
+          className="rounded-2xl border border-slate-100 bg-white/80 p-12 text-center"
+          style={{ backdropFilter: "blur(12px)" }}
+        >
+          <p className="font-semibold text-slate-700">
+            Tiada appointment
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Tempah appointment pertama untuk mula.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {rows.map((a) => {
-            const st = statusStyle[a.status] ?? { bg: "#f8fafc", color: "#64748b", label: a.status };
+            const st = statusStyle[a.status] ?? {
+              bg: "#f8fafc",
+              color: "#64748b",
+              label: a.status,
+            };
+
             return (
-              <div key={a.id} className="rounded-2xl border border-slate-100 p-4 flex flex-wrap items-center gap-4" style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", boxShadow: "0 4px 24px -6px rgba(15,23,42,0.08)" }}>
-                <div className="rounded-xl px-3 py-2 text-center shrink-0" style={{ background: "#f0fdfa" }}>
-                  <p className="text-[13px] font-bold" style={{ color: "#0d9488" }}>{a.scheduledDate}</p>
-                  <p className="text-[11px]" style={{ color: "#0d9488" }}>{a.scheduledTime}</p>
+              <div
+                key={a.id}
+                className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-100 p-4"
+                style={{
+                  background: "rgba(255,255,255,0.85)",
+                  backdropFilter: "blur(12px)",
+                  boxShadow:
+                    "0 4px 24px -6px rgba(15,23,42,0.08)",
+                }}
+              >
+                <div
+                  className="shrink-0 rounded-xl px-3 py-2 text-center"
+                  style={{ background: "#f0fdfa" }}
+                >
+                  <p
+                    className="text-[13px] font-bold"
+                    style={{ color: "#0d9488" }}
+                  >
+                    {a.scheduledDate}
+                  </p>
+                  <p
+                    className="text-[11px]"
+                    style={{ color: "#0d9488" }}
+                  >
+                    {a.scheduledTime}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-bold truncate" style={{ color: "#0B132B" }}>{a.patientName}</p>
-                  <p className="text-xs text-slate-400 font-mono">{a.code}</p>
+
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="truncate text-[14px] font-bold"
+                    style={{ color: "#0B132B" }}
+                  >
+                    {a.patientName}
+                  </p>
+                  <p className="font-mono text-xs text-slate-400">
+                    {a.code}
+                  </p>
                 </div>
-                <span className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+
+                <span
+                  className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold"
+                  style={{
+                    background: st.bg,
+                    color: st.color,
+                  }}
+                >
+                  {st.label}
+                </span>
+
                 <div className="flex flex-wrap gap-1.5">
                   {(statusFlow[a.status] ?? []).map((next) => (
-                    <button key={next} onClick={() => changeStatus.mutate({ id: a.id, status: next })} disabled={changeStatus.isPending}
-                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
+                    <button
+                      key={next}
+                      onClick={() =>
+                        changeStatus.mutate({
+                          id: a.id,
+                          status: next,
+                        })
+                      }
+                      disabled={changeStatus.isPending}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
                       {statusLabel[next] ?? next}
                     </button>
                   ))}
@@ -174,13 +454,34 @@ export default function Appointments() {
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-400">Halaman {page}</p>
+
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4" /> Sebelum</Button>
-          <Button variant="outline" size="sm" disabled={!hasMore} onClick={() => setPage(page + 1)}>Seterusnya <ChevronRight className="h-4 w-4" /></Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Sebelum
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasMore}
+            onClick={() => setPage(page + 1)}
+          >
+            Seterusnya
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      <BookingDialog open={showBook} onClose={() => setShowBook(false)} />
+      <BookingDialog
+        open={showBook}
+        onClose={() => setShowBook(false)}
+      />
     </div>
   );
 }
