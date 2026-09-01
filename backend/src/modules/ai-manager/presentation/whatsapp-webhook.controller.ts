@@ -141,6 +141,13 @@ export class WhatsappWebhookController {
     if (chatId.endsWith('@g.us')) return { ok: true };
     if (!text || !text.trim()) return { ok: true };
 
+    const appointmentActionHandled = await this.handleAppointmentAction(
+      chatId,
+      text,
+      payload,
+    );
+    if (appointmentActionHandled) return { ok: true };
+
     const previous = await this.getBookingMemory(chatId);
     const context = previous
       ? `\nMAKLUMAT BOOKING SEMENTARA YANG SUDAH DIKUMPUL:\n${JSON.stringify(previous)}\nGunakan maklumat ini dan tanya hanya perkara yang masih kosong.\n`
@@ -579,6 +586,93 @@ export class WhatsappWebhookController {
 
   private bookingKey(chatId: string): string {
     return `medini:whatsapp:booking:${chatId}`;
+  }
+
+  private appointmentActionKey(chatId: string): string {
+    return `medini:whatsapp:appointment-action:${chatId}`;
+  }
+
+  private async handleAppointmentAction(
+    chatId: string,
+    text: string,
+    payload: any,
+  ): Promise<boolean> {
+    if (!this.redis) return false;
+
+    const normalized = text.trim().toLowerCase();
+    const pendingId = await this.redis.get(this.appointmentActionKey(chatId));
+    const confirms = ['ya', 'yes', 'betul', 'sahkan', 'confirm'].includes(normalized);
+
+    if (pendingId && confirms) {
+      const phone = await this.resolvePhone(chatId, payload);
+      await this.dbCtx.runAsWorker(
+        {
+          orgId: ORG_ID,
+          branchIds: [BRANCH_ID],
+          correlationId: 'wa-cancel-appointment',
+          source: 'system_worker',
+        },
+        async (tx) => {
+          await tx.execute(sql`
+            UPDATE appointments
+            SET status = 'cancelled', updated_at = NOW()
+            WHERE id = ${pendingId}
+              AND org_id = ${ORG_ID}
+              AND branch_id = ${BRANCH_ID}
+              AND status IN ('booked', 'confirmed', 'checked-in', 'waiting')
+              AND patient_id IN (
+                SELECT id FROM patients
+                WHERE org_id = ${ORG_ID}
+                  AND branch_id = ${BRANCH_ID}
+                  AND (phone = ${phone} OR whatsapp = ${phone})
+              )
+          `);
+        },
+      );
+      await this.redis.del(this.appointmentActionKey(chatId));
+      await this.sendText(chatId, 'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula 😊');
+      return true;
+    }
+
+    const wantsCancel = /\b(batal|batalkan|cancel|tak dapat hadir|tidak dapat hadir)\b/i.test(normalized);
+    if (!wantsCancel) return false;
+
+    const phone = await this.resolvePhone(chatId, payload);
+    const result = await this.dbCtx.runAsWorker(
+      {
+        orgId: ORG_ID,
+        branchIds: [BRANCH_ID],
+        correlationId: 'wa-find-appointment-to-cancel',
+        source: 'system_worker',
+      },
+      async (tx) => tx.execute(sql`
+        SELECT a.id, a.patient_name, a.scheduled_date, a.scheduled_time, a.treatment_ref
+        FROM appointments a
+        JOIN patients p ON p.id = a.patient_id
+        WHERE a.org_id = ${ORG_ID}
+          AND a.branch_id = ${BRANCH_ID}
+          AND p.org_id = ${ORG_ID}
+          AND p.branch_id = ${BRANCH_ID}
+          AND (p.phone = ${phone} OR p.whatsapp = ${phone})
+          AND a.status IN ('booked', 'confirmed', 'checked-in', 'waiting')
+          AND a.scheduled_date >= CURRENT_DATE
+          AND a.deleted_at IS NULL
+        ORDER BY a.scheduled_date, a.scheduled_time
+        LIMIT 1
+      `),
+    );
+    const row = (result as unknown as { rows: Array<any> }).rows[0];
+    if (!row) {
+      await this.sendText(chatId, 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. 😊');
+      return true;
+    }
+
+    await this.redis.set(this.appointmentActionKey(chatId), String(row.id), 'EX', 600);
+    await this.sendText(
+      chatId,
+      `Betul nak batalkan appointment ${row.patient_name} pada ${String(row.scheduled_date).slice(0, 10)} pukul ${String(row.scheduled_time).slice(0, 5)}? Balas Ya untuk sahkan.`,
+    );
+    return true;
   }
 
   private async getBookingMemory(chatId: string): Promise<BookingMemory | null> {
