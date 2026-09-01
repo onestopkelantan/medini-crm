@@ -303,6 +303,8 @@ export class WhatsappWebhookController {
       payload,
     );
 
+    let autoBooked = false;
+
     await this.dbCtx.runAsWorker(
       {
         orgId: ORG_ID,
@@ -554,9 +556,17 @@ export class WhatsappWebhookController {
         this.logger.warn(
           `Auto appointment berjaya: ${code}`,
         );
+        autoBooked = true;
         await this.deleteBookingMemory(chatId);
       },
     );
+
+    if (autoBooked) {
+      await this.sendText(
+        chatId,
+        `Booking berjaya disahkan 😊\nNama: ${name}\nTarikh: ${date}\nMasa: ${time}\nRawatan: ${treatment || 'Pemeriksaan'}\nCawangan: ${branch || 'Setia Tropika'}`,
+      );
+    }
   }
 
   private normalizeDate(value: string): string {
