@@ -241,11 +241,18 @@
                         "breakpoints":  true
                     },
                     {
-                        "idx":  34,
-                        "version":  "7",
-                        "when":  1787646000003,
-                        "tag":  "0035_booking_requests",
-                        "breakpoints":  true
+                    "idx": 34,
+                    "version": "7",
+                    "when": 1787646000003,
+                    "tag": "0035_booking_requests",
+                    "breakpoints": true
+                    },
+                    {
+                    "idx": 35,
+                    "version": "7",
+                    "when": 1788229000000,
+                    "tag": "0036_whatsapp_auto_booking_worker",
+                    "breakpoints": true
                     }
                 ]
-}
+            }
