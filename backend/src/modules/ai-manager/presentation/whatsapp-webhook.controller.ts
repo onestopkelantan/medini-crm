@@ -254,6 +254,93 @@ export class WhatsappWebhookController {
           return;
         }
 
+        const occupiedResult = await tx.execute(sql`
+          SELECT id
+          FROM appointments
+          WHERE org_id = ${ORG_ID}
+            AND branch_id = ${BRANCH_ID}
+            AND scheduled_date = ${date}
+            AND scheduled_time = ${time}
+            AND deleted_at IS NULL
+            AND status NOT IN ('cancelled', 'no-show')
+          LIMIT 1
+        `);
+
+        const occupiedRows = (
+          occupiedResult as unknown as {
+            rows: Array<{ id: string }>;
+          }
+        ).rows;
+
+        if (occupiedRows.length > 0) {
+          const busyResult = await tx.execute(sql`
+            SELECT scheduled_time
+            FROM appointments
+            WHERE org_id = ${ORG_ID}
+              AND branch_id = ${BRANCH_ID}
+              AND scheduled_date = ${date}
+              AND deleted_at IS NULL
+              AND status NOT IN ('cancelled', 'no-show')
+          `);
+
+          const busySlots = new Set(
+            (
+              busyResult as unknown as {
+                rows: Array<{ scheduled_time: string }>;
+              }
+            ).rows.map((row) =>
+              String(row.scheduled_time).slice(0, 5),
+            ),
+          );
+
+          const alternatives = this.getBookingSlots(date)
+            .filter((slot) => !busySlots.has(slot))
+            .slice(0, 3);
+
+          await tx.execute(sql`
+            INSERT INTO booking_requests
+              (
+                org_id,
+                branch_id,
+                contact_phone,
+                patient_name,
+                preferred_date,
+                preferred_time,
+                treatment,
+                branch_name,
+                raw_message,
+                status
+              )
+            VALUES
+              (
+                ${ORG_ID},
+                ${BRANCH_ID},
+                ${phone},
+                ${name},
+                ${date},
+                ${time},
+                ${treatment || null},
+                ${branch || 'Setia Tropika'},
+                ${text},
+                'pending'
+              )
+          `);
+
+          const suggestion = alternatives.length > 0
+            ? ` Slot tersedia: ${alternatives.join(', ')}.`
+            : ' Tiada slot lain tersedia pada tarikh tersebut.';
+
+          await this.sendText(
+            chatId,
+            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion} 😊`,
+          );
+
+          this.logger.warn(
+            `Slot penuh ditolak: ${date} ${time}`,
+          );
+          return;
+        }
+
         const patientResult = await tx.execute(sql`
           SELECT id, name
           FROM patients
@@ -396,6 +483,35 @@ export class WhatsappWebhookController {
     );
 
     return match ? value : '';
+  }
+
+  private getBookingSlots(date: string): string[] {
+    const day = new Date(`${date}T00:00:00`).getDay();
+    const closingHour = day === 5 || day === 6 ? 17 : 21;
+    const slots: string[] = [];
+
+    for (
+      let minutes = 10 * 60;
+      minutes < closingHour * 60;
+      minutes += 30
+    ) {
+      if (
+        minutes >= 13 * 60 &&
+        minutes < 14 * 60
+      ) {
+        continue;
+      }
+
+      const hour = Math.floor(minutes / 60);
+      const minute = minutes % 60;
+      slots.push(
+        `${String(hour).padStart(2, '0')}:${String(
+          minute,
+        ).padStart(2, '0')}`,
+      );
+    }
+
+    return slots;
   }
 
   private normalizeTime(value: string): string {

@@ -120,6 +120,23 @@ function BookingDialog({
 
   const slots = getBookingSlots(form.scheduledDate);
 
+  const dayAppointments = useQuery({
+    queryKey: ["appointments", "slots", form.scheduledDate],
+    queryFn: () =>
+      api.get<Appointment[]>(
+        `/appointments?dateFrom=${form.scheduledDate}&dateTo=${form.scheduledDate}&limit=100`,
+      ),
+    enabled: Boolean(form.scheduledDate),
+  });
+
+  const occupiedSlots = new Set(
+    (dayAppointments.data ?? [])
+      .filter((appointment) =>
+        !["cancelled", "no-show"].includes(appointment.status),
+      )
+      .map((appointment) => appointment.scheduledTime.slice(0, 5)),
+  );
+
   const book = useMutation({
     mutationFn: () => {
       const patient = (patients.data ?? []).find(
@@ -236,8 +253,12 @@ function BookingDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {slots.map((slot) => (
-                    <SelectItem key={slot} value={slot}>
-                      {slot}
+                    <SelectItem
+                      key={slot}
+                      value={slot}
+                      disabled={occupiedSlots.has(slot)}
+                    >
+                      {slot}{occupiedSlots.has(slot) ? " — Penuh" : " — Tersedia"}
                     </SelectItem>
                   ))}
                 </SelectContent>
