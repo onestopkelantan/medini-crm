@@ -347,6 +347,28 @@ export default function Appointments() {
     "receptionist",
   ].includes(user?.role ?? "");
 
+  const exportAppointments = () => {
+    const header = ["Tarikh", "Masa", "Nama Pesakit", "Kod", "Status"];
+    const lines = displayRows.map((appointment) => [
+      appointment.scheduledDate,
+      appointment.scheduledTime,
+      appointment.patientName,
+      appointment.code,
+      statusStyle[appointment.status]?.label ?? appointment.status,
+    ]);
+    const csv = [header, ...lines]
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `appointments-${selectedDate}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Senarai appointment berjaya dieksport");
+  };
+
   return (
     <div className="space-y-6" style={{ animation: "fadeIn .25s ease" }}>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -366,7 +388,7 @@ export default function Appointments() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-600">
+          <button onClick={exportAppointments} className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-600">
             Export
           </button>
         {canBook && (
