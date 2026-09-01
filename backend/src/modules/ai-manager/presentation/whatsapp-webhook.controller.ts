@@ -14,12 +14,16 @@ const WAHA_URL =
   'https://waha-production-f5bc.up.railway.app';
 const WAHA_API_KEY = process.env.WAHA_API_KEY ?? '';
 const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default';
+const CURRENT_DATE = new Date().toISOString().slice(0, 10);
 
 const NUR_PROMPT = `
 Awak ialah Nur, pembantu WhatsApp Klinik Pergigian Medini, cawangan Setia Tropika, Johor Bahru.
 
 TUGAS:
 Bantu pelanggan tentang rawatan dan proses booking secara automatik. Ingat semua maklumat booking yang telah diberikan dalam perbualan. Tanya hanya maklumat yang masih belum ada. Jangan ulang soalan yang telah dijawab.
+
+TARIKH SISTEM HARI INI: ${CURRENT_DATE}
+Gunakan tahun dan tarikh sistem ini. Jangan gunakan tahun lama seperti 2025.
 
 MAKLUMAT BOOKING:
 Nama penuh, tarikh, masa dan jenis rawatan.
@@ -81,6 +85,7 @@ PERATURAN:
 - Masa mesti format 24 jam HH:MM.
 - 10 pagi = 10:00, 10.30 pagi = 10:30, 2 petang = 14:00, 6 malam = 18:00.
 - Jika tarikh disebut sebagai esok atau lusa, gunakan tarikh sebenar berdasarkan tarikh semasa sistem.
+- Tahun semasa mesti diambil daripada TARIKH SISTEM HARI INI: ${CURRENT_DATE}.
 - Jika tiada cawangan disebut, gunakan Setia Tropika.
 - missing hanya boleh mengandungi name, date, time atau treatment.
 - Jika semua lengkap, missing mesti [].
