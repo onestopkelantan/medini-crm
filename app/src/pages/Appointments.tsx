@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,7 +39,7 @@ const GRAD = "linear-gradient(135deg, #0DC9B7, #12B5E5)";
 const statusFlow: Record<string, string[]> = {
   booked: ["confirmed", "cancelled", "no-show"],
   confirmed: ["checked-in", "cancelled", "no-show"],
-  "checked-in": ["in-progress", "cancelled"],
+  "checked-in": ["waiting", "cancelled"],
   "in-progress": ["completed"],
   completed: [],
   cancelled: [],
@@ -58,6 +58,7 @@ const statusStyle: Record<string, { bg: string; color: string; label: string }> 
 
 const statusLabel: Record<string, string> = {
   confirmed: "Sahkan",
+  waiting: "Mula Rawat",
   cancelled: "Batal",
   "no-show": "Tak Hadir",
   "checked-in": "Daftar Masuk",
@@ -311,6 +312,8 @@ export default function Appointments() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [showBook, setShowBook] = useState(false);
+  const [view, setView] = useState<'day' | 'week' | 'month' | 'list' | 'queue'>('day');
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const pageSize = 20;
 
   const list = useQuery({
@@ -355,10 +358,14 @@ export default function Appointments() {
             Appointments
           </h1>
           <p className="mt-0.5 text-sm text-slate-400">
-            Jadual temujanji produksi
+            {rows.length} appointments
           </p>
         </div>
 
+        <div className="flex items-center gap-2">
+          <button className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-600">
+            Export
+          </button>
         {canBook && (
           <button
             onClick={() => setShowBook(true)}
@@ -372,6 +379,32 @@ export default function Appointments() {
             Tempah Appointment
           </button>
         )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {(['day', 'week', 'month', 'list', 'queue'] as const).map((item) => (
+              <button
+                key={item}
+                onClick={() => setView(item)}
+                className="rounded-full border px-4 py-2 text-[13px] font-semibold capitalize transition"
+                style={view === item
+                  ? { background: GRAD, borderColor: 'transparent', color: 'white', boxShadow: '0 6px 16px -4px rgba(13,201,183,.35)' }
+                  : { background: 'white', borderColor: '#e2e8f0', color: '#64748b' }}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-500" onClick={() => setSelectedDate(new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() - 1)).toISOString().slice(0, 10))}>‹</button>
+            <span className="min-w-[120px] text-center text-sm font-semibold text-slate-600">{selectedDate}</span>
+            <button className="rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-500" onClick={() => setSelectedDate(new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() + 1)).toISOString().slice(0, 10))}>›</button>
+            <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-600" onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}>Today</button>
+          </div>
+        </div>
       </div>
 
       {list.isLoading ? (
