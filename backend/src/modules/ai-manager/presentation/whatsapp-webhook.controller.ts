@@ -510,7 +510,7 @@ export class WhatsappWebhookController {
               ${date},
               ${time},
               30,
-              'booked',
+              'confirmed',
               ${text}
             )
           RETURNING id
