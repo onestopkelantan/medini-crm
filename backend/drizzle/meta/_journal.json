@@ -253,6 +253,13 @@
                     "when": 1788229000000,
                     "tag": "0036_whatsapp_auto_booking_worker",
                     "breakpoints": true
+                    },
+                    {
+                    "idx": 36,
+                    "version": "7",
+                    "when": 1788243000000,
+                    "tag": "0037_fix_appointment_worker_rls",
+                    "breakpoints": true
                     }
                 ]
             }
