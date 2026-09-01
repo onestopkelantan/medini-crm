@@ -260,6 +260,13 @@
                     "when": 1788243000000,
                     "tag": "0037_fix_appointment_worker_rls",
                     "breakpoints": true
+                    },
+                    {
+                    "idx": 37,
+                    "version": "7",
+                    "when": 1788247000000,
+                    "tag": "0038_prevent_duplicate_appointment_slots",
+                    "breakpoints": true
                     }
                 ]
             }
