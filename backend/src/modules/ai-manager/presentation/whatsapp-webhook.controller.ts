@@ -57,6 +57,15 @@ export class WhatsappWebhookController {
   @Public()
   @Post('webhook')
   async webhook(@Body() body: any) {
+    this.logger.warn({
+      message: 'WAHA payload diterima',
+      event: body?.event,
+      payloadKeys: Object.keys(body?.payload ?? {}),
+      fromMe: body?.payload?.fromMe,
+      chatId: body?.payload?.from ?? body?.payload?.chatId,
+      text: body?.payload?.body ?? body?.payload?.text,
+    });
+
     if (body?.event !== 'message') return { ok: true };
 
     const payload = body?.payload ?? {};
