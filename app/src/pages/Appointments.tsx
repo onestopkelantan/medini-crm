@@ -87,6 +87,17 @@ function getBookingSlots(date: string): string[] {
   return slots;
 }
 
+function getWeekDates(date: string): string[] {
+  const current = new Date(`${date}T00:00:00`);
+  const start = new Date(current);
+  start.setDate(current.getDate() - current.getDay());
+  return Array.from({ length: 7 }, (_, index) => {
+    const value = new Date(start);
+    value.setDate(start.getDate() + index);
+    return value.toISOString().slice(0, 10);
+  });
+}
+
 function BookingDialog({
   open,
   onClose,
@@ -336,9 +347,12 @@ export default function Appointments() {
   });
 
   const rows = list.data ?? [];
+  const weekDates = getWeekDates(selectedDate);
   const displayRows = view === 'day'
     ? rows.filter((appointment) => appointment.scheduledDate.slice(0, 10) === selectedDate)
-    : rows;
+    : view === 'week'
+      ? rows.filter((appointment) => weekDates.includes(appointment.scheduledDate.slice(0, 10)))
+      : rows;
   const hasMore = rows.length === pageSize;
   const canBook = [
     "hq",
