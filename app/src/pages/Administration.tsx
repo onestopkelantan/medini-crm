@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { PageHeader, Panel, EmptyState, StatusBadge } from "@/components/shared";
@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { initials } from "@/lib/format";
 import { ShieldCheck, Users as UsersIcon, UserPlus, Copy, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { DoctorRegisterDialog } from "@/components/DoctorRegisterDialog";
 
 const roleLabels: Record<string, string> = { hq: "HQ Super Admin", branch_manager: "Branch Manager", branch_admin: "Branch Admin", doctor: "Doctor" };
 const roleColors: Record<string, string> = { hq: "bg-emerald-100 text-emerald-700", branch_manager: "bg-blue-100 text-blue-700", branch_admin: "bg-amber-100 text-amber-700", doctor: "bg-violet-100 text-violet-700" };
@@ -215,6 +216,7 @@ function Users() {
 
 export default function Administration() {
   const [showInvite, setShowInvite] = useState(false);
+  const [showDoctorRegister, setShowDoctorRegister] = useState(false);
   return (
     <div className="space-y-6 -mt-6">
       <PageHeader title="Administration" description="User lifecycle â€” invite, approve, deactivate (HQ only)" />
@@ -228,6 +230,9 @@ export default function Administration() {
             <Button size="sm" className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/20 hover:from-teal-600 hover:to-cyan-600" onClick={() => setShowInvite(true)}>
               <UserPlus className="h-4 w-4 mr-1.5" /> Invite Staff
             </Button>
+            <Button size="sm" variant="outline" className="ml-2" onClick={() => setShowDoctorRegister(true)}>
+              <UserPlus className="h-4 w-4 mr-1.5" /> Daftar Doktor
+            </Button>
           </div>
           <Users />
         </TabsContent>
@@ -238,6 +243,7 @@ export default function Administration() {
         </TabsContent>
       </Tabs>
       <InviteDialog open={showInvite} onClose={() => setShowInvite(false)} />
+      <DoctorRegisterDialog open={showDoctorRegister} onClose={() => setShowDoctorRegister(false)} />
     </div>
   );
 }
