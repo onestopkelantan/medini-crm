@@ -24,10 +24,10 @@ export class DoctorRegistrationService {
   ) {}
 
   async register(principal: Principal, raw: unknown) {
-    if (principal.role !== 'branch_manager' && principal.role !== 'hq') {
-      throw new ForbiddenError('Only branch manager or HQ can register a doctor');
+    if (principal.role !== 'branch_manager') {
+      throw new ForbiddenError('Only branch manager can register a doctor');
     }
-    if (principal.role === 'branch_manager' && !principal.branchId) {
+    if (!principal.branchId) {
       throw new ForbiddenError('No branch context — access denied');
     }
 
@@ -39,7 +39,7 @@ export class DoctorRegistrationService {
     }
 
     const input = parsed.data;
-    const branchId = principal.role === 'hq' ? null : principal.branchId;
+    const branchId = principal.branchId;
     const passwordHash = await this.passwords.hash(input.password);
 
     return this.dbCtx.runAs(principal, async (tx) => {
