@@ -344,6 +344,49 @@ export class WhatsappWebhookController {
           return;
         }
 
+        const doctorResult = await tx.execute(sql`
+          SELECT s.id AS doctor_id, s.name AS doctor_name
+          FROM doctor_schedules ds
+          JOIN staff s ON s.id = ds.doctor_id
+          WHERE ds.org_id = ${ORG_ID}
+            AND ds.branch_id = ${BRANCH_ID}
+            AND ds.schedule_date = ${date}
+            AND ds.start_time <= ${time}::time
+            AND ds.end_time > ${time}::time
+            AND s.role = 'doctor'
+            AND s.status = 'Active'
+            AND s.deleted_at IS NULL
+            AND NOT EXISTS (
+              SELECT 1
+              FROM appointments a
+              WHERE a.org_id = ${ORG_ID}
+                AND a.branch_id = ${BRANCH_ID}
+                AND a.doctor_id = s.id
+                AND a.scheduled_date = ${date}
+                AND a.scheduled_time::time < (${time}::time + interval '30 minutes')
+                AND (a.scheduled_time::time + a.duration_min * interval '1 minute') > ${time}::time
+                AND a.deleted_at IS NULL
+                AND a.status NOT IN ('completed', 'cancelled', 'no-show')
+            )
+          ORDER BY ds.start_time, s.name
+          LIMIT 1
+        `);
+
+        const doctorId = (
+          doctorResult as unknown as {
+            rows: Array<{ doctor_id: string; doctor_name: string }>;
+          }
+        ).rows[0]?.doctor_id ?? null;
+
+        if (!doctorId) {
+          await this.sendText(
+            chatId,
+            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain 😊`,
+          );
+          this.logger.warn(`Tiada doktor tersedia: ${date} ${time}`);
+          return;
+        }
+
         const occupiedResult = await tx.execute(sql`
           SELECT id
           FROM appointments
@@ -499,6 +542,7 @@ export class WhatsappWebhookController {
               code,
               patient_id,
               patient_name,
+              doctor_id,
               treatment_ref,
               scheduled_date,
               scheduled_time,
@@ -513,6 +557,7 @@ export class WhatsappWebhookController {
               ${code},
               ${patientId},
               ${name},
+              ${doctorId},
               ${treatment || null},
               ${date},
               ${time},
