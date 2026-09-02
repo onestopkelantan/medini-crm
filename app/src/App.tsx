@@ -47,7 +47,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
  *  finance=hq+branch_manager (branch_admin/doctor have accessor-only, not the page);
  *  reports=hq+branch_manager (doctor/receptionist = NONE per S9 Q1). */
 const roleGuard: Record<string, string[]> = {
-  "/administration": ["hq"],
+  "/administration": ["hq", "branch_manager"],
   "/marketing": ["hq", "branch_manager"],
   "/finance": ["hq", "branch_manager"],
   "/reports": ["hq", "branch_manager"],
