@@ -8,9 +8,7 @@ import { ConflictError, ForbiddenError, ValidationError } from '../../../shared/
 
 const inputSchema = z.object({
   name: z.string().trim().min(2).max(256),
-  username: z.string().trim().min(3).max(128).regex(/^[a-z0-9_.-]+$/),
   role: z.enum(['doctor', 'branch_admin']).default('doctor'),
-  email: z.string().trim().email().max(256).nullish(),
   phone: z.string().trim().max(64).nullish(),
   specialization: z.string().trim().max(256).nullish(),
   doctorRef: z.string().trim().max(64).nullish(),
@@ -39,6 +37,17 @@ export class DoctorRegistrationService {
     });
   }
 
+  async currentBranch(principal: Principal) {
+    if (!principal.branchId) throw new ForbiddenError('No branch context');
+    const result = await this.dbCtx.runAs(principal, (tx) => tx.execute(sql`
+      SELECT id, short_name AS "name"
+      FROM branches
+      WHERE org_id = ${principal.orgId} AND id = ${principal.branchId}
+      LIMIT 1
+    `));
+    return (result as any).rows?.[0] ?? null;
+  }
+
   async register(principal: Principal, raw: unknown) {
     if (principal.role !== 'branch_manager') {
       throw new ForbiddenError('Only branch manager can register a doctor');
@@ -58,14 +67,13 @@ export class DoctorRegistrationService {
     const branchId = principal.branchId;
     const token = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 72 * 3600 * 1000);
+    const temporaryUsername = `invite_${token.slice(0, 20)}`;
 
     return this.dbCtx.runAs(principal, async (tx) => {
-      const existing = await tx.execute(sql`SELECT id FROM staff WHERE org_id = ${principal.orgId} AND username = ${input.username.toLowerCase()} AND deleted_at IS NULL LIMIT 1`);
-      if ((existing as any).rows?.length) throw new ConflictError(`Username '${input.username}' is already taken`);
 
       const staff = await tx.execute(sql`
         INSERT INTO staff (org_id, branch_id, name, username, email, phone, role, status, invite_token, invite_expires_at, created_by, updated_by)
-        VALUES (${principal.orgId}, ${branchId}, ${input.name}, ${input.username.toLowerCase()}, ${input.email ?? null}, ${input.phone ?? null}, ${input.role}, 'Invited', ${token}, ${expiresAt}, ${principal.staffId}, ${principal.staffId})
+        VALUES (${principal.orgId}, ${branchId}, ${input.name}, ${temporaryUsername}, NULL, ${input.phone ?? null}, ${input.role}, 'Invited', ${token}, ${expiresAt}, ${principal.staffId}, ${principal.staffId})
         RETURNING id, name, username, email, phone, role, status, branch_id AS "branchId"
       `);
       const row = (staff as any).rows?.[0];
