@@ -24,6 +24,23 @@ export class DoctorRegistrationService {
     private readonly passwords: PasswordService,
   ) {}
 
+  async list(principal: Principal) {
+    if (principal.role !== 'branch_manager' || !principal.branchId) {
+      throw new ForbiddenError('Only branch manager can view branch staff');
+    }
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT id, name, username, email, phone, role, status, branch_id AS "branchId"
+        FROM staff
+        WHERE org_id = ${principal.orgId}
+          AND branch_id = ${principal.branchId}
+          AND deleted_at IS NULL
+        ORDER BY name
+      `);
+      return (result as any).rows ?? [];
+    });
+  }
+
   async register(principal: Principal, raw: unknown) {
     if (principal.role !== 'branch_manager') {
       throw new ForbiddenError('Only branch manager can register a doctor');

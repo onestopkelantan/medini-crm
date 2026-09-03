@@ -168,8 +168,9 @@ function Applications() {
 
 /* ---------- User directory (activate / deactivate) ---------- */
 function Users() {
+  const { user } = useAuth();
   const qc = useQueryClient();
-  const staff = useQuery({ queryKey: ["admin", "staff"], queryFn: () => api.get<Staff[]>("/admin/staff") });
+  const staff = useQuery({ queryKey: ["admin", "staff", user?.role], queryFn: () => api.get<Staff[]>(user?.role === "branch_manager" ? "/appointments/doctors" : "/admin/staff") });
   const transition = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "deactivate" | "reactivate" | "suspend" }) =>
       api.post(`/admin/staff/${id}/${action}`, { reason: `HQ ${action}` }),
