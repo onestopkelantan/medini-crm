@@ -158,6 +158,7 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = navByRole[user?.role ?? "doctor"] ?? [];
   const branches = useQuery({ queryKey: ["admin", "branches"], queryFn: () => api.get<Array<{ id: string; shortName: string }>>("/admin/branches"), enabled: user?.role === "hq" });
+  const currentBranch = useQuery({ queryKey: ["current-branch", user?.branchId], queryFn: () => api.get<{ name: string }>("/doctor-registration/branch"), enabled: !!user?.branchId && user?.role !== "hq" });
   /* S10 T1: WhatsApp unread badge requires the whatsapp sessions endpoint; deferred. */
   const unread = 0;
 
@@ -166,7 +167,7 @@ export default function AppLayout() {
       ? branchId
         ? (branches.data ?? []).find((b) => b.id === branchId)?.shortName ?? "All Branches"
         : "All Branches"
-      : branch?.name ?? "—";
+      : currentBranch.data?.name ?? "—";
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#F4F7FA]">
