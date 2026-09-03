@@ -3,7 +3,7 @@ import { RequirePermission } from '../../../core/auth/decorators';
 import { AuthedRequest } from '../../../core/auth/auth.guard';
 import { DoctorRegistrationService } from '../application/doctor-registration.service';
 
-@Controller({ path: 'appointments', version: '1' })
+@Controller({ path: 'doctor-registration', version: '1' })
 export class DoctorRegistrationController {
   constructor(private readonly service: DoctorRegistrationService) {}
 
