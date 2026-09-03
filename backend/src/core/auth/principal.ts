@@ -1,26 +1,25 @@
 /**
- * Principal — "WHO is making this request?" (identity only, NOT authorization).
- *
- * Sprint 1 Task 2: derived from the authenticated staff record + the
- * authoritative role_assignments table. NEVER built from client-supplied
- * role/branch/doctor values — those are derived server-side from trusted DB
- * rows. Keep identity (Principal) conceptually separate from authorization
- * (ScopeService / can()).
- *
- * Only the minimum claims needed for authorization live here; sensitive data
- * (password hash, secrets) is NEVER placed on the Principal or in the JWT.
+ * Principal — identity of the authenticated user.
  */
 export interface Principal {
-  /** staff.id (uuid) — the authenticated staff member. */
+  /** Staff UUID. */
   readonly staffId: string;
-  /** username (immutable natural key) — for display/audit. */
+
+  /** Display name of the staff member. */
+  readonly name: string;
+
+  /** Username. */
   readonly username: string;
-  /** effective role from role_assignments (hq | branch_manager | branch_admin | doctor). */
+
+  /** Effective role. */
   readonly role: string;
-  /** organization id (single-tenant reserved). */
+
+  /** Organization UUID. */
   readonly orgId: string;
-  /** branch the staff is scoped to (null only for hq). */
+
+  /** Branch UUID, null for HQ. */
   readonly branchId: string | null;
-  /** doctor identity for doctor role (doctorRef), else null. */
+
+  /** Doctor identity, otherwise null. */
   readonly doctorId: string | null;
 }
