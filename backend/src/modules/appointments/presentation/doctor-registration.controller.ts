@@ -3,14 +3,19 @@ import { RequirePermission } from '../../../core/auth/decorators';
 import { AuthedRequest } from '../../../core/auth/auth.guard';
 import { DoctorRegistrationService } from '../application/doctor-registration.service';
 
-@Controller({ path: 'appointments', version: '1' })
+@Controller({ path: 'doctor-registration', version: '1' })
 export class DoctorRegistrationController {
   constructor(private readonly service: DoctorRegistrationService) {}
 
-  @Get('doctors')
+  @Get('doctors/list')
   @RequirePermission('appointments', 'view')
   list(@Req() req: AuthedRequest) {
     return this.service.list(req.principal!);
+  }
+
+  @Get('branch')
+  currentBranch(@Req() req: AuthedRequest) {
+    return this.service.currentBranch(req.principal!);
   }
 
   @Post('doctors/register')
