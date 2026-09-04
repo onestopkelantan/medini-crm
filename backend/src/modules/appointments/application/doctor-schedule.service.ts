@@ -98,4 +98,16 @@ export class DoctorScheduleService {
     }
     return String(error);
   }
+
+    private branch(principal: Principal): string {
+    if (principal.role !== 'branch_manager') {
+      throw new ForbiddenError('Only branch managers can manage doctor schedules');
+    }
+
+    if (!principal.branchId) {
+      throw new ForbiddenError('No branch context — access denied');
+    }
+
+    return principal.branchId;
+  }
 }
