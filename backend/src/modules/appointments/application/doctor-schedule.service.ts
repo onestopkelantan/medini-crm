@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { DbContextService } from '../../../core/auth/db-context.service';
 import { Principal } from '../../../core/auth/principal';
 import { ForbiddenError, ValidationError } from '../../../shared/errors/errors';
-import { doctorSchedules } from '../../../infrastructure/database/schema';
+import { doctorSchedules, staff } from '../../../infrastructure/database/schema';
 
 const scheduleSchema = z.object({
-  doctorId: z.string().uuid(),
+  doctorId: z.string().uuid().nullish(),
+  doctorName: z.string().trim().min(2).max(256).nullish(),
   scheduleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
@@ -45,12 +46,20 @@ export class DoctorScheduleService {
     const branchId = this.branch(principal);
 
     return this.dbCtx.runAs(principal, async (tx) => {
+      let doctorId = parsed.data.doctorId ?? null;
+      if (!doctorId && parsed.data.doctorName) {
+        const name = parsed.data.doctorName.toUpperCase();
+        const doctorRows = await tx.select().from(staff).where(and(eq(staff.orgId, principal.orgId), eq(staff.role, 'doctor')));
+        const doctor = doctorRows.find((row) => name === 'DR HANI' ? row.username === 'farhanimzln' || row.name.toUpperCase().includes('FARHANI') : row.name.toUpperCase().includes(name.replace(/^DR\s+/, '')));
+        doctorId = doctor?.id ?? null;
+      }
+      if (!doctorId) throw new ValidationError({ doctorId: ['Doctor not found'] });
       const rows = await tx
         .insert(doctorSchedules)
         .values({
           orgId: principal.orgId,
           branchId,
-          doctorId: parsed.data.doctorId,
+          doctorId,
           scheduleDate: parsed.data.scheduleDate,
           startTime: parsed.data.startTime,
           endTime: parsed.data.endTime,
