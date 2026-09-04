@@ -28,6 +28,26 @@ export const staffStatusEnum = pgEnum('staff_status', ['Active', 'Suspended', 'D
 export const roleAssignmentStatusEnum = pgEnum('role_assignment_status', ['ACTIVE', 'SUPERSEDED']);
 export const patientStatusEnum = pgEnum('patient_status', ['Active', 'VIP', 'Recall Due', 'Inactive']);
 export const paymentStatusEnum = pgEnum('payment_status_type', ['PENDING', 'PAID', 'OVERDUE']);
+export const doctorSchedules = pgTable('doctor_schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id').notNull(),
+  branchId: uuid('branch_id')
+    .notNull()
+    .references(() => branches.id, { onDelete: 'restrict' }),
+  doctorId: uuid('doctor_id')
+    .notNull()
+    .references(() => staff.id, { onDelete: 'restrict' }),
+  scheduleDate: date('schedule_date').notNull(),
+  startTime: time('start_time').notNull(),
+  endTime: time('end_time').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 export const appointmentStatusEnum = pgEnum('appointment_status', [
   'booked', 'confirmed', 'checked-in', 'waiting', 'called', 'in-progress', 'completed', 'cancelled', 'no-show',
 ]);
