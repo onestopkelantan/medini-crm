@@ -68,7 +68,10 @@ const navByRole: Record<string, NavSection[]> = {
       { label: "WhatsApp", path: "/whatsapp", icon: MessageSquare },
       { label: "AI Manager", path: "/ai", icon: Bot },
     ]},
-    { section: "System", items: [{ label: "Settings", path: "/settings", icon: Settings }] },
+    { section: "System", items: [
+      { label: "Settings", path: "/settings", icon: Settings },
+      { label: "Daftar Doktor", path: "/administration", icon: Users },
+    ] },
   ],
   branch_admin: [
     { items: [{ label: "Dashboard", path: "/dashboard", icon: LayoutDashboard }] },

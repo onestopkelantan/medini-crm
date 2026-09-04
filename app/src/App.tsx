@@ -21,6 +21,7 @@ import SettingsPage from "@/pages/Settings";
 import Register from "@/pages/Register";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
+import DoctorSchedule from "@/pages/DoctorSchedule";
 
 function FullScreenLoader() {
   return (
@@ -48,6 +49,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
  *  reports=hq+branch_manager (doctor/receptionist = NONE per S9 Q1). */
 const roleGuard: Record<string, string[]> = {
   "/administration": ["hq", "branch_manager"],
+  "/doctor-schedule": ["branch_manager"],
   "/marketing": ["hq", "branch_manager"],
   "/finance": ["hq", "branch_manager"],
   "/reports": ["hq", "branch_manager"],
@@ -89,6 +91,7 @@ function AppRoutes() {
         <Route path="/whatsapp" element={<WhatsAppHub />} />
         <Route path="/ai" element={<AIManager />} />
         <Route path="/administration" element={<Guarded path="/administration"><Administration /></Guarded>} />
+        <Route path="/doctor-schedule" element={<Guarded path="/doctor-schedule"><DoctorSchedule /></Guarded>} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
