@@ -71,6 +71,7 @@ const navByRole: Record<string, NavSection[]> = {
     { section: "System", items: [
       { label: "Settings", path: "/settings", icon: Settings },
       { label: "Daftar Doktor", path: "/administration", icon: Users },
+      { label: "Jadual Doktor", path: "/doctor-schedule", icon: CalendarDays },
     ] },
   ],
   branch_admin: [
