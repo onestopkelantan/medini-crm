@@ -24,8 +24,16 @@ export class DoctorScheduleService {
 
     return this.dbCtx.runAs(principal, async (tx) => {
       return tx
-        .select()
+        .select({
+          id: doctorSchedules.id,
+          scheduleDate: doctorSchedules.scheduleDate,
+          startTime: doctorSchedules.startTime,
+          endTime: doctorSchedules.endTime,
+          notes: doctorSchedules.notes,
+          doctorName: staff.name,
+        })
         .from(doctorSchedules)
+        .innerJoin(staff, eq(doctorSchedules.doctorId, staff.id))
         .where(
           and(
             eq(doctorSchedules.orgId, principal.orgId),
