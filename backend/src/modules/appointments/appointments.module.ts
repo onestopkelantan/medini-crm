@@ -3,11 +3,9 @@ import { AuthModule } from '../../core/auth/auth.module';
 import { AppointmentsController } from './presentation/appointments.controller';
 import { AppointmentsExportController } from './presentation/appointments-export.controller';
 import { DoctorRegistrationController } from './presentation/doctor-registration.controller';
-import { DoctorScheduleController } from './presentation/doctor-schedule.controller';
 import { AppointmentsService } from './application/appointments.service';
 import { AppointmentsExportService } from './application/appointments-export.service';
 import { DoctorRegistrationService } from './application/doctor-registration.service';
-import { DoctorScheduleService } from './application/doctor-schedule.service';
 import { AppointmentsRepository } from './infrastructure/appointments.repository';
 import { PatientsReadPort } from '../../shared/ports/patients.read-port';
 
@@ -17,7 +15,6 @@ import { PatientsReadPort } from '../../shared/ports/patients.read-port';
     AppointmentsController,
     AppointmentsExportController,
     DoctorRegistrationController,
-    DoctorScheduleController,
   ],
   providers: [
     AppointmentsService,
@@ -25,7 +22,6 @@ import { PatientsReadPort } from '../../shared/ports/patients.read-port';
     PatientsReadPort,
     AppointmentsExportService,
     DoctorRegistrationService,
-    DoctorScheduleService,
   ],
   exports: [AppointmentsService],
 })
