@@ -87,15 +87,15 @@ export class DoctorScheduleService {
   }
 
   private errorText(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    return String(error);
-  }
-
-  private branch(principal: Principal): string {
-    if (principal.role !== 'branch_manager') {
-      throw new ForbiddenError('Only branch managers can manage doctor schedules');
+    if (error instanceof Error) {
+      const cause = (error as Error & { cause?: unknown }).cause;
+      if (cause instanceof Error) {
+        return `${error.message}; cause: ${cause.message}`;
+      }
+      return cause
+        ? `${error.message}; cause: ${String(cause)}`
+        : error.message;
     }
-    if (!principal.branchId) throw new ForbiddenError('No branch context — access denied');
-    return principal.branchId;
+    return String(error);
   }
 }
