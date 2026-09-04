@@ -7,7 +7,7 @@ import { DoctorRegistrationService } from '../application/doctor-registration.se
 export class DoctorRegistrationController {
   constructor(private readonly service: DoctorRegistrationService) {}
 
-  @Get('doctors/list')
+  @Get('doctors')
   @RequirePermission('appointments', 'view')
   list(@Req() req: AuthedRequest) {
     return this.service.list(req.principal!);
