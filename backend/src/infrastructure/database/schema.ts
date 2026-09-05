@@ -48,6 +48,16 @@ export const doctorSchedules = pgTable('doctor_schedules', {
     .notNull()
     .defaultNow(),
 });
+export const doctorHolidays = pgTable('doctor_holidays', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id').notNull(),
+  branchId: uuid('branch_id').notNull(),
+  holidayDate: date('holiday_date').notNull(),
+  reason: varchar('reason', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const appointmentStatusEnum = pgEnum('appointment_status', [
   'booked', 'confirmed', 'checked-in', 'waiting', 'called', 'in-progress', 'completed', 'cancelled', 'no-show',
 ]);
@@ -1787,3 +1797,4 @@ export const bookingRequests = pgTable('booking_requests', {
 });
 
 export type BookingRequest = typeof bookingRequests.$inferSelect;
+
