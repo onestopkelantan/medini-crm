@@ -25,7 +25,7 @@ export default function DoctorSchedule() {
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const query = useQuery({ queryKey: ["doctor-schedules"], queryFn: () => api.get<Row[]>("/doctor-schedules") });
-  const doctorsQuery = useQuery({ queryKey: ["branch-doctors"], queryFn: () => api.get<Doctor[]>("/appointments/doctors") });
+  const doctorsQuery = useQuery({ queryKey: ["branch-doctors"], queryFn: () => api.get<Doctor[]>("/appointments/doctors/list") });
   // Endpoint already excludes deleted staff and limits results to the current branch.
   // Do not filter by status: existing doctors may be marked Completed or Booked.
   const doctors = (doctorsQuery.data ?? []).filter((d) => d.role.toLowerCase() === "doctor");
