@@ -29,6 +29,7 @@ export class DoctorScheduleService {
         tx
           .select({
             id: doctorSchedules.id,
+            doctorId: doctorSchedules.doctorId,
             scheduleDate: doctorSchedules.scheduleDate,
             startTime: doctorSchedules.startTime,
             endTime: doctorSchedules.endTime,
@@ -242,3 +243,4 @@ export class DoctorScheduleService {
     return principal.branchId;
   }
 }
+
