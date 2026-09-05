@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { DbContextService } from '../../../core/auth/db-context.service';
 import { Principal } from '../../../core/auth/principal';
 import { ForbiddenError, ValidationError } from '../../../shared/errors/errors';
-import { doctorSchedules, staff } from '../../../infrastructure/database/schema';
+import { doctorHolidays, doctorSchedules, staff } from '../../../infrastructure/database/schema';
 
 const scheduleSchema = z.object({
   doctorId: z.string().uuid().nullish(),
@@ -213,6 +213,75 @@ export class DoctorScheduleService {
       return rows[0];
     });
   }
+  async listHolidays(principal: Principal) {
+    const branchId = this.branch(principal);
+    return this.dbCtx.runAs(principal, async (tx) =>
+      tx.select().from(doctorHolidays).where(
+        and(
+          eq(doctorHolidays.orgId, principal.orgId),
+          eq(doctorHolidays.branchId, branchId),
+        ),
+      ),
+    );
+  }
+
+  async createHoliday(principal: Principal, raw: unknown) {
+    const data = z.object({
+      holidayDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      reason: z.string().trim().min(2).max(255),
+    }).safeParse(raw);
+
+    if (!data.success) {
+      throw new ValidationError(data.error.flatten().fieldErrors);
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx.insert(doctorHolidays).values({
+        orgId: principal.orgId,
+        branchId,
+        holidayDate: data.data.holidayDate,
+        reason: data.data.reason,
+      }).onConflictDoUpdate({
+        target: [
+          doctorHolidays.orgId,
+          doctorHolidays.branchId,
+          doctorHolidays.holidayDate,
+        ],
+        set: {
+          reason: data.data.reason,
+          updatedAt: new Date(),
+        },
+      }).returning();
+
+      return rows[0];
+    });
+  }
+
+  async removeHoliday(principal: Principal, id: string) {
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new ValidationError({ id: ['Invalid holiday id'] });
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx.delete(doctorHolidays).where(
+        and(
+          eq(doctorHolidays.id, id),
+          eq(doctorHolidays.orgId, principal.orgId),
+          eq(doctorHolidays.branchId, branchId),
+        ),
+      ).returning({ id: doctorHolidays.id });
+
+      if (!rows[0]) {
+        throw new ValidationError({ id: ['Holiday not found'] });
+      }
+
+      return rows[0];
+    });
+  }
   private errorText(error: unknown): string {
     if (error instanceof Error) {
       const cause = (error as Error & { cause?: unknown }).cause;
@@ -243,4 +312,5 @@ export class DoctorScheduleService {
     return principal.branchId;
   }
 }
+
 
