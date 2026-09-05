@@ -134,6 +134,29 @@ export class WhatsappService {
     });
   }
 
+  async generateChannelQr(p: Principal, id: string) {
+    if (p.role !== 'hq') {
+      throw new ForbiddenError('QR channel hanya boleh dijana oleh HQ');
+    }
+
+    const channel = await this.dbCtx.runAs(p, (tx) =>
+      this.repo.findChannel(tx, p.orgId, id),
+    );
+
+    if (!channel) {
+      throw new NotFoundError('waChannel', id);
+    }
+
+    const session = channel.sessionName || 'medini-' + channel.id;
+    const result = await this.waha.startSession(session);
+
+    return {
+      channelId: channel.id,
+      session,
+      qr: result.qr,
+      expiresAt: result.expiresAt,
+    };
+  }
   /* ==========================================================================
      CONVERSATIONS
      ==========================================================================*/
@@ -684,3 +707,7 @@ export class WhatsappService {
     });
   }
 }
+
+
+
+

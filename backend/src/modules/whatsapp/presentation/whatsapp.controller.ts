@@ -20,6 +20,7 @@ export class WhatsappController {
   @Patch('channels/:id/health') @RequirePermission('whatsapp', 'edit') updateChannelHealth(@Req() req: AuthedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() body: unknown) { return this.service.updateChannelHealth(req.principal!, id, body); }
   @Post('channels/:id/resume-auto-pause') @RequirePermission('whatsapp', 'edit') resumeAutoPause(@Req() req: AuthedRequest, @Param('id', ParseUUIDPipe) id: string) { return this.service.resumeAutoPause(req.principal!, id); }
 
+  @Get('channels/:id/qr') @RequirePermission('whatsapp', 'edit') channelQr(@Req() req: AuthedRequest, @Param('id', ParseUUIDPipe) id: string) { return this.service.generateChannelQr(req.principal!, id); }
   /* ---------- conversations ---------- */
   @Post('conversations') @RequirePermission('whatsapp', 'create') createConversation(@Req() req: AuthedRequest, @Body() body: unknown) { return this.service.createConversation(req.principal!, body); }
   @Get('conversations') @RequirePermission('whatsapp', 'view') listConversations(@Req() req: AuthedRequest, @Query() query: Record<string, unknown>) { return this.service.listConversations(req.principal!, query); }
@@ -47,3 +48,4 @@ export class WhatsappController {
   /* ---------- safety decisions (audit surface) ---------- */
   @Get('safety-decisions') @RequirePermission('whatsapp', 'view') listSafetyDecisions(@Req() req: AuthedRequest, @Query('branchId') branchId?: string, @Query('limit') limit?: string, @Query('offset') offset?: string) { return this.service.listSafetyDecisions(req.principal!, branchId, { limit, offset }); }
 }
+
