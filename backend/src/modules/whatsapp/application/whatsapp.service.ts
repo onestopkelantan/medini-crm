@@ -135,8 +135,8 @@ export class WhatsappService {
   }
 
   async generateChannelQr(p: Principal, id: string) {
-    if (p.role !== 'hq') {
-      throw new ForbiddenError('QR channel hanya boleh dijana oleh HQ');
+    if (p.role !== 'hq' && p.role !== 'branch_manager') {
+      throw new ForbiddenError('QR channel hanya boleh dijana oleh HQ atau Branch Manager');
     }
 
     const channel = await this.dbCtx.runAs(p, (tx) =>
@@ -707,6 +707,7 @@ export class WhatsappService {
     });
   }
 }
+
 
 
 
