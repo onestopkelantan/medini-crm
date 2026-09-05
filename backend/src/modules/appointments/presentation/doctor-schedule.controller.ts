@@ -14,13 +14,13 @@ export class DoctorScheduleController {
   }
 
   @Patch(':id')
-  @RequirePermission('appointments', 'edit')
+  @RequirePermission('appointments', 'create')
   update(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: unknown) {
     return this.service.update(req.principal!, id, body);
   }
 
   @Delete(':id')
-  @RequirePermission('appointments', 'edit')
+  @RequirePermission('appointments', 'create')
   remove(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.service.remove(req.principal!, id);
   }
@@ -31,5 +31,6 @@ export class DoctorScheduleController {
     return this.service.create(req.principal!, body);
   }
 }
+
 
 
