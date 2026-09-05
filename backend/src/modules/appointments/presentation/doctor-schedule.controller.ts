@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { RequirePermission } from '../../../core/auth/decorators';
 import { AuthedRequest } from '../../../core/auth/auth.guard';
 import { DoctorScheduleService } from '../application/doctor-schedule.service';
@@ -13,9 +13,23 @@ export class DoctorScheduleController {
     return this.service.list(req.principal!);
   }
 
+  @Patch(':id')
+  @RequirePermission('appointments', 'edit')
+  update(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: unknown) {
+    return this.service.update(req.principal!, id, body);
+  }
+
+  @Delete(':id')
+  @RequirePermission('appointments', 'edit')
+  remove(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.service.remove(req.principal!, id);
+  }
+
   @Post()
   @RequirePermission('appointments', 'create')
   create(@Req() req: AuthedRequest, @Body() body: unknown) {
     return this.service.create(req.principal!, body);
   }
 }
+
+

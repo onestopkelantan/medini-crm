@@ -139,6 +139,79 @@ export class DoctorScheduleService {
     }
   }
 
+  async update(principal: Principal, id: string, raw: unknown) {
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new ValidationError({ id: ['Invalid schedule id'] });
+    }
+
+    const parsed = scheduleSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.flatten().fieldErrors);
+    }
+
+    if (parsed.data.endTime <= parsed.data.startTime) {
+      throw new ValidationError({
+        endTime: ['endTime must be after startTime'],
+      });
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx
+        .update(doctorSchedules)
+        .set({
+          doctorId: parsed.data.doctorId!,
+          scheduleDate: parsed.data.scheduleDate,
+          startTime: parsed.data.startTime,
+          endTime: parsed.data.endTime,
+          notes: parsed.data.notes ?? null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(doctorSchedules.id, id),
+            eq(doctorSchedules.orgId, principal.orgId),
+            eq(doctorSchedules.branchId, branchId),
+          ),
+        )
+        .returning();
+
+      if (!rows[0]) {
+        throw new ValidationError({ id: ['Schedule not found'] });
+      }
+
+      return rows[0];
+    });
+  }
+
+  async remove(principal: Principal, id: string) {
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new ValidationError({ id: ['Invalid schedule id'] });
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx
+        .delete(doctorSchedules)
+        .where(
+          and(
+            eq(doctorSchedules.id, id),
+            eq(doctorSchedules.orgId, principal.orgId),
+            eq(doctorSchedules.branchId, branchId),
+          ),
+        )
+        .returning({ id: doctorSchedules.id });
+
+      if (!rows[0]) {
+        throw new ValidationError({ id: ['Schedule not found'] });
+      }
+
+      return rows[0];
+    });
+  }
   private errorText(error: unknown): string {
     if (error instanceof Error) {
       const cause = (error as Error & { cause?: unknown }).cause;
