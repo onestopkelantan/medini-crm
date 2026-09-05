@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useBranch } from "@/hooks/useBranch";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { fmtDateTime } from "@/lib/format";
-import { Radio, MessagesSquare, LayoutTemplate, ShieldAlert, Plus, Send, CheckCheck, User, Phone } from "lucide-react";
+import { Radio, MessagesSquare, LayoutTemplate, ShieldAlert, Plus, Send, CheckCheck, User, Phone, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 interface Channel { id: string; phone: string; sessionName?: string; status: string; healthScore: number }
@@ -178,10 +178,21 @@ export default function WhatsAppHub() {
   const [showChannel, setShowChannel] = useState(false);
   const [showTemplate, setShowTemplate] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [qrChannel, setQrChannel] = useState<Channel | null>(null);
+  const [qrImage, setQrImage] = useState("");
   const channelStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/whatsapp/channels/${id}/status`, { status }),
     onSuccess: () => { toast.success("Channel dikemas kini"); qc.invalidateQueries({ queryKey: ["whatsapp"] }); },
     onError: (e: unknown) => toast.error(errorMessage(e, "Gagal kemas kini")),
+  });
+  const generateQr = useMutation({
+    mutationFn: (id: string) =>
+      api.get<{ qr: string }>(`/whatsapp/channels/${id}/qr`),
+    onSuccess: (data, id) => {
+      setQrChannel(chanRows.find((c) => c.id === id) ?? null);
+      setQrImage(data.qr);
+    },
+    onError: (e: unknown) => toast.error(errorMessage(e, "Gagal jana QR")),
   });
   const chanRows = channels.data ?? [];
   const convRows = conversations.data ?? [];
@@ -271,7 +282,16 @@ export default function WhatsAppHub() {
                     <p className="text-xs text-slate-400">{c.sessionName ?? "-"} - health {c.healthScore}/100</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={c.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
+                    <StatusBadge status={c.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50"
+                      onClick={() => generateQr.mutate(c.id)}
+                      disabled={generateQr.isPending}
+                    >
+                      <QrCode className="mr-1 h-4 w-4" />
+                      QR
+                    </Button>
                     {(channelFlow[c.status] ?? []).map((next) => (
                       <Button key={next} size="sm" variant="outline" className="text-xs rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50" disabled={channelStatus.isPending} onClick={() => channelStatus.mutate({ id: c.id, status: next })}>{next.replace(/_/g, " ")}</Button>
                     ))}
@@ -319,8 +339,31 @@ export default function WhatsAppHub() {
           </Panel>
         </TabsContent>
       </Tabs>
+      <Dialog open={Boolean(qrChannel)} onOpenChange={(open) => { if (!open) { setQrChannel(null); setQrImage(""); } }}>
+        <DialogContent className="rounded-2xl bg-white text-center">
+          <DialogHeader>
+            <DialogTitle>Sambungkan WhatsApp</DialogTitle>
+            <DialogDescription>
+              Scan QR ini menggunakan WhatsApp telefon anda.
+            </DialogDescription>
+          </DialogHeader>
+          {qrImage ? (
+            <img
+              src={qrImage.startsWith("data:") ? qrImage : `data:image/png;base64,${qrImage}`}
+              alt="WhatsApp QR Code"
+              className="mx-auto h-72 w-72 rounded-xl border border-slate-200 p-2"
+            />
+          ) : (
+            <p className="py-12 text-sm text-slate-400">QR tidak diterima daripada WAHA.</p>
+          )}
+          <p className="text-xs text-slate-500">{qrChannel?.phone}</p>
+        </DialogContent>
+      </Dialog>
       <NewChannelDialog open={showChannel} onClose={() => setShowChannel(false)} />
       <NewTemplateDialog open={showTemplate} onClose={() => setShowTemplate(false)} />
     </div>
   );
 }
+
+
+
