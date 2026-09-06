@@ -99,7 +99,8 @@ export class WhatsappService {
      ==========================================================================*/
   async createChannel(p: Principal, raw: unknown) {
     const input = this.parse(channelInput, raw);
-    if (p.role !== 'hq') throw new ForbiddenError('Channel management is HQ-controlled');
+    this.branch(p, input.branchId);
+    if (p.role !== 'hq' && p.role !== 'branch_manager') throw new ForbiddenError('Channel management is restricted');
     return this.dbCtx.runAs(p, async (tx) => {
       const row = await this.repo.createChannel(tx, {
         orgId: p.orgId, branchId: input.branchId, phone: input.phone, sessionName: input.sessionName ?? null,
@@ -707,6 +708,7 @@ export class WhatsappService {
     });
   }
 }
+
 
 
 
