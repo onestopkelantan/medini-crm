@@ -111,6 +111,24 @@ export class WhatsappService {
     });
   }
 
+  async deactivateChannel(p: Principal, id: string) {
+    const channel = await this.dbCtx.runAs(p, (tx) =>
+      this.repo.findChannel(tx, p.orgId, id),
+    );
+
+    if (!channel) {
+      throw new NotFoundError('waChannel', id);
+    }
+
+    this.branch(p, channel.branchId);
+
+    return this.dbCtx.runAs(p, (tx) =>
+      this.repo.updateChannel(tx, p.orgId, id, {
+        status: 'stopped',
+        deletedAt: new Date(),
+      }),
+    );
+  }
   async listChannels(p: Principal, branchId?: string, rawPage?: unknown) {
     const pg = this.pageOf(rawPage);
     return this.dbCtx.runAs(p, (tx) => this.repo.listChannels(tx, p.orgId, this.scoped(p, branchId), pg.limit, pg.offset));
@@ -708,6 +726,7 @@ export class WhatsappService {
     });
   }
 }
+
 
 
 
