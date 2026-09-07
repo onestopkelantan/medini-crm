@@ -56,7 +56,7 @@ PERATURAN:
 
 CONTOH:
 Pelanggan: Nama saya Ali
-Nur: Baik Cik Ali ðŸ˜Š Tarikh yang Cik mahu?
+Nur: Baik Cik Ali  Tarikh yang Cik mahu?
 
 Pelanggan: Esok, 10 pagi untuk scaling
 Nur: Baik Cik Ali. Saya sedang semak slot Scaling untuk esok pada 10:00 pagi.
@@ -503,7 +503,7 @@ export class WhatsappWebhookController {
         if (!doctorId) {
           await this.sendText(
             chatId,
-            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain ðŸ˜Š`,
+            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain `,
           );
           this.logger.warn(`Tiada doktor tersedia: ${date} ${time}`);
           return;
@@ -587,7 +587,7 @@ export class WhatsappWebhookController {
 
           await this.sendText(
             chatId,
-            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion} ðŸ˜Š`,
+            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion} `,
           );
 
           this.logger.warn(
@@ -738,7 +738,7 @@ export class WhatsappWebhookController {
     if (autoBooked) {
       await this.sendText(
         chatId,
-        `Booking berjaya disahkan ðŸ˜Š\nNama: ${name}\nTarikh: ${date}\nMasa: ${time}\nRawatan: ${treatment || 'Pemeriksaan'}\nCawangan: ${branch || 'Setia Tropika'}`,
+        `Booking berjaya disahkan \nNama: ${name}\nTarikh: ${date}\nMasa: ${time}\nRawatan: ${treatment || 'Pemeriksaan'}\nCawangan: ${branch || 'Setia Tropika'}`,
       );
     }
   }
@@ -797,7 +797,7 @@ export class WhatsappWebhookController {
         },
       );
       await this.redis.del(this.appointmentActionKey(chatId));
-      await this.sendText(chatId, 'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula ðŸ˜Š');
+      await this.sendText(chatId, 'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula ');
       return true;
     }
 
@@ -830,7 +830,7 @@ export class WhatsappWebhookController {
     );
     const row = (result as unknown as { rows: Array<any> }).rows[0];
     if (!row) {
-      await this.sendText(chatId, 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. ðŸ˜Š');
+      await this.sendText(chatId, 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. ');
       return true;
     }
 
@@ -1009,4 +1009,5 @@ export class WhatsappWebhookController {
     }
   }
 }
+
 
