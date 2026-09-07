@@ -1,4 +1,4 @@
-/* WhatsApp webhook - Nur reply + automatic booking intake. */
+﻿/* WhatsApp webhook - Nur reply + automatic booking intake. */
 import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
@@ -56,7 +56,7 @@ PERATURAN:
 
 CONTOH:
 Pelanggan: Nama saya Ali
-Nur: Baik Cik Ali 😊 Tarikh yang Cik mahu?
+Nur: Baik Cik Ali ðŸ˜Š Tarikh yang Cik mahu?
 
 Pelanggan: Esok, 10 pagi untuk scaling
 Nur: Baik Cik Ali. Saya sedang semak slot Scaling untuk esok pada 10:00 pagi.
@@ -141,6 +141,11 @@ export class WhatsappWebhookController {
     if (chatId.endsWith('@g.us')) return { ok: true };
     if (!text || !text.trim()) return { ok: true };
 
+    try {
+      await this.saveIncomingMessage(chatId, text, payload);
+    } catch (e) {
+      this.logger.error("Gagal simpan mesej WhatsApp: " + (e as Error).message);
+    }
     const appointmentActionHandled = await this.handleAppointmentAction(
       chatId,
       text,
@@ -184,6 +189,123 @@ export class WhatsappWebhookController {
     return { ok: true };
   }
 
+
+  private async saveIncomingMessage(
+    chatId: string,
+    text: string,
+    payload: any,
+  ) {
+    const phone = await this.resolvePhone(chatId, payload);
+    const messageKey = String(
+      payload?.id ??
+      payload?._data?.key?.id ??
+      `${chatId}:${Date.now()}`,
+    );
+
+    await this.dbCtx.runAsWorker(
+      {
+        orgId: ORG_ID,
+        branchIds: [BRANCH_ID],
+        correlationId: 'wa-incoming-message',
+        source: 'system_worker',
+      },
+      async (tx) => {
+        const channelResult = await tx.execute(sql`
+          SELECT id
+          FROM wa_channels
+          WHERE org_id = ${ORG_ID}
+            AND branch_id = ${BRANCH_ID}
+            AND session_name = 'setia-tropika'
+            AND deleted_at IS NULL
+          LIMIT 1
+        `);
+
+        const channelId = (channelResult as any).rows?.[0]?.id;
+        if (!channelId) return;
+
+        const conversationResult = await tx.execute(sql`
+          SELECT id
+          FROM wa_conversations
+          WHERE org_id = ${ORG_ID}
+            AND branch_id = ${BRANCH_ID}
+            AND channel_id = ${channelId}
+            AND contact_phone = ${phone}
+            AND deleted_at IS NULL
+          LIMIT 1
+        `);
+
+        let conversationId = (conversationResult as any).rows?.[0]?.id;
+
+        if (!conversationId) {
+          const created = await tx.execute(sql`
+            INSERT INTO wa_conversations
+              (org_id, branch_id, channel_id, contact_phone, status, unread_count)
+            VALUES
+              (${ORG_ID}, ${BRANCH_ID}, ${channelId}, ${phone}, 'open', 1)
+            RETURNING id
+          `);
+
+          conversationId = (created as any).rows?.[0]?.id;
+        } else {
+          await tx.execute(sql`
+            UPDATE wa_conversations
+            SET
+              unread_count = unread_count + 1,
+              last_message_at = NOW(),
+              updated_at = NOW()
+            WHERE id = ${conversationId}
+          `);
+        }
+
+        if (!conversationId) return;
+
+        const duplicate = await tx.execute(sql`
+          SELECT id
+          FROM wa_messages
+          WHERE org_id = ${ORG_ID}
+            AND conversation_id = ${conversationId}
+            AND idempotency_key = ${messageKey}
+            AND deleted_at IS NULL
+          LIMIT 1
+        `);
+
+        if ((duplicate as any).rows?.length) return;
+
+        await tx.execute(sql`
+          INSERT INTO wa_messages
+            (
+              org_id,
+              branch_id,
+              channel_id,
+              conversation_id,
+              direction,
+              sender_type,
+              body,
+              status,
+              idempotency_key
+            )
+          VALUES
+            (
+              ${ORG_ID},
+              ${BRANCH_ID},
+              ${channelId},
+              ${conversationId},
+              'in',
+              'patient',
+              ${text},
+              'delivered',
+              ${messageKey}
+            )
+        `);
+
+        await tx.execute(sql`
+          UPDATE wa_conversations
+          SET last_message_at = NOW(), updated_at = NOW()
+          WHERE id = ${conversationId}
+        `);
+      },
+    );
+  }
   private async resolvePhone(
     chatId: string,
     payload: any,
@@ -381,7 +503,7 @@ export class WhatsappWebhookController {
         if (!doctorId) {
           await this.sendText(
             chatId,
-            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain 😊`,
+            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain ðŸ˜Š`,
           );
           this.logger.warn(`Tiada doktor tersedia: ${date} ${time}`);
           return;
@@ -465,7 +587,7 @@ export class WhatsappWebhookController {
 
           await this.sendText(
             chatId,
-            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion} 😊`,
+            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion} ðŸ˜Š`,
           );
 
           this.logger.warn(
@@ -616,7 +738,7 @@ export class WhatsappWebhookController {
     if (autoBooked) {
       await this.sendText(
         chatId,
-        `Booking berjaya disahkan 😊\nNama: ${name}\nTarikh: ${date}\nMasa: ${time}\nRawatan: ${treatment || 'Pemeriksaan'}\nCawangan: ${branch || 'Setia Tropika'}`,
+        `Booking berjaya disahkan ðŸ˜Š\nNama: ${name}\nTarikh: ${date}\nMasa: ${time}\nRawatan: ${treatment || 'Pemeriksaan'}\nCawangan: ${branch || 'Setia Tropika'}`,
       );
     }
   }
@@ -675,7 +797,7 @@ export class WhatsappWebhookController {
         },
       );
       await this.redis.del(this.appointmentActionKey(chatId));
-      await this.sendText(chatId, 'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula 😊');
+      await this.sendText(chatId, 'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula ðŸ˜Š');
       return true;
     }
 
@@ -708,7 +830,7 @@ export class WhatsappWebhookController {
     );
     const row = (result as unknown as { rows: Array<any> }).rows[0];
     if (!row) {
-      await this.sendText(chatId, 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. 😊');
+      await this.sendText(chatId, 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. ðŸ˜Š');
       return true;
     }
 
@@ -887,3 +1009,4 @@ export class WhatsappWebhookController {
     }
   }
 }
+
