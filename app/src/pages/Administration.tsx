@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { PageHeader, Panel, EmptyState, StatusBadge } from "@/components/shared";
@@ -31,7 +31,7 @@ interface Staff {
 }
 interface Branch { id: string; shortName: string; code: string }
 
-/* ---------- Invite Staff dialog (HQ sets org/branch/role â†’ generate single-use link) ---------- */
+/* ---------- Invite Staff dialog (HQ sets org/branch/role Ã¢â€ â€™ generate single-use link) ---------- */
 function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const branches = useQuery({ queryKey: ["admin", "branches"], queryFn: () => api.get<Branch[]>("/admin/branches") });
@@ -63,7 +63,7 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Invite Staff</DialogTitle>
-          <DialogDescription>HQ assigns the role & branch. The system generates a single-use invitation link â€” copy and send it to the staff member.</DialogDescription>
+          <DialogDescription>HQ assigns the role & branch. The system generates a single-use invitation link Ã¢â‚¬â€ copy and send it to the staff member.</DialogDescription>
         </DialogHeader>
         {!invite ? (
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); inviteStaff.mutate(); }}>
@@ -123,7 +123,7 @@ function Applications() {
     mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" }) =>
       api.post(`/admin/staff/${id}/${action}`, { reason: `HQ ${action}` }),
     onSuccess: (_d, v) => {
-      toast.success(v.action === "approve" ? "Application approved â€” user is now Active" : "Application rejected");
+      toast.success(v.action === "approve" ? "Application approved Ã¢â‚¬â€ user is now Active" : "Application rejected");
       qc.invalidateQueries({ queryKey: ["admin", "staff"] });
     },
     onError: (e: unknown) => toast.error(errorMessage(e, "Action failed")),
@@ -170,7 +170,7 @@ function Applications() {
 function Users() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const staff = useQuery({ queryKey: ["admin", "staff", user?.role], queryFn: () => api.get<Staff[]>(user?.role === "branch_manager" ? "/doctor-registration/doctors" : "/admin/staff") });
+  const staff = useQuery({ queryKey: ["admin", "staff", user?.role], queryFn: () => api.get<Staff[]>(user?.role === "branch_manager" ? "/doctor-registration/doctors/list" : "/admin/staff") });
   const transition = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "deactivate" | "reactivate" | "suspend" }) =>
       api.post(`/admin/staff/${id}/${action}`, { reason: `HQ ${action}` }),
@@ -193,12 +193,12 @@ function Users() {
               <TableCell>
                 <div className="flex items-center gap-2.5">
                   <Avatar className="h-7 w-7"><AvatarFallback className="bg-emerald-100 text-emerald-700 text-[10px]">{initials(u.name)}</AvatarFallback></Avatar>
-                  <div><p className="text-sm font-medium">{u.name}</p><p className="text-xs text-slate-400">{u.email ?? "â€”"}</p></div>
+                  <div><p className="text-sm font-medium">{u.name}</p><p className="text-xs text-slate-400">{u.email ?? "Ã¢â‚¬â€"}</p></div>
                 </div>
               </TableCell>
               <TableCell className="font-mono text-xs">{u.username}</TableCell>
               <TableCell><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${roleColors[u.role]}`}>{roleLabels[u.role]}</span></TableCell>
-              <TableCell><StatusBadge status={u.status === "Active" ? "completed" : u.status === "Invited" ? "booked" : "cancelled"} /></TableCell>
+              <TableCell><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{u.status}</span></TableCell>
               <TableCell className="text-right">
                 {u.status === "Active" && (
                   <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => transition.mutate({ id: u.id, action: "deactivate" })} disabled={transition.isPending}>Deactivate</Button>
@@ -206,7 +206,7 @@ function Users() {
                 {u.status === "Deactivated" && (
                   <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => transition.mutate({ id: u.id, action: "reactivate" })} disabled={transition.isPending}>Reactivate</Button>
                 )}
-                {(u.status === "Invited" || u.status === "Rejected") && <span className="text-xs text-slate-400">â€”</span>}
+                {(u.status === "Invited" || u.status === "Rejected") && <span className="text-xs text-slate-400">Ã¢â‚¬â€</span>}
               </TableCell>
             </TableRow>
           ))}
@@ -222,7 +222,7 @@ export default function Administration() {
   const [showDoctorRegister, setShowDoctorRegister] = useState(false);
   return (
     <div className="space-y-6 -mt-6">
-      <PageHeader title="Administration" description="User lifecycle â€” invite, approve, deactivate (HQ only)" />
+      <PageHeader title="Administration" description="Pengurusan pengguna - jemput, luluskan dan nyahaktifkan pengguna (HQ sahaja)" />
       <Tabs defaultValue="users">
         <TabsList className="h-auto gap-1 rounded-2xl border border-white/60 bg-white/80 p-1.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
           <TabsTrigger className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white" value="users"><UsersIcon className="h-3.5 w-3.5 mr-1.5" />Users</TabsTrigger>
@@ -237,7 +237,7 @@ export default function Administration() {
           <Users />
         </TabsContent>
         <TabsContent value="applications" className="mt-4">
-          <Panel title="Pending Applications" subtitle="HQ review â€” approve to activate, reject to decline">
+          <Panel title="Pending Applications" subtitle="HQ review Ã¢â‚¬â€ approve to activate, reject to decline">
             <Applications />
           </Panel>
         </TabsContent>
@@ -247,4 +247,7 @@ export default function Administration() {
     </div>
   );
 }
+
+
+
 
