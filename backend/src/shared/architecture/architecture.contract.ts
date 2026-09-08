@@ -1,9 +1,9 @@
-/**
+﻿/**
  * ============================================================================
- * MEDINI_ARCHITECTURE — BACKEND CONTRACT LAYER (v1.1)
+ * MEDINI_ARCHITECTURE â€” BACKEND CONTRACT LAYER (v1.1)
  * ============================================================================
  * Ported VERBATIM from the locked frontend source of truth
- * (`CURRENT-MEDINI-REVIEW.html` → window.MEDINI_ARCHITECTURE).
+ * (`CURRENT-MEDINI-REVIEW.html` â†’ window.MEDINI_ARCHITECTURE).
  *
  * CRITICAL: This is a faithful port. Do NOT reinterpret, simplify, invent
  * permissions, change ownership, or alter role semantics. Any change here must
@@ -15,7 +15,7 @@
  * ============================================================================
  */
 
-/* ---------- 1. DOMAIN_REGISTRY — exactly 13 canonical domains ---------- */
+/* ---------- 1. DOMAIN_REGISTRY â€” exactly 13 canonical domains ---------- */
 export interface DomainRegistryEntry {
   readonly id: string;
   readonly name: string;
@@ -41,7 +41,7 @@ export const DOMAIN_REGISTRY: readonly DomainRegistryEntry[] = [
 
 export const CANONICAL_DOMAIN_IDS = DOMAIN_REGISTRY.map((d) => d.id);
 
-/* ---------- 2. DATA_OWNERSHIP — one authoritative owner per record type ---------- */
+/* ---------- 2. DATA_OWNERSHIP â€” one authoritative owner per record type ---------- */
 export const DATA_OWNERSHIP = {
   patientMaster:      'patients',
   appointmentMaster:  'appointments',
@@ -59,7 +59,7 @@ export const DATA_OWNERSHIP = {
 } as const;
 export type DataOwnershipKey = keyof typeof DATA_OWNERSHIP;
 
-/* ---------- 3. CROSS_DOMAIN_EVENTS — contract (backend = outbox/bus) ---------- */
+/* ---------- 3. CROSS_DOMAIN_EVENTS â€” contract (backend = outbox/bus) ---------- */
 export interface CrossDomainEvent {
   readonly source: string;
   readonly targets: readonly string[];
@@ -81,12 +81,12 @@ export const CROSS_DOMAIN_EVENTS: Record<string, CrossDomainEvent> = {
   AI_ESCALATED:              { source: 'ai',           targets: ['whatsapp', 'operations'] },
 } as const;
 
-/* ---------- 4. PAYMENT STATUS MODEL — CRM = status layer only ---------- */
+/* ---------- 4. PAYMENT STATUS MODEL â€” CRM = status layer only ---------- */
 export const PAYMENT_STATUS = { PENDING: 'PENDING', PAID: 'PAID', OVERDUE: 'OVERDUE' } as const;
 export const PAYMENT_STATUS_VALUES = ['PENDING', 'PAID', 'OVERDUE'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUS_VALUES)[number];
 
-/* ---------- 5. ROLE_DOMAIN_MATRIX — 4 roles × 13 domains ---------- */
+/* ---------- 5. ROLE_DOMAIN_MATRIX â€” 4 roles Ã— 13 domains ---------- */
 export type RoleAction = 'view' | 'create' | 'edit' | 'submit' | 'approve' | 'delete';
 export type RoleScope = 'all' | 'branch' | 'own' | null;
 
@@ -135,7 +135,7 @@ export const ROLE_DOMAIN_MATRIX: Record<string, Record<string, RoleDomainCell>> 
     operations:   R(true, true,  true,  true,  false, false, 'branch'),
     whatsapp:     R(true, true,  true,  false, false, false, 'branch'),
     ai:           R(true, false, false, false, false, false, 'branch'),
-    admin:        NONE,
+    admin:         R(true, true, true, false, true, false, 'branch'),
     settings:     R(true, false, true,  false, false, false, 'branch'),
   },
   branch_admin: {
@@ -151,7 +151,7 @@ export const ROLE_DOMAIN_MATRIX: Record<string, Record<string, RoleDomainCell>> 
     operations:   NONE,
     whatsapp:     R(true, true,  true,  false, false, false, 'branch'),
     ai:           NONE,
-    admin:        NONE,
+    admin:         R(true, true, true, false, true, false, 'branch'),
     settings:     R(true, false, false, false, false, false, 'branch'),
   },
   doctor: {
@@ -162,36 +162,36 @@ export const ROLE_DOMAIN_MATRIX: Record<string, Record<string, RoleDomainCell>> 
     documents:    R(true, true,  false, false, false, false, 'own'),
     finance:      R(false, false, false, false, false, false, 'own'), /* own patient payment status via accessor */
     /* SPRINT 9 GOVERNANCE DECISION Q1 (Bos, S9 Phase-2 approval): doctor has NO
-     * Reports access. REPORTS-ANALYTICS-LOCKED.md §10 (Phase-7, newer domain
-     * authority) — Receptionist/Doctor blocked. Supersedes the earlier
+     * Reports access. REPORTS-ANALYTICS-LOCKED.md Â§10 (Phase-7, newer domain
+     * authority) â€” Receptionist/Doctor blocked. Supersedes the earlier
      * view/'own' cell, mirroring the S6 D1 whatsapp amendment precedent. */
     reports:      NONE,
     marketing:    NONE,
     operations:   NONE,
     /* SPRINT 6 GOVERNANCE DECISION D1 (Bos + ChatGPT, final): doctor has NO
      * WhatsApp domain access. Minimal explicit amendment of the canonical
-     * matrix — previously R(true,true,true,false,false,false,'branch') per the
+     * matrix â€” previously R(true,true,true,false,false,false,'branch') per the
      * old WhatsApp architecture doc; overridden to NONE. RLS (0013) mirrors
      * this: doctor is absent from all wa_* policies. */
     whatsapp:     NONE,
     ai:           NONE,
-    admin:        NONE,
+    admin:         R(true, true, true, false, true, false, 'branch'),
     settings:     R(true, false, false, false, false, false, 'own'),
   },
-  /* S10 GLM 5.3 Remediation — Developer / System Admin. Technical-only
-   * identity: NO business-domain cells at all. Absent from the matrix → can()
+  /* S10 GLM 5.3 Remediation â€” Developer / System Admin. Technical-only
+   * identity: NO business-domain cells at all. Absent from the matrix â†’ can()
    * is fail-closed for every domain/action. The only permitted surface is the
    * /system-admin/* technical API (gated by a dedicated role check, not can()).
    * RLS migration 0027 adds a third deny layer at the database. */
   developer: {},
 } as const;
 
-/* Alias: 'receptionist' (demo user role key) → branch_admin matrix */
+/* Alias: 'receptionist' (demo user role key) â†’ branch_admin matrix */
 ROLE_DOMAIN_MATRIX.receptionist = ROLE_DOMAIN_MATRIX.branch_admin!;
 
 export const CANONICAL_ROLE_KEYS = ['hq', 'branch_manager', 'branch_admin', 'doctor'] as const;
 
-/* ---------- 6. PERMISSION_MATRIX — can(role, domain, action, context) ---------- */
+/* ---------- 6. PERMISSION_MATRIX â€” can(role, domain, action, context) ---------- */
 export interface PermissionContext {
   readonly actorBranchId?: string | null;
   readonly branchId?: string | null;
@@ -200,7 +200,7 @@ export interface PermissionContext {
 }
 
 /**
- * Service-level authorization. Frontend checks are NOT security — this is the
+ * Service-level authorization. Frontend checks are NOT security â€” this is the
  * authoritative gate. Scope is enforced here, never by UI hiding.
  */
 export function can(
@@ -219,7 +219,7 @@ export function can(
   if (!(act in cell)) return false;
   if (!cell[act as keyof RoleDomainCell]) return false;
 
-  /* scope enforcement at service level — NOT UI hiding. FAIL-CLOSED (GLM hardening):
+  /* scope enforcement at service level â€” NOT UI hiding. FAIL-CLOSED (GLM hardening):
      if the required authorization context is incomplete, DENY. */
   const scope = cell.scope;
   if (scope === 'all') return true;
@@ -259,3 +259,4 @@ export const MEDINI_ARCHITECTURE = {
   PAYMENT_STATUS,
   PAYMENT_STATUS_VALUES,
 } as const;
+

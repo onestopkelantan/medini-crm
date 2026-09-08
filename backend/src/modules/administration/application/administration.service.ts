@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { DbContextService } from '../../../core/auth/db-context.service';
 import { Principal } from '../../../core/auth/principal';
@@ -39,13 +39,13 @@ const assignInput = z.object({
   reason: z.string().trim().min(2).max(512),
 });
 
-/** Single org (approved G1) — single-tenant, org_id reserved. */
+/** Single org (approved G1) â€” single-tenant, org_id reserved. */
 const CANONICAL_ORG_ID = '00000000-0000-0000-0000-000000000001';
 
 /**
- * AdministrationService — production governance control plane (Sprint 7 T1).
+ * AdministrationService â€” production governance control plane (Sprint 7 T1).
  * Governs identity, roles, branch assignment and staff lifecycle. It uses the
- * EXISTING S1 identity tables (staff / role_assignments / branches) — it does
+ * EXISTING S1 identity tables (staff / role_assignments / branches) â€” it does
  * NOT rebuild identity and introduces NO parallel authorization system.
  *
  * RBAC (canonical matrix): admin = HQ ALL, every other role = NONE. The
@@ -56,7 +56,7 @@ const CANONICAL_ORG_ID = '00000000-0000-0000-0000-000000000001';
  *  - Last-HQ protection: the system can never end with zero active HQ admins.
  *  - Self-protection: an actor cannot suspend/deactivate/demote themselves.
  *  - Non-HQ staff must have a branch; HQ staff must have branch = NULL.
- *  - Role assignments are versioned: old → SUPERSEDED, new → ACTIVE (same tx).
+ *  - Role assignments are versioned: old â†’ SUPERSEDED, new â†’ ACTIVE (same tx).
  *  - No hard delete: DEACTIVATED is the terminal governance state.
  */
 @Injectable()
@@ -98,13 +98,15 @@ export class AdministrationService {
   }
 
   /* ==========================================================================
-     STAFF — directory + lifecycle
+     STAFF â€” directory + lifecycle
      ==========================================================================*/
   async listStaff(p: Principal, rawQuery: Record<string, unknown>) {
     this.requireHq(p);
     const pg = this.pageOf({ limit: rawQuery.limit, offset: rawQuery.offset });
     const filters = {
-      branchId: typeof rawQuery.branchId === 'string' ? rawQuery.branchId : undefined,
+      branchId: p.role === 'branch_manager'
+        ? p.branchId
+        : (typeof rawQuery.branchId === 'string' ? rawQuery.branchId : undefined),
       role: typeof rawQuery.role === 'string' ? rawQuery.role : undefined,
       status: typeof rawQuery.status === 'string' ? rawQuery.status : undefined,
     };
@@ -117,7 +119,7 @@ export class AdministrationService {
    *  HQ copies the link and sends it to the staff out-of-band (no email infra).
    *
    *  S10 GLM R3: the link host comes ONLY from server configuration
-   *  (APP_PUBLIC_BASE_URL) — never from request headers or body. */
+   *  (APP_PUBLIC_BASE_URL) â€” never from request headers or body. */
   async generateInviteLink(p: Principal, staffId: string) {
     this.requireHq(p);
     const baseUrl = this.resolvePublicBaseUrl();
@@ -159,7 +161,7 @@ export class AdministrationService {
     });
   }
 
-  /** Invite a new staff member → status INVITED (approved G2). No destructive
+  /** Invite a new staff member â†’ status INVITED (approved G2). No destructive
    * create: username is the immutable natural key (unique per org). */
   async inviteStaff(p: Principal, raw: unknown) {
     this.requireHq(p);
@@ -182,7 +184,7 @@ export class AdministrationService {
         createdBy: p.staffId,
         updatedBy: p.staffId,
       });
-      /* Initial role assignment (ACTIVE) — establishes the versioned history. */
+      /* Initial role assignment (ACTIVE) â€” establishes the versioned history. */
       await this.repo.createAssignment(tx, {
         orgId: p.orgId, staffId: row.id, role: input.role,
         branchId: row.branchId, assignedBy: p.staffId,
@@ -209,7 +211,7 @@ export class AdministrationService {
       const before = await this.repo.lockStaff(tx, p.orgId, id);
       if (!before) throw new NotFoundError('staff', id);
       if (!canTransitionStaffStatus(before.status as StaffStatus, target)) {
-        throw new ConflictError(`Illegal lifecycle transition ${before.status} → ${target}`);
+        throw new ConflictError(`Illegal lifecycle transition ${before.status} â†’ ${target}`);
       }
       if (before.status === target) return before;
 
@@ -235,12 +237,12 @@ export class AdministrationService {
     });
   }
 
-  /** S10 T1: HQ approves a Pending staff application → Active. */
+  /** S10 T1: HQ approves a Pending staff application â†’ Active. */
   async approveStaff(p: Principal, id: string, raw: unknown = {}) {
     return this.transitionStaff(p, id, 'approve', raw);
   }
 
-  /** S10 T1: HQ rejects a Pending staff application → Rejected. */
+  /** S10 T1: HQ rejects a Pending staff application â†’ Rejected. */
   async rejectStaff(p: Principal, id: string, raw: unknown = {}) {
     return this.transitionStaff(p, id, 'reject', raw);
   }
@@ -253,7 +255,7 @@ export class AdministrationService {
     return result;
   }
 
-  /** Assign a new role/branch — versioned (old SUPERSEDED + new ACTIVE in the
+  /** Assign a new role/branch â€” versioned (old SUPERSEDED + new ACTIVE in the
    * same locked transaction). Preserves historical governance state. */
   async assignRole(p: Principal, id: string, raw: unknown) {
     this.requireHq(p);
@@ -265,7 +267,7 @@ export class AdministrationService {
       if (!before) throw new NotFoundError('staff', id);
       const newBranchId = input.role === 'hq' ? null : (input.branchId ?? null);
 
-      /* Last-HQ protection on DEMOTION (hq → non-hq). N7-2: same per-org
+      /* Last-HQ protection on DEMOTION (hq â†’ non-hq). N7-2: same per-org
        * advisory xact lock serialization before the count. */
       if (before.role === 'hq' && input.role !== 'hq') {
         await this.repo.acquireHqGovernanceLock(tx, p.orgId);
@@ -314,3 +316,5 @@ export class AdministrationService {
     }
   }
 }
+
+
