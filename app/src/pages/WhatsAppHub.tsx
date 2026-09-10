@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useBranch } from "@/hooks/useBranch";
@@ -33,10 +33,10 @@ function initials(phone: string) {
 function NewChannelDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { branchId } = useBranch();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ phone: "", session: "" });
+  const [form, setForm] = useState({ phone: "+601112785247", session: "setia-tropika" });
   const create = useMutation({
     mutationFn: () => api.post<Channel>("/whatsapp/channels", { branchId, phone: form.phone, sessionName: form.session || null }),
-    onSuccess: () => { toast.success("Channel didaftar"); qc.invalidateQueries({ queryKey: ["whatsapp"] }); onClose(); setForm({ phone: "", session: "" }); },
+    onSuccess: () => { toast.success("Channel didaftar"); qc.invalidateQueries({ queryKey: ["whatsapp"] }); onClose(); setForm({ phone: "+601112785247", session: "setia-tropika" }); },
     onError: (e: unknown) => toast.error(errorMessage(e, "Gagal daftar channel")),
   });
   return (
@@ -180,6 +180,11 @@ export default function WhatsAppHub() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [qrChannel, setQrChannel] = useState<Channel | null>(null);
   const [qrImage, setQrImage] = useState("");
+  const deleteChannel = useMutation({
+    mutationFn: (id: string) => api.del(`/whatsapp/channels/${id}`),
+    onSuccess: () => { toast.success("Channel dipadam"); qc.invalidateQueries({ queryKey: ["whatsapp"] }); },
+    onError: (e: unknown) => toast.error(errorMessage(e, "Gagal padam channel")),
+  });
   const channelStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/whatsapp/channels/${id}/status`, { status }),
     onSuccess: () => { toast.success("Channel dikemas kini"); qc.invalidateQueries({ queryKey: ["whatsapp"] }); },
@@ -214,7 +219,7 @@ export default function WhatsAppHub() {
       <Tabs defaultValue="conversations">
         <TabsList className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-1 shadow-md flex flex-wrap gap-1">
           <TabsTrigger value="conversations" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"><MessagesSquare className="h-3.5 w-3.5 mr-1.5" />Perbualan</TabsTrigger>
-          <TabsTrigger value="channels" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"><Radio className="h-3.5 w-3.5 mr-1.5" />Channel</TabsTrigger>
+          <TabsTrigger value="channels" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"><Radio className="h-3.5 w-3.5 mr-1.5" />Register</TabsTrigger>
           <TabsTrigger value="templates" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"><LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />Template</TabsTrigger>
           <TabsTrigger value="safety" className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"><ShieldAlert className="h-3.5 w-3.5 mr-1.5" />Keselamatan</TabsTrigger>
         </TabsList>
@@ -282,7 +287,8 @@ export default function WhatsAppHub() {
                     <p className="text-xs text-slate-400">{c.sessionName ?? "-"} - health {c.healthScore}/100</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge status={c.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />                    <Button
+                    <StatusBadge status={c.status} className="rounded-full px-3 py-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200" />
+                    <Button size="sm" variant="outline" className="rounded-xl border-red-200 text-red-600 hover:bg-red-50" disabled={deleteChannel.isPending} onClick={() => { if (window.confirm(`Padam channel ${c.phone}?`)) deleteChannel.mutate(c.id); }}>Delete</Button>                    <Button
                       size="sm"
                       variant="outline"
                       className="rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50"
@@ -364,6 +370,3 @@ export default function WhatsAppHub() {
     </div>
   );
 }
-
-
-

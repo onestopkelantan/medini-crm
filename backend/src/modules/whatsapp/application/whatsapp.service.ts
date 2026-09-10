@@ -23,6 +23,7 @@ const page = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 const channelInput = z.object({ branchId: uuid, phone: z.string().trim().min(6).max(64), sessionName: z.string().trim().max(128).nullish() });
+const channelPatchInput = z.object({ phone: z.string().trim().min(6).max(64).optional(), sessionName: z.string().trim().max(128).nullish() });
 const channelStatusInput = z.object({ status: z.enum(['stopped', 'starting', 'working', 'failed', 'need_qr']) });
 const conversationInput = z.object({ channelId: uuid, contactPhone: z.string().trim().min(6).max(64), linkPatient: z.boolean().default(true).optional() });
 const messageInput = z.object({
@@ -109,6 +110,21 @@ export class WhatsappService {
       await this.audit.record(this.auditEvent(p, 'wa_channel_created', 'wa_channels', row.id, input.branchId), tx);
       return row;
     });
+  }
+
+  async updateChannel(p: Principal, id: string, raw: unknown) {
+    const input = this.parse(channelPatchInput, raw);
+    const channel = await this.dbCtx.runAs(p, (tx) => this.repo.findChannel(tx, p.orgId, id));
+    if (!channel) throw new NotFoundError('waChannel', id);
+    this.branch(p, channel.branchId);
+    if (p.role !== 'hq' && p.role !== 'branch_manager') throw new ForbiddenError('Channel management is restricted');
+    const updated = await this.dbCtx.runAs(p, (tx) => this.repo.updateChannel(tx, p.orgId, id, {
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
+      ...(input.sessionName !== undefined ? { sessionName: input.sessionName || null } : {}),
+      updatedBy: p.staffId,
+    }));
+    if (!updated) throw new NotFoundError('waChannel', id);
+    return updated;
   }
 
   async deactivateChannel(p: Principal, id: string) {
@@ -726,11 +742,3 @@ export class WhatsappService {
     });
   }
 }
-
-
-
-
-
-
-
-
