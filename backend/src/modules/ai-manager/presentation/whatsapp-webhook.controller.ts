@@ -5,13 +5,16 @@ import { Public } from '../../../core/auth/decorators';
 import { MinimaxAdapter } from '../infrastructure/minimax.adapter';
 import { DbContextService } from '../../../core/auth/db-context.service';
 import { OrgAllocator } from '../../../shared/allocators/org-allocator';
+import { doctorHolidays } from '../../../infrastructure/database/schema';
 import IORedis from 'ioredis';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
 const BRANCH_ID = 'da6ca871-3c49-4ef6-8bca-f208a0bfba77';
+
 const WAHA_URL =
   process.env.WAHA_URL ??
   'https://waha-production-f5bc.up.railway.app';
+
 const WAHA_API_KEY = process.env.WAHA_API_KEY ?? '';
 const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default';
 const CURRENT_DATE = new Date().toISOString().slice(0, 10);
@@ -109,8 +112,12 @@ export class WhatsappWebhookController {
     private readonly dbCtx: DbContextService,
   ) {
     const url = process.env.REDIS_URL;
+
     this.redis = url
-      ? new IORedis(url, { lazyConnect: true, maxRetriesPerRequest: null })
+      ? new IORedis(url, {
+          lazyConnect: true,
+          maxRetriesPerRequest: null,
+        })
       : null;
   }
 
@@ -129,12 +136,9 @@ export class WhatsappWebhookController {
     if (body?.event !== 'message') return { ok: true };
 
     const payload = body?.payload ?? {};
-    const chatId: string =
-      payload.from ?? payload.chatId ?? '';
-    const text: string =
-      payload.body ?? payload.text ?? '';
-    const fromMe: boolean =
-      payload.fromMe ?? false;
+    const chatId: string = payload.from ?? payload.chatId ?? '';
+    const text: string = payload.body ?? payload.text ?? '';
+    const fromMe: boolean = payload.fromMe ?? false;
 
     if (fromMe) return { ok: true };
     if (!chatId) return { ok: true };
@@ -144,16 +148,21 @@ export class WhatsappWebhookController {
     try {
       await this.saveIncomingMessage(chatId, text, payload);
     } catch (e) {
-      this.logger.error("Gagal simpan mesej WhatsApp: " + (e as Error).message);
+      this.logger.error(
+        'Gagal simpan mesej WhatsApp: ' + (e as Error).message,
+      );
     }
+
     const appointmentActionHandled = await this.handleAppointmentAction(
       chatId,
       text,
       payload,
     );
+
     if (appointmentActionHandled) return { ok: true };
 
     const previous = await this.getBookingMemory(chatId);
+
     const context = previous
       ? `\nMAKLUMAT BOOKING SEMENTARA YANG SUDAH DIKUMPUL:\n${JSON.stringify(previous)}\nGunakan maklumat ini dan tanya hanya perkara yang masih kosong.\n`
       : '';
@@ -163,6 +172,7 @@ export class WhatsappWebhookController {
         NUR_PROMPT + context,
         text,
       );
+
       await this.sendText(chatId, reply);
     } catch (e) {
       this.logger.error(
@@ -174,6 +184,7 @@ export class WhatsappWebhookController {
       await this.maybeSaveBooking(chatId, text, payload);
     } catch (e) {
       const err = e as any;
+
       this.logger.error({
         message: 'Gagal proses auto booking',
         errorMessage: err?.message,
@@ -189,13 +200,13 @@ export class WhatsappWebhookController {
     return { ok: true };
   }
 
-
   private async saveIncomingMessage(
     chatId: string,
     text: string,
     payload: any,
   ) {
     const phone = await this.resolvePhone(chatId, payload);
+
     const messageKey = String(
       payload?.id ??
       payload?._data?.key?.id ??
@@ -234,14 +245,29 @@ export class WhatsappWebhookController {
           LIMIT 1
         `);
 
-        let conversationId = (conversationResult as any).rows?.[0]?.id;
+        let conversationId =
+          (conversationResult as any).rows?.[0]?.id;
 
         if (!conversationId) {
           const created = await tx.execute(sql`
             INSERT INTO wa_conversations
-              (org_id, branch_id, channel_id, contact_phone, status, unread_count)
+              (
+                org_id,
+                branch_id,
+                channel_id,
+                contact_phone,
+                status,
+                unread_count
+              )
             VALUES
-              (${ORG_ID}, ${BRANCH_ID}, ${channelId}, ${phone}, 'open', 1)
+              (
+                ${ORG_ID},
+                ${BRANCH_ID},
+                ${channelId},
+                ${phone},
+                'open',
+                1
+              )
             RETURNING id
           `);
 
@@ -306,12 +332,12 @@ export class WhatsappWebhookController {
       },
     );
   }
+
   private async resolvePhone(
     chatId: string,
     payload: any,
   ): Promise<string> {
-    const altJid =
-      payload?._data?.key?.remoteJidAlt ?? '';
+    const altJid = payload?._data?.key?.remoteJidAlt ?? '';
 
     if (altJid.includes('@s.whatsapp.net')) {
       return altJid.replace('@s.whatsapp.net', '');
@@ -365,6 +391,7 @@ export class WhatsappWebhookController {
     payload: any,
   ) {
     const previous = await this.getBookingMemory(chatId);
+
     const raw = await this.minimax.chat(
       EXTRACT_PROMPT +
         `\nKONTEKS BOOKING TERDAHULU:\n${JSON.stringify(previous ?? {})}`,
@@ -385,22 +412,24 @@ export class WhatsappWebhookController {
       return;
     }
 
-    if (!data || data.is_booking !== true) {
-      return;
-    }
+    if (!data || data.is_booking !== true) return;
 
     const name = String(
       data.name || previous?.name || '',
     ).trim();
+
     const date = this.normalizeDate(
       String(data.date || previous?.date || '').trim(),
     );
+
     const time = this.normalizeTime(
       String(data.time || previous?.time || '').trim(),
     );
+
     const treatment = String(
       data.treatment || previous?.treatment || '',
     ).trim();
+
     const branch = String(
       data.branch || previous?.branch || 'Setia Tropika',
     ).trim();
@@ -427,11 +456,7 @@ export class WhatsappWebhookController {
       return;
     }
 
-    const phone = await this.resolvePhone(
-      chatId,
-      payload,
-    );
-
+    const phone = await this.resolvePhone(chatId, payload);
     let autoBooked = false;
 
     await this.dbCtx.runAsWorker(
@@ -466,6 +491,31 @@ export class WhatsappWebhookController {
           return;
         }
 
+        // Semak cuti cawangan berdasarkan jadual dalam database.
+        const holidayResult = await tx.execute(sql`
+          SELECT ${doctorHolidays.reason} AS reason
+          FROM ${doctorHolidays}
+          WHERE ${doctorHolidays.orgId} = ${ORG_ID}
+            AND ${doctorHolidays.branchId} = ${BRANCH_ID}
+            AND ${doctorHolidays.holidayDate} = ${date}::date
+          LIMIT 1
+        `);
+
+        const holiday = (
+          holidayResult as unknown as {
+            rows: Array<{ reason: string }>;
+          }
+        ).rows[0];
+
+        if (holiday) {
+          await this.sendText(
+            chatId,
+            `Maaf Cik, klinik bercuti pada ${date}. Sila pilih tarikh lain untuk booking.`,
+          );
+          return;
+        }
+
+        // Keseluruhan slot 30 minit mesti muat dalam waktu tugas.
         const doctorResult = await tx.execute(sql`
           SELECT s.id AS doctor_id, s.name AS doctor_name
           FROM doctor_schedules ds
@@ -474,7 +524,12 @@ export class WhatsappWebhookController {
             AND ds.branch_id = ${BRANCH_ID}
             AND ds.schedule_date = ${date}
             AND ds.start_time <= ${time}::time
-            AND ds.end_time > ${time}::time
+            AND (${date}::date + ds.end_time::time)
+                >= (
+                  ${date}::date
+                  + ${time}::time
+                  + interval '30 minutes'
+                )
             AND s.role = 'doctor'
             AND s.status = 'Active'
             AND s.deleted_at IS NULL
@@ -485,10 +540,16 @@ export class WhatsappWebhookController {
                 AND a.branch_id = ${BRANCH_ID}
                 AND a.doctor_id = s.id
                 AND a.scheduled_date = ${date}
-                AND a.scheduled_time::time < (${time}::time + interval '30 minutes')
-                AND (a.scheduled_time::time + a.duration_min * interval '1 minute') > ${time}::time
+                AND a.scheduled_time::time
+                    < (${time}::time + interval '30 minutes')
+                AND (
+                  a.scheduled_time::time
+                  + a.duration_min * interval '1 minute'
+                ) > ${time}::time
                 AND a.deleted_at IS NULL
-                AND a.status NOT IN ('completed', 'cancelled', 'no-show')
+                AND a.status NOT IN (
+                  'completed', 'cancelled', 'no-show'
+                )
             )
           ORDER BY ds.start_time, s.name
           LIMIT 1
@@ -496,16 +557,21 @@ export class WhatsappWebhookController {
 
         const doctorId = (
           doctorResult as unknown as {
-            rows: Array<{ doctor_id: string; doctor_name: string }>;
+            rows: Array<{
+              doctor_id: string;
+              doctor_name: string;
+            }>;
           }
         ).rows[0]?.doctor_id ?? null;
 
         if (!doctorId) {
           await this.sendText(
             chatId,
-            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain `,
+            `Maaf Cik, tiada doktor yang bertugas atau tersedia pada ${date} jam ${time}. Sila pilih masa lain.`,
           );
-          this.logger.warn(`Tiada doktor tersedia: ${date} ${time}`);
+          this.logger.warn(
+            `Tiada doktor tersedia: ${date} ${time}`,
+          );
           return;
         }
 
@@ -587,7 +653,7 @@ export class WhatsappWebhookController {
 
           await this.sendText(
             chatId,
-            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion} `,
+            `Maaf Cik, slot ${time} pada ${date} sudah penuh.${suggestion}`,
           );
 
           this.logger.warn(
@@ -611,10 +677,7 @@ export class WhatsappWebhookController {
 
         let patientId = (
           patientResult as unknown as {
-            rows: Array<{
-              id: string;
-              name: string;
-            }>;
+            rows: Array<{ id: string; name: string }>;
           }
         ).rows[0]?.id ?? null;
 
@@ -646,9 +709,7 @@ export class WhatsappWebhookController {
         }
 
         if (!patientId) {
-          this.logger.error(
-            'Pesakit gagal dicipta',
-          );
+          this.logger.error('Pesakit gagal dicipta');
           return;
         }
 
@@ -744,11 +805,9 @@ export class WhatsappWebhookController {
   }
 
   private normalizeDate(value: string): string {
-    const match = value.match(
-      /^\d{4}-\d{2}-\d{2}$/,
-    );
-
-    return match ? value : '';
+    return /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? value
+      : '';
   }
 
   private bookingKey(chatId: string): string {
@@ -767,11 +826,18 @@ export class WhatsappWebhookController {
     if (!this.redis) return false;
 
     const normalized = text.trim().toLowerCase();
-    const pendingId = await this.redis.get(this.appointmentActionKey(chatId));
-    const confirms = ['ya', 'yes', 'betul', 'sahkan', 'confirm'].includes(normalized);
+
+    const pendingId = await this.redis.get(
+      this.appointmentActionKey(chatId),
+    );
+
+    const confirms = [
+      'ya', 'yes', 'betul', 'sahkan', 'confirm',
+    ].includes(normalized);
 
     if (pendingId && confirms) {
       const phone = await this.resolvePhone(chatId, payload);
+
       await this.dbCtx.runAsWorker(
         {
           orgId: ORG_ID,
@@ -786,25 +852,43 @@ export class WhatsappWebhookController {
             WHERE id = ${pendingId}
               AND org_id = ${ORG_ID}
               AND branch_id = ${BRANCH_ID}
-              AND status IN ('booked', 'confirmed', 'checked-in', 'waiting')
+              AND status IN (
+                'booked', 'confirmed', 'checked-in', 'waiting'
+              )
               AND patient_id IN (
-                SELECT id FROM patients
+                SELECT id
+                FROM patients
                 WHERE org_id = ${ORG_ID}
                   AND branch_id = ${BRANCH_ID}
-                  AND (phone = ${phone} OR whatsapp = ${phone})
+                  AND (
+                    phone = ${phone}
+                    OR whatsapp = ${phone}
+                  )
               )
           `);
         },
       );
-      await this.redis.del(this.appointmentActionKey(chatId));
-      await this.sendText(chatId, 'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula ');
+
+      await this.redis.del(
+        this.appointmentActionKey(chatId),
+      );
+
+      await this.sendText(
+        chatId,
+        'Appointment berjaya dibatalkan. Slot tersebut kini dibuka semula ',
+      );
+
       return true;
     }
 
-    const wantsCancel = /\b(batal|batalkan|cancel|tak dapat hadir|tidak dapat hadir)\b/i.test(normalized);
+    const wantsCancel =
+      /\b(batal|batalkan|cancel|tak dapat hadir|tidak dapat hadir)\b/i
+        .test(normalized);
+
     if (!wantsCancel) return false;
 
     const phone = await this.resolvePhone(chatId, payload);
+
     const result = await this.dbCtx.runAsWorker(
       {
         orgId: ORG_ID,
@@ -813,7 +897,12 @@ export class WhatsappWebhookController {
         source: 'system_worker',
       },
       async (tx) => tx.execute(sql`
-        SELECT a.id, a.patient_name, a.scheduled_date, a.scheduled_time, a.treatment_ref
+        SELECT
+          a.id,
+          a.patient_name,
+          a.scheduled_date,
+          a.scheduled_time,
+          a.treatment_ref
         FROM appointments a
         JOIN patients p ON p.id = a.patient_id
         WHERE a.org_id = ${ORG_ID}
@@ -821,53 +910,95 @@ export class WhatsappWebhookController {
           AND p.org_id = ${ORG_ID}
           AND p.branch_id = ${BRANCH_ID}
           AND (p.phone = ${phone} OR p.whatsapp = ${phone})
-          AND a.status IN ('booked', 'confirmed', 'checked-in', 'waiting')
+          AND a.status IN (
+            'booked', 'confirmed', 'checked-in', 'waiting'
+          )
           AND a.scheduled_date >= CURRENT_DATE
           AND a.deleted_at IS NULL
         ORDER BY a.scheduled_date, a.scheduled_time
         LIMIT 1
       `),
     );
-    const row = (result as unknown as { rows: Array<any> }).rows[0];
+
+    const row = (
+      result as unknown as { rows: Array<any> }
+    ).rows[0];
+
     if (!row) {
-      await this.sendText(chatId, 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. ');
+      await this.sendText(
+        chatId,
+        'Maaf, saya tidak jumpa appointment aktif untuk nombor ini. ',
+      );
       return true;
     }
 
-    await this.redis.set(this.appointmentActionKey(chatId), String(row.id), 'EX', 600);
+    await this.redis.set(
+      this.appointmentActionKey(chatId),
+      String(row.id),
+      'EX',
+      600,
+    );
+
     await this.sendText(
       chatId,
       `Betul nak batalkan appointment ${row.patient_name} pada ${String(row.scheduled_date).slice(0, 10)} pukul ${String(row.scheduled_time).slice(0, 5)}? Balas Ya untuk sahkan.`,
     );
+
     return true;
   }
 
-  private async getBookingMemory(chatId: string): Promise<BookingMemory | null> {
+  private async getBookingMemory(
+    chatId: string,
+  ): Promise<BookingMemory | null> {
     if (!this.redis) return null;
+
     try {
-      const value = await this.redis.get(this.bookingKey(chatId));
-      return value ? JSON.parse(value) as BookingMemory : null;
+      const value = await this.redis.get(
+        this.bookingKey(chatId),
+      );
+
+      return value
+        ? JSON.parse(value) as BookingMemory
+        : null;
     } catch (e) {
-      this.logger.error('Gagal baca sesi booking Redis: ' + (e as Error).message);
+      this.logger.error(
+        'Gagal baca sesi booking Redis: ' + (e as Error).message,
+      );
       return null;
     }
   }
 
-  private async setBookingMemory(chatId: string, value: BookingMemory): Promise<void> {
+  private async setBookingMemory(
+    chatId: string,
+    value: BookingMemory,
+  ): Promise<void> {
     if (!this.redis) return;
+
     try {
-      await this.redis.set(this.bookingKey(chatId), JSON.stringify(value), 'EX', 86400);
+      await this.redis.set(
+        this.bookingKey(chatId),
+        JSON.stringify(value),
+        'EX',
+        86400,
+      );
     } catch (e) {
-      this.logger.error('Gagal simpan sesi booking Redis: ' + (e as Error).message);
+      this.logger.error(
+        'Gagal simpan sesi booking Redis: ' + (e as Error).message,
+      );
     }
   }
 
-  private async deleteBookingMemory(chatId: string): Promise<void> {
+  private async deleteBookingMemory(
+    chatId: string,
+  ): Promise<void> {
     if (!this.redis) return;
+
     try {
       await this.redis.del(this.bookingKey(chatId));
     } catch (e) {
-      this.logger.error('Gagal padam sesi booking Redis: ' + (e as Error).message);
+      this.logger.error(
+        'Gagal padam sesi booking Redis: ' + (e as Error).message,
+      );
     }
   }
 
@@ -881,19 +1012,15 @@ export class WhatsappWebhookController {
       minutes < closingHour * 60;
       minutes += 30
     ) {
-      if (
-        minutes >= 13 * 60 &&
-        minutes < 14 * 60
-      ) {
+      if (minutes >= 13 * 60 && minutes < 14 * 60) {
         continue;
       }
 
       const hour = Math.floor(minutes / 60);
       const minute = minutes % 60;
+
       slots.push(
-        `${String(hour).padStart(2, '0')}:${String(
-          minute,
-        ).padStart(2, '0')}`,
+        `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
       );
     }
 
@@ -901,9 +1028,7 @@ export class WhatsappWebhookController {
   }
 
   private normalizeTime(value: string): string {
-    const cleaned = value
-      .toLowerCase()
-      .trim();
+    const cleaned = value.toLowerCase().trim();
 
     const match = cleaned.match(
       /^(\d{1,2})(?::(\d{2}))?\s*(am|pm|pagi|petang|malam)?$/,
@@ -938,29 +1063,21 @@ export class WhatsappWebhookController {
       return '';
     }
 
-    return `${String(hour).padStart(2, '0')}:${String(
-      minute,
-    ).padStart(2, '0')}`;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   }
 
   private isValidBookingTime(
     date: string,
     time: string,
   ): boolean {
-    const day = new Date(
-      `${date}T00:00:00`,
-    ).getDay();
+    const day = new Date(`${date}T00:00:00`).getDay();
 
-    const [hour = -1, minute = -1] = time
-      .split(':')
-      .map(Number);
+    const [hour = -1, minute = -1] =
+      time.split(':').map(Number);
 
-    const totalMinutes =
-      hour * 60 + minute;
+    const totalMinutes = hour * 60 + minute;
 
-    if (minute !== 0 && minute !== 30) {
-      return false;
-    }
+    if (minute !== 0 && minute !== 30) return false;
 
     if (
       totalMinutes >= 13 * 60 &&
@@ -1009,6 +1126,3 @@ export class WhatsappWebhookController {
     }
   }
 }
-
-
-
