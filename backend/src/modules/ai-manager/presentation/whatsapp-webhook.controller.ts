@@ -1,7 +1,8 @@
-﻿import { Body, Controller, Post, Logger } from '@nestjs/common';
+import { Body, Controller, Post, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
 import { MinimaxAdapter } from '../infrastructure/minimax.adapter';
+import { WhatsappPromptService } from '../application/whatsapp-prompt.service';
 import { DbContextService } from '../../../core/auth/db-context.service';
 import { OrgAllocator } from '../../../shared/allocators/org-allocator';
 import { doctorHolidays } from '../../../infrastructure/database/schema';
@@ -147,6 +148,7 @@ export class WhatsappWebhookController {
   constructor(
     private readonly minimax: MinimaxAdapter,
     private readonly dbCtx: DbContextService,
+    private readonly whatsappPrompt: WhatsappPromptService,
   ) {
     const url = process.env.REDIS_URL;
 
@@ -204,7 +206,14 @@ export class WhatsappWebhookController {
 
       try {
         const reply = await this.minimax.chat(
-          nurPrompt() + context,
+          (
+            (await this.whatsappPrompt.getForBot(ORG_ID, BRANCH_ID))
+            ?? nurPrompt()
+          ) +
+          `\nTARIKH SISTEM HARI INI: ${malaysiaDate()}` +
+          '\nZon waktu: Asia/Kuala_Lumpur.' +
+          '\nPengesahan booking dan nama doktor mesti datang daripada sistem. Jangan reka keputusan semakan slot.' +
+          context,
           text,
         );
         await this.sendText(chatId, reply);
