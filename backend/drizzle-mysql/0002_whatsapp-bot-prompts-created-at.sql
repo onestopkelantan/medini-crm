@@ -1,0 +1,1 @@
+ALTER TABLE `whatsapp_bot_prompts` ADD `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) NOT NULL;

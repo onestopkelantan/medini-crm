@@ -15,6 +15,13 @@
       "when": 1789740101566,
       "tag": "0001_mysql-partial-unique-compat",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1789744984308,
+      "tag": "0002_whatsapp-bot-prompts-created-at",
+      "breakpoints": true
     }
   ]
 }

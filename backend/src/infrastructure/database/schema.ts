@@ -1751,6 +1751,7 @@ export const whatsappBotPrompts = mysqlTable('whatsapp_bot_prompts', {
   prompt: text('prompt').notNull(),
   version: integer('version').notNull().default(1),
   updatedBy: uuid('updated_by').notNull().references(() => staff.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`CURRENT_TIMESTAMP(6)`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`CURRENT_TIMESTAMP(6)`),
 }, (t) => [
   primaryKey({ columns: [t.orgId, t.branchId], name: 'whatsapp_bot_prompts_pk' }),
