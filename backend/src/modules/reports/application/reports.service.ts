@@ -10,6 +10,7 @@ import { ReportsRepository } from '../infrastructure/reports.repository';
 import { ReportAuditService } from './report-audit.service';
 import { resolvePeriod, isReportPeriod, type ReportPeriod } from '../domain/period-resolver';
 import { resolveReportScope } from '../domain/reports-scope';
+import { KpiDefinition } from '../../../infrastructure/database/schema';
 import {
   noShowRate, recallRate, revenuePerAppointment, chairUtilisation,
 } from '../domain/kpi-formulas';
@@ -174,7 +175,7 @@ export class ReportsService {
       const defs = await this.repo.listKpiDefinitions(tx as never, principal.orgId);
       await this.audit.recordView(tx, principal, 'kpi_registry', null);
       return {
-        definitions: defs.map((d) => ({
+        definitions: defs.map((d: KpiDefinition) => ({
           kpiKey: d.kpiKey, name: d.name, formula: d.formula,
           sourceDomain: d.sourceDomain, unit: d.unit, version: d.version, status: d.status,
         })),

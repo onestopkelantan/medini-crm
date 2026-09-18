@@ -82,7 +82,7 @@ export class RecoveryScheduler implements OnModuleInit, OnApplicationShutdown {
       };
       const branchIds = await this.dbCtx.runAsWorker(orgCtx, async (tx) => {
         const rows = await tx.execute(
-          sql`SELECT id::text AS id FROM branches WHERE org_id = ${orgCtx.orgId} AND deleted_at IS NULL ORDER BY code`,
+          sql`SELECT id AS id FROM branches WHERE org_id = ${orgCtx.orgId} AND deleted_at IS NULL ORDER BY code`,
         );
         return (rows as unknown as { rows: Array<{ id: string }> }).rows.map((r) => r.id);
       });

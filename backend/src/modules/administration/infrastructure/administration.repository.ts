@@ -116,17 +116,21 @@ export class AdministrationRepository {
   /**
    * N7-2 remediation — deterministic per-organization advisory lock that
    * serializes ALL HQ-availability mutations (suspend/deactivate/demote of an
-   * HQ admin). pg_advisory_xact_lock is:
+   * HQ admin). the organization-row lock is:
    *  - transaction-scoped (auto-released at COMMIT/ROLLBACK — no leak),
    *  - database-level (works across multiple service instances, unlike an
    *    application mutex),
-   *  - deterministic per org (hashtext(org_id) — same org always same key).
+   *  - deterministic per org (one locked organizations row per org).
    * Any concurrent last-HQ mutation blocks here until the first transaction
    * commits, then re-evaluates countActiveHq() against the NEW committed
    * state — eliminating the TOCTOU race (GLM barrier-race finding).
    */
   async acquireHqGovernanceLock(tx: DbClient, orgId: string): Promise<void> {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('medini-hq-governance:' || ${orgId}))`);
+    /* MySQL replacement for pg_advisory_xact_lock: lock the single
+     * organization row for the lifetime of this transaction. */
+    await tx.select({ id: organizations.id }).from(organizations)
+      .where(eq(organizations.id, orgId))
+      .for('update');
   }
 
   /** Count HQ staff whose status is EXACTLY 'Active' (N7-1 remediation: a
@@ -139,7 +143,7 @@ export class AdministrationRepository {
       isNull(staff.deletedAt), eq(staff.status, 'Active' as never),
     ];
     if (excludeStaffId) conds.push(sql`${staff.id} <> ${excludeStaffId}`);
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(staff).where(and(...conds));
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(staff).where(and(...conds));
     return rows[0]?.n ?? 0;
   }
 

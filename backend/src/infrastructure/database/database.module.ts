@@ -6,7 +6,7 @@ export const DATABASE = 'DATABASE';
 
 /**
  * DatabaseModule — provides the Drizzle client. Connection is created from
- * DATABASE_URL at boot; if the DB is unreachable, the app still starts but
+ * DATABASE_RUNTIME_URL (falling back to DATABASE_URL) at boot; if the DB is unreachable, the app still starts but
  * /health/ready reports it honestly (no fake healthy dependency).
  */
 @Global()
@@ -16,8 +16,8 @@ export const DATABASE = 'DATABASE';
       provide: DATABASE,
       inject: [ConfigService],
       useFactory: (config: ConfigService): Database | null => {
-        /* Runtime uses the non-owner RLS-subject role (medini_app), never the
-         * table owner (medini). See database.config.ts runtimeUrl. */
+        /* Prefer a separate least-privilege MySQL runtime account via
+         * DATABASE_RUNTIME_URL. See database.config.ts. */
         const url = config.get<string>('database.runtimeUrl');
         if (!url) return null; /* report not-configured honestly */
         try {

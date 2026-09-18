@@ -22,7 +22,7 @@ export class FinanceReadPort {
     if (opts.branchId) cond.push(eq(saleRecords.branchId, opts.branchId));
     if (opts.from) cond.push(sql`${saleRecords.saleDate} >= ${opts.from}`);
     if (opts.to) cond.push(sql`${saleRecords.saleDate} <= ${opts.to}`);
-    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)::text` })
+    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)` })
       .from(saleRecords).where(and(...cond));
     return rows[0]!.total;
   }
@@ -31,7 +31,7 @@ export class FinanceReadPort {
   async outstandingLabPayables(tx: DbClient, orgId: string, branchId?: string | null): Promise<string> {
     const cond: SQL[] = [eq(labPayables.orgId, orgId), isNull(labPayables.deletedAt), sql`${labPayables.status} != 'VOID'`];
     if (branchId) cond.push(eq(labPayables.branchId, branchId));
-    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${labPayables.outstandingAmount}), 0)::text` })
+    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${labPayables.outstandingAmount}), 0)` })
       .from(labPayables).where(and(...cond));
     return rows[0]!.total;
   }
@@ -40,7 +40,7 @@ export class FinanceReadPort {
   async openAlertCount(tx: DbClient, orgId: string, branchId?: string | null): Promise<number> {
     const cond: SQL[] = [eq(financeAlerts.orgId, orgId), isNull(financeAlerts.deletedAt), eq(financeAlerts.status, 'open')];
     if (branchId) cond.push(eq(financeAlerts.branchId, branchId));
-    const rows = await tx.select({ n: sql<number>`COUNT(*)::int` })
+    const rows = await tx.select({ n: sql<number>`COUNT(*)` })
       .from(financeAlerts).where(and(...cond));
     return rows[0]!.n;
   }
@@ -49,7 +49,7 @@ export class FinanceReadPort {
   async outstandingCommission(tx: DbClient, orgId: string, branchId?: string | null): Promise<string> {
     const cond: SQL[] = [eq(commissionLedger.orgId, orgId), isNull(commissionLedger.deletedAt), sql`${commissionLedger.status} != 'cancelled'`];
     if (branchId) cond.push(eq(commissionLedger.branchId, branchId));
-    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${commissionLedger.outstandingAmount}), 0)::text` })
+    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${commissionLedger.outstandingAmount}), 0)` })
       .from(commissionLedger).where(and(...cond));
     return rows[0]!.total;
   }
@@ -62,7 +62,7 @@ export class FinanceReadPort {
     if (opts.branchId) cond.push(eq(expenses.branchId, opts.branchId));
     if (opts.from) cond.push(sql`${expenses.expenseDate} >= ${opts.from}`);
     if (opts.to) cond.push(sql`${expenses.expenseDate} <= ${opts.to}`);
-    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${expenses.amount}), 0)::text` })
+    const rows = await tx.select({ total: sql<string>`COALESCE(SUM(${expenses.amount}), 0)` })
       .from(expenses).where(and(...cond));
     return rows[0]!.total;
   }
@@ -80,9 +80,9 @@ export class FinanceReadPort {
     if (opts.from) cond.push(sql`${saleRecords.saleDate} >= ${opts.from}`);
     if (opts.to) cond.push(sql`${saleRecords.saleDate} <= ${opts.to}`);
     const rows = await tx
-      .select({ branchId: saleRecords.branchId, revenue: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)::text` })
+      .select({ branchId: saleRecords.branchId, revenue: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)` })
       .from(saleRecords).where(and(...cond)).groupBy(saleRecords.branchId);
-    return rows.map((r) => ({ branchId: r.branchId, revenue: r.revenue }));
+    return rows.map((r: { branchId: string; revenue: string }) => ({ branchId: r.branchId, revenue: r.revenue }));
   }
 
   /** S9: Confirmed revenue per day over a range (trend series). */
@@ -95,8 +95,8 @@ export class FinanceReadPort {
     ];
     if (opts.branchId) cond.push(eq(saleRecords.branchId, opts.branchId));
     const rows = await tx
-      .select({ date: saleRecords.saleDate, revenue: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)::text` })
+      .select({ date: saleRecords.saleDate, revenue: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)` })
       .from(saleRecords).where(and(...cond)).groupBy(saleRecords.saleDate).orderBy(saleRecords.saleDate);
-    return rows.map((r) => ({ date: r.date, revenue: r.revenue }));
+    return rows.map((r: { date: string; revenue: string }) => ({ date: r.date, revenue: r.revenue }));
   }
 }

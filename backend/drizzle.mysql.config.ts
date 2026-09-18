@@ -1,7 +1,7 @@
 import { defineConfig } from 'drizzle-kit';
 
 /**
- * Canonical Drizzle Kit config for the mysql-migration branch.
+ * MySQL-only Drizzle Kit config for the mysql-migration branch.
  * Do not point production at this until schema + data validation is complete.
  */
 export default defineConfig({

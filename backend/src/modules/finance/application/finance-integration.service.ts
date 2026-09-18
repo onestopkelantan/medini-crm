@@ -178,7 +178,7 @@ export class FinanceIntegrationService {
   private async resolveHomeBranch(principal: Principal): Promise<string | null> {
     return this.dbCtx.runAs(principal, async (tx) => {
       const rows = await tx.execute(
-        sql`SELECT id::text AS id FROM branches WHERE org_id = ${principal.orgId} AND deleted_at IS NULL ORDER BY code LIMIT 1`,
+        sql`SELECT id AS id FROM branches WHERE org_id = ${principal.orgId} AND deleted_at IS NULL ORDER BY code LIMIT 1`,
       );
       return (rows as unknown as { rows: Array<{ id: string }> }).rows[0]?.id ?? null;
     });
@@ -190,7 +190,7 @@ export class FinanceIntegrationService {
   async reconcilePendingSyncs(ctx: ScopedSystemWorkerContext): Promise<number> {
     const pending = await this.dbCtx.runAsWorker(ctx, async (tx) => {
       const rows = await tx.execute(
-        sql`SELECT id::text AS id, org_id::text AS org_id, branch_id::text AS branch_id
+        sql`SELECT id AS id, org_id AS org_id, branch_id AS branch_id
             FROM bukku_sync_records
             WHERE org_id = ${ctx.orgId}
               AND sync_status IN ('queued', 'error') AND COALESCE(retry_count, 0) < 5`,

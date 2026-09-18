@@ -33,7 +33,7 @@ export class AppointmentsReadPort {
       conds.push(inArray(appointments.status, statuses as Appointment['status'][]));
     }
     const rows = await tx
-      .select({ n: sql<number>`count(*)::int` })
+      .select({ n: sql<number>`count(*)` })
       .from(appointments)
       .where(and(...conds));
     return rows[0]?.n ?? 0;
@@ -50,11 +50,11 @@ export class AppointmentsReadPort {
     ];
     if (branchId) conds.push(eq(appointments.branchId, branchId));
     const rows = await tx
-      .select({ status: appointments.status, n: sql<number>`count(*)::int` })
+      .select({ status: appointments.status, n: sql<number>`count(*)` })
       .from(appointments)
       .where(and(...conds))
       .groupBy(appointments.status);
-    return rows.map((r) => ({ status: r.status, n: r.n }));
+    return rows.map((r: { status: string; n: number }) => ({ status: r.status, n: r.n }));
   }
 
   /* ---------------- S9 (Reports) — additive aggregate reads ---------------- */
@@ -71,12 +71,12 @@ export class AppointmentsReadPort {
     ];
     if (branchId) conds.push(eq(appointments.branchId, branchId));
     const rows = await tx
-      .select({ date: appointments.scheduledDate, status: appointments.status, n: sql<number>`count(*)::int` })
+      .select({ date: appointments.scheduledDate, status: appointments.status, n: sql<number>`count(*)` })
       .from(appointments)
       .where(and(...conds))
       .groupBy(appointments.scheduledDate, appointments.status)
       .orderBy(appointments.scheduledDate);
-    return rows.map((r) => ({ date: r.date, status: r.status, n: r.n }));
+    return rows.map((r: { date: string; status: string; n: number }) => ({ date: r.date, status: r.status, n: r.n }));
   }
 
   /** S9: per-doctor completed appointments over a range (production table). */
@@ -93,12 +93,12 @@ export class AppointmentsReadPort {
     ];
     if (branchId) conds.push(eq(appointments.branchId, branchId));
     const rows = await tx
-      .select({ doctorId: appointments.doctorId, completed: sql<number>`count(*)::int` })
+      .select({ doctorId: appointments.doctorId, completed: sql<number>`count(*)` })
       .from(appointments)
       .where(and(...conds))
       .groupBy(appointments.doctorId);
     return rows
-      .filter((r) => r.doctorId !== null)
-      .map((r) => ({ doctorId: r.doctorId as string, completed: r.completed }));
+      .filter((r: { doctorId: string | null; completed: number }) => r.doctorId !== null)
+      .map((r: { doctorId: string | null; completed: number }) => ({ doctorId: r.doctorId as string, completed: r.completed }));
   }
 }

@@ -1,16 +1,16 @@
 /**
  * SEED — canonical reference data (Sprint 1 Database Foundation).
  * 14 canonical branches (10 Medini Dental Clinics + 4 affiliated) + 4 role demo users.
- * Idempotent: uses ON CONFLICT DO NOTHING on natural keys.
+ * Idempotent: duplicate natural keys are ignored through the MySQL compatibility insert layer.
  * NO production secrets — demo passwords are placeholders to be hashed in the auth task.
  */
 import { createDatabase } from './database';
 import { sql } from 'drizzle-orm';
 import { branches, staff, roleAssignments, panelCompanies, treatmentCatalog, consentTemplates } from './schema';
 import * as argon2 from 'argon2';
+import { OrgAllocator } from '../../shared/allocators/org-allocator';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001'; /* single org: medini-dental-group */
-const ORG_KEY = ORG_ID.replace(/-/g, '').slice(-8).toLowerCase(); /* '00000001' — allocator seq suffix */
 
 /**
  * DEV-ONLY demo credential (Part 2/23). This seeds an Argon2id HASH, never
@@ -51,10 +51,7 @@ export async function seed(connectionString: string): Promise<{
 }> {
   const db = createDatabase(connectionString);
 
-  /* FORCE RLS: scoped reads below require an app context. Seeding is an
-   * administrative (hq) operation — set the hq context so the owner session
-   * (also subject to RLS after FORCE) can read back the rows it inserted. */
-  await db.execute(sql`SELECT set_config('app.role', 'hq', false)`);
+  const allocator = new OrgAllocator(db);
   const branchIds = new Map<string, string>();
   for (const b of CANONICAL_BRANCHES) {
     await db.insert(branches).values({
@@ -102,7 +99,7 @@ export async function seed(connectionString: string): Promise<{
 
   /* ------------------------------------------------------------------
    * Sprint 2A T4 — canonical Panel master data (3 seeded panels).
-   * Idempotent via ON CONFLICT (org_id, lower(name)) partial unique index
+   * Idempotent via the MySQL unique key
    * from migration 0006: rerun does NOT duplicate and does NOT overwrite
    * user-edited fields (DO NOTHING). Codes allocated through the org
    * sequence — NEVER renumbered for existing rows (deterministic on a
@@ -110,17 +107,13 @@ export async function seed(connectionString: string): Promise<{
    * ----------------------------------------------------------------*/
   const SEED_PANELS = ['AIA PANEL', 'MEDNEFITS', 'PMCARE'] as const;
   for (const name of SEED_PANELS) {
-    const codeRows = await db.execute(
-      sql`SELECT nextval(${sql.raw(`'medini_pnl_${ORG_KEY}'`)})::int AS n`,
-    );
-    const n = (codeRows as unknown as { rows: Array<{ n: number }> }).rows[0]!.n;
-    const code = `PNL-${String(n).padStart(4, '0')}`;
+    const code = await allocator.nextPanelCode(ORG_ID);
     await db.insert(panelCompanies).values({
       orgId: ORG_ID, code, name, status: 'Active', source: 'seed',
     }).onConflictDoNothing();
   }
   const panelRows = await db.execute(
-    sql`SELECT count(*)::int AS n FROM panel_companies WHERE org_id = ${ORG_ID} AND deleted_at IS NULL`,
+    sql`SELECT count(*) AS n FROM panel_companies WHERE org_id = ${ORG_ID} AND deleted_at IS NULL`,
   );
   const panelCount = (panelRows as unknown as { rows: Array<{ n: number }> }).rows[0]!.n;
 
@@ -129,7 +122,7 @@ export async function seed(connectionString: string): Promise<{
    * Treatment catalog: reference ONLY (code/name/category/duration).
    * NO price — ADR-004 (Finance consumes treatment_id later). Codes come
    * from the org sequence (medini_trt_*) — deterministic on a clean DB,
-   * never renumbered for existing rows (ON CONFLICT DO NOTHING).
+   * never renumbered for existing rows (duplicate-key no-op).
    * ----------------------------------------------------------------*/
   const SEED_TREATMENTS: ReadonlyArray<{ name: string; category: string; durationMin: number }> = [
     { name: 'Consultation & Examination', category: 'General', durationMin: 30 },
@@ -146,17 +139,13 @@ export async function seed(connectionString: string): Promise<{
     { name: 'Periapical X-Ray', category: 'Imaging', durationMin: 15 },
   ];
   for (const t of SEED_TREATMENTS) {
-    const codeRows = await db.execute(
-      sql`SELECT nextval(${sql.raw(`'medini_trt_${ORG_KEY}'`)})::int AS n`,
-    );
-    const n = (codeRows as unknown as { rows: Array<{ n: number }> }).rows[0]!.n;
-    const code = `TRT-${String(n).padStart(4, '0')}`;
+    const code = await allocator.nextTreatmentCode(ORG_ID);
     await db.insert(treatmentCatalog).values({
       orgId: ORG_ID, code, name: t.name, category: t.category, durationMin: t.durationMin,
     }).onConflictDoNothing();
   }
   const treatmentRows = await db.execute(
-    sql`SELECT count(*)::int AS n FROM treatment_catalog WHERE org_id = ${ORG_ID} AND deleted_at IS NULL`,
+    sql`SELECT count(*) AS n FROM treatment_catalog WHERE org_id = ${ORG_ID} AND deleted_at IS NULL`,
   );
   const treatmentCount = (treatmentRows as unknown as { rows: Array<{ n: number }> }).rows[0]!.n;
 
@@ -181,7 +170,7 @@ export async function seed(connectionString: string): Promise<{
     }).onConflictDoNothing();
   }
   const consentRows = await db.execute(
-    sql`SELECT count(*)::int AS n FROM consent_templates WHERE org_id = ${ORG_ID}`,
+    sql`SELECT count(*) AS n FROM consent_templates WHERE org_id = ${ORG_ID}`,
   );
   const consentCount = (consentRows as unknown as { rows: Array<{ n: number }> }).rows[0]!.n;
 
@@ -193,7 +182,8 @@ export async function seed(connectionString: string): Promise<{
 
 /* CLI: node dist/infrastructure/database/seed.js */
 if (require.main === module) {
-  const url = process.env.DATABASE_URL ?? 'postgres://medini:medini_dev_password@localhost:5433/medini_dev';
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('DATABASE_URL is required to run the seed');
   seed(url)
     .then((r) => { console.log(`Seed complete: ${r.branches} branches, ${r.staff} staff, ${r.panels} panels, ${r.treatments} treatments, ${r.consentTemplates} consent templates`); process.exit(0); })
     .catch((e) => { console.error('Seed failed:', e.message); process.exit(1); });

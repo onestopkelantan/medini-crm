@@ -113,8 +113,8 @@ export class WhatsappPromptService {
       const branchResult = await tx.execute(sql`
         SELECT id
         FROM branches
-        WHERE id = ${branchId}::uuid
-          AND org_id = ${principal.orgId}::uuid
+        WHERE id = ${branchId}
+          AND org_id = ${principal.orgId}
           AND deleted_at IS NULL
         LIMIT 1
       `);
@@ -137,9 +137,9 @@ export class WhatsappPromptService {
           version,
           updated_by,
           updated_at
-        FROM public.whatsapp_bot_prompts
-        WHERE org_id = ${principal.orgId}::uuid
-          AND branch_id = ${branchId}::uuid
+        FROM whatsapp_bot_prompts
+        WHERE org_id = ${principal.orgId}
+          AND branch_id = ${branchId}
         LIMIT 1
       `);
 
@@ -183,8 +183,8 @@ export class WhatsappPromptService {
       const branchResult = await tx.execute(sql`
         SELECT id
         FROM branches
-        WHERE id = ${branchId}::uuid
-          AND org_id = ${principal.orgId}::uuid
+        WHERE id = ${branchId}
+          AND org_id = ${principal.orgId}
           AND deleted_at IS NULL
         LIMIT 1
       `);
@@ -202,75 +202,56 @@ export class WhatsappPromptService {
       // Version 0 bermaksud prompt belum pernah disimpan.
       if (version === 0) {
         const inserted = await tx.execute(sql`
-          INSERT INTO public.whatsapp_bot_prompts
-            (
-              org_id,
-              branch_id,
-              prompt,
-              version,
-              updated_by
-            )
+          INSERT IGNORE INTO whatsapp_bot_prompts
+            (org_id, branch_id, prompt, version, updated_by, updated_at)
           VALUES
-            (
-              ${principal.orgId}::uuid,
-              ${branchId}::uuid,
-              ${prompt},
-              1,
-              ${principal.staffId}::uuid
-            )
-          ON CONFLICT (org_id, branch_id) DO NOTHING
-          RETURNING
-            org_id,
-            branch_id,
-            prompt,
-            version,
-            updated_by,
-            updated_at
+            (${principal.orgId}, ${branchId}, ${prompt}, 1, ${principal.staffId}, NOW(6))
         `);
 
-        const row = (
-          inserted as unknown as { rows: PromptRow[] }
-        ).rows[0];
-
-        if (!row) {
+        if (Number((inserted as any).affectedRows ?? 0) < 1) {
           throw new ConflictError(
             'Prompt telah disimpan oleh pengguna lain. Muat semula sebelum mengedit.',
           );
         }
 
+        const created = await tx.execute(sql`
+          SELECT org_id, branch_id, prompt, version, updated_by, updated_at
+          FROM whatsapp_bot_prompts
+          WHERE org_id = ${principal.orgId} AND branch_id = ${branchId}
+          LIMIT 1
+        `);
+        const row = ((created as unknown as { rows: PromptRow[] }).rows)[0];
+        if (!row) throw new ConflictError('Prompt gagal dibaca selepas disimpan.');
         return this.format(branchId, row);
       }
 
       // Elakkan edit pengguna lain ditindih secara senyap.
       const updated = await tx.execute(sql`
-        UPDATE public.whatsapp_bot_prompts
+        UPDATE whatsapp_bot_prompts
         SET
           prompt = ${prompt},
           version = version + 1,
-          updated_by = ${principal.staffId}::uuid,
-          updated_at = NOW()
-        WHERE org_id = ${principal.orgId}::uuid
-          AND branch_id = ${branchId}::uuid
+          updated_by = ${principal.staffId},
+          updated_at = NOW(6)
+        WHERE org_id = ${principal.orgId}
+          AND branch_id = ${branchId}
           AND version = ${version}
-        RETURNING
-          org_id,
-          branch_id,
-          prompt,
-          version,
-          updated_by,
-          updated_at
       `);
 
-      const row = (
-        updated as unknown as { rows: PromptRow[] }
-      ).rows[0];
-
-      if (!row) {
+      if (Number((updated as any).affectedRows ?? 0) < 1) {
         throw new ConflictError(
           'Prompt telah berubah. Muat semula untuk mendapatkan versi terbaru sebelum menyimpan.',
         );
       }
 
+      const refreshed = await tx.execute(sql`
+        SELECT org_id, branch_id, prompt, version, updated_by, updated_at
+        FROM whatsapp_bot_prompts
+        WHERE org_id = ${principal.orgId} AND branch_id = ${branchId}
+        LIMIT 1
+      `);
+      const row = ((refreshed as unknown as { rows: PromptRow[] }).rows)[0];
+      if (!row) throw new ConflictError('Prompt gagal dibaca selepas dikemas kini.');
       return this.format(branchId, row);
     });
   }
@@ -305,9 +286,9 @@ export class WhatsappPromptService {
       async (tx) => {
         const result = await tx.execute(sql`
           SELECT prompt
-          FROM public.whatsapp_bot_prompts
-          WHERE org_id = ${orgId}::uuid
-            AND branch_id = ${branchId}::uuid
+          FROM whatsapp_bot_prompts
+          WHERE org_id = ${orgId}
+            AND branch_id = ${branchId}
           LIMIT 1
         `);
 

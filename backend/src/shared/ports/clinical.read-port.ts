@@ -51,7 +51,7 @@ export class ClinicalReadPort {
 
   /** Signed clinical note count for a patient (patient 360 summary). */
   async countSignedNotes(tx: DbClient, orgId: string, patientId: string): Promise<number> {
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(clinicalNotes)
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(clinicalNotes)
       .where(and(
         eq(clinicalNotes.orgId, orgId), eq(clinicalNotes.patientId, patientId),
         sql`${clinicalNotes.signedAt} IS NOT NULL`,
@@ -61,7 +61,7 @@ export class ClinicalReadPort {
 
   /** Encounter count for a patient (patient 360 summary). */
   async countEncounters(tx: DbClient, orgId: string, patientId: string): Promise<number> {
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(encounters)
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(encounters)
       .where(and(eq(encounters.orgId, orgId), eq(encounters.patientId, patientId), isNull(encounters.deletedAt)));
     return rows[0]?.n ?? 0;
   }
@@ -86,18 +86,18 @@ export class ClinicalReadPort {
       eq(treatmentPlans.orgId, orgId),
       isNull(treatmentPlans.deletedAt),
       isNull(treatmentPlanItems.deletedAt),
-      sql`${treatmentPlans.createdAt}::date >= ${from}`,
-      sql`${treatmentPlans.createdAt}::date <= ${to}`,
+      sql`DATE(${treatmentPlans.createdAt}) >= ${from}`,
+      sql`DATE(${treatmentPlans.createdAt}) <= ${to}`,
     ];
     if (branchId) conds.push(eq(treatmentPlans.branchId, branchId));
     const rows = await tx
-      .select({ category: treatmentCatalog.category, count: sql<number>`count(*)::int` })
+      .select({ category: treatmentCatalog.category, count: sql<number>`count(*)` })
       .from(treatmentPlanItems)
       .innerJoin(treatmentPlans, eq(treatmentPlanItems.planId, treatmentPlans.id))
       .innerJoin(treatmentCatalog, eq(treatmentPlanItems.treatmentId, treatmentCatalog.id))
       .where(and(...conds))
       .groupBy(treatmentCatalog.category)
       .orderBy(treatmentCatalog.category);
-    return rows.map((r) => ({ category: r.category, count: r.count }));
+    return rows.map((r: { category: string; count: number }) => ({ category: r.category, count: r.count }));
   }
 }

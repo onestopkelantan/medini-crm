@@ -36,7 +36,7 @@ export class InfraGauges implements OnModuleInit, OnModuleDestroy {
     if (!this.db) return;
     try {
       const rows = await this.db.execute(
-        sql`SELECT count(*)::int AS n FROM domain_events WHERE published_at IS NULL`,
+        sql`SELECT count(*) AS n FROM domain_events WHERE published_at IS NULL`,
       );
       const n = (rows as unknown as { rows: Array<{ n: number }> }).rows[0]?.n ?? 0;
       this.metrics.outboxBacklog.set(n);

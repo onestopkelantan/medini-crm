@@ -75,8 +75,8 @@ export class FinanceClinicalRepository {
     if (opts.branchId) cond.push(eq(treatmentCosts.branchId, opts.branchId));
     return tx.select({
       description: treatmentCosts.description,
-      total: sql<string>`COALESCE(SUM(${treatmentCosts.totalCost}), 0)::text`,
-      volume: sql<number>`COALESCE(SUM(${treatmentCosts.quantity}), 0)::int`,
+      total: sql<string>`COALESCE(SUM(${treatmentCosts.totalCost}), 0)`,
+      volume: sql<number>`COALESCE(SUM(${treatmentCosts.quantity}), 0)`,
     }).from(treatmentCosts).where(and(...cond))
       .groupBy(treatmentCosts.description)
       .orderBy(desc(sql`SUM(${treatmentCosts.totalCost})`))
@@ -86,7 +86,7 @@ export class FinanceClinicalRepository {
   /* Doctor gross treatment revenue for commission (sum of their plan costs). */
   async doctorTreatmentRevenue(tx: DbClient, orgId: string, doctorId: string, _period?: string): Promise<string> {
     const rows = await tx.select({
-      total: sql<string>`COALESCE(SUM(${treatmentCosts.totalCost}), 0)::text`,
+      total: sql<string>`COALESCE(SUM(${treatmentCosts.totalCost}), 0)`,
     }).from(treatmentCosts)
       .where(and(
         eq(treatmentCosts.orgId, orgId),
@@ -289,26 +289,24 @@ export class FinanceClinicalRepository {
   /* P1-1 — persist the post-payout ledger state (paid/outstanding/status) atomically. */
   async applyCommissionPayoutToLedger(tx: DbClient, orgId: string, id: string, payment: string): Promise<CommissionLedger | null> {
     try {
-      const rows = (await tx.execute(sql`
-        UPDATE commission_ledger
-        SET
-          paid_amount = paid_amount + ${payment}::numeric,
-          outstanding_amount = net_payable - (paid_amount + ${payment}::numeric),
-          status = CASE
-            WHEN (net_payable - (paid_amount + ${payment}::numeric)) <= 0 THEN 'paid'::commission_status
-            ELSE status
-          END,
-          version = version + 1,
-          updated_at = now()
-        WHERE org_id = ${orgId}
-          AND id = ${id}
-          AND deleted_at IS NULL
-          AND status != 'cancelled'
-          AND status != 'paid'
-          AND (paid_amount + ${payment}::numeric) <= net_payable
-        RETURNING *
-      `)) as unknown as { rows: CommissionLedger[] };
-      return rows.rows[0] ?? null;
+      const rows = await tx.update(commissionLedger)
+        .set({
+          paidAmount: sql`${commissionLedger.paidAmount} + ${payment}`,
+          outstandingAmount: sql`${commissionLedger.netPayable} - (${commissionLedger.paidAmount} + ${payment})`,
+          status: sql`CASE WHEN (${commissionLedger.netPayable} - (${commissionLedger.paidAmount} + ${payment})) <= 0 THEN 'paid' ELSE ${commissionLedger.status} END`,
+          version: sql`${commissionLedger.version} + 1`,
+          updatedAt: new Date(),
+        } as never)
+        .where(and(
+          eq(commissionLedger.orgId, orgId),
+          eq(commissionLedger.id, id),
+          isNull(commissionLedger.deletedAt),
+          sql`${commissionLedger.status} != 'cancelled'`,
+          sql`${commissionLedger.status} != 'paid'`,
+          sql`(${commissionLedger.paidAmount} + ${payment}) <= ${commissionLedger.netPayable}`,
+        ))
+        .returning();
+      return rows[0] ?? null;
     } catch (e) { throw toDomainError(e); }
   }
 
@@ -321,24 +319,22 @@ export class FinanceClinicalRepository {
    */
   async applyLabPaymentAtomic(tx: DbClient, orgId: string, id: string, payment: string): Promise<LabPayable | null> {
     try {
-      const rows = (await tx.execute(sql`
-        UPDATE lab_payables
-        SET
-          paid_amount = paid_amount + ${payment}::numeric,
-          outstanding_amount = amount - (paid_amount + ${payment}::numeric),
-          status = CASE
-            WHEN (paid_amount + ${payment}::numeric) >= amount THEN 'PAID'::lab_payable_status
-            ELSE 'PARTIALLY_PAID'::lab_payable_status
-          END,
-          updated_at = now()
-        WHERE org_id = ${orgId}
-          AND id = ${id}
-          AND deleted_at IS NULL
-          AND status IN ('OUTSTANDING', 'PARTIALLY_PAID')
-          AND (paid_amount + ${payment}::numeric) <= amount
-        RETURNING *
-      `)) as unknown as { rows: LabPayable[] };
-      return rows.rows[0] ?? null;
+      const rows = await tx.update(labPayables)
+        .set({
+          paidAmount: sql`${labPayables.paidAmount} + ${payment}`,
+          outstandingAmount: sql`${labPayables.amount} - (${labPayables.paidAmount} + ${payment})`,
+          status: sql`CASE WHEN (${labPayables.paidAmount} + ${payment}) >= ${labPayables.amount} THEN 'PAID' ELSE 'PARTIALLY_PAID' END`,
+          updatedAt: new Date(),
+        } as never)
+        .where(and(
+          eq(labPayables.orgId, orgId),
+          eq(labPayables.id, id),
+          isNull(labPayables.deletedAt),
+          sql`${labPayables.status} IN ('OUTSTANDING', 'PARTIALLY_PAID')`,
+          sql`(${labPayables.paidAmount} + ${payment}) <= ${labPayables.amount}`,
+        ))
+        .returning();
+      return rows[0] ?? null;
     } catch (e) { throw toDomainError(e); }
   }
 }

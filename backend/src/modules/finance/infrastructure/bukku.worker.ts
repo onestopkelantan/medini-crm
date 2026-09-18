@@ -121,7 +121,7 @@ export class BukkuWorker implements OnModuleInit, OnApplicationShutdown {
          * sale_record (revenue event). Customer identity stays at name level:
          * no phone/IC/contact secrets leave the CRM. */
         const rows = await tx.execute(
-          sql`SELECT s.sale_code, s.amount::text AS amount, s.sale_date::text AS sale_date,
+          sql`SELECT s.sale_code, s.amount AS amount, s.sale_date AS sale_date,
                      s.external_ref, s.source_system, s.notes,
                      p.name AS customer_name
               FROM sale_records s

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import { DbContextService } from '../../../core/auth/db-context.service';
@@ -70,18 +70,30 @@ export class DoctorRegistrationService {
     const temporaryUsername = `invite_${token.slice(0, 20)}`;
 
     return this.dbCtx.runAs(principal, async (tx) => {
+      const staffId = randomUUID();
+      const assignmentId = randomUUID();
+
+      await tx.execute(sql`
+        INSERT INTO staff
+          (id, org_id, branch_id, name, username, email, phone, role, status, invite_token, invite_expires_at, created_by, updated_by)
+        VALUES
+          (${staffId}, ${principal.orgId}, ${branchId}, ${input.name}, ${temporaryUsername}, NULL, ${input.phone ?? null}, ${input.role}, 'Invited', ${token}, ${expiresAt}, ${principal.staffId}, ${principal.staffId})
+      `);
 
       const staff = await tx.execute(sql`
-        INSERT INTO staff (org_id, branch_id, name, username, email, phone, role, status, invite_token, invite_expires_at, created_by, updated_by)
-        VALUES (${principal.orgId}, ${branchId}, ${input.name}, ${temporaryUsername}, NULL, ${input.phone ?? null}, ${input.role}, 'Invited', ${token}, ${expiresAt}, ${principal.staffId}, ${principal.staffId})
-        RETURNING id, name, username, email, phone, role, status, branch_id AS "branchId"
+        SELECT id, name, username, email, phone, role, status, branch_id AS branchId
+        FROM staff
+        WHERE id = ${staffId} AND org_id = ${principal.orgId}
+        LIMIT 1
       `);
       const row = (staff as any).rows?.[0];
       if (!row) throw new ConflictError('Doctor registration failed');
 
       await tx.execute(sql`
-        INSERT INTO role_assignments (org_id, staff_id, role, branch_id, status, assigned_by, created_by, updated_by)
-        VALUES (${principal.orgId}, ${row.id}, ${input.role}, ${branchId}, 'ACTIVE', ${principal.staffId}, ${principal.staffId}, ${principal.staffId})
+        INSERT INTO role_assignments
+          (id, org_id, staff_id, role, branch_id, status, assigned_by, created_by, updated_by)
+        VALUES
+          (${assignmentId}, ${principal.orgId}, ${row.id}, ${input.role}, ${branchId}, 'ACTIVE', ${principal.staffId}, ${principal.staffId}, ${principal.staffId})
       `);
       const baseUrl = process.env.APP_PUBLIC_BASE_URL ?? 'https://medinident.com.my';
       return { ...row, inviteLink: `${baseUrl.replace(/\/$/, '')}/register?token=${encodeURIComponent(token)}`, expiresAt };

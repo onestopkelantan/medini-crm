@@ -66,8 +66,8 @@ export class FinanceExportService {
 
     if (q.format === 'csv') {
       const rows = [
-        ...due.map((e) => ({ type: 'expense_due', date: e.dueDate, ref: e.expenseCode, name: e.payee, amount: e.amount, status: e.status })),
-        ...recurring.map((r) => ({ type: 'recurring', date: r.nextDueDate, ref: r.recurringCode, name: r.name, amount: r.amount, status: r.status })),
+        ...due.map((e: typeof expenses.$inferSelect) => ({ type: 'expense_due', date: e.dueDate, ref: e.expenseCode, name: e.payee, amount: e.amount, status: e.status })),
+        ...recurring.map((r: typeof recurringCommitments.$inferSelect) => ({ type: 'recurring', date: r.nextDueDate, ref: r.recurringCode, name: r.name, amount: r.amount, status: r.status })),
       ];
       return {
         content: toCsv(rows, ['type', 'date', 'ref', 'name', 'amount', 'status']),
@@ -77,13 +77,13 @@ export class FinanceExportService {
     }
 
     const events: CalendarEvent[] = [
-      ...due.map((e): CalendarEvent => ({
+      ...due.map((e: typeof expenses.$inferSelect): CalendarEvent => ({
         uid: `exp-${e.id}@medini`,
         summary: `Expense due: ${e.payee} (${e.amount})`,
         description: `Ref ${e.expenseCode} · category ${e.category} · status ${e.status}`,
         allDayDate: e.dueDate!,
       })),
-      ...recurring.map((r): CalendarEvent => ({
+      ...recurring.map((r: typeof recurringCommitments.$inferSelect): CalendarEvent => ({
         uid: `rec-${r.id}@medini`,
         summary: `Recurring: ${r.name} (${r.amount})`,
         description: `Ref ${r.recurringCode} · ${r.frequency} · status ${r.status}`,

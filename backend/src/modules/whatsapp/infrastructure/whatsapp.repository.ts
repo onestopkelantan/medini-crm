@@ -56,7 +56,7 @@ export class WhatsappRepository {
       eq(waConversations.orgId, orgId), eq(waConversations.channelId, channelId),
       eq(waConversations.contactPhone, contactPhone), isNull(waConversations.deletedAt),
     )).limit(5);
-    return rows.find((r) => r.status !== 'archived') ?? null;
+    return rows.find((r: WaConversation) => r.status !== 'archived') ?? null;
   }
 
   /** Idempotent message replay lookup (same conversation + key). */

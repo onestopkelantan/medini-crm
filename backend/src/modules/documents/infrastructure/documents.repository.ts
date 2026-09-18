@@ -5,7 +5,7 @@ import { documents, Document } from '../../../infrastructure/database/schema';
 import { toDomainError } from '../../../shared/errors/pg-error';
 
 /** Accepts either the pool client or a drizzle transaction (from runAs). */
-export type DbClient = Database | Parameters<Parameters<Database['transaction']>[0]>[0];
+export type DbClient = Database;
 
 export interface CreateDocumentInput {
   title: string;

@@ -50,8 +50,8 @@ export class PatientsReadPort {
           eq(patients.orgId, orgId),
           isNull(patients.deletedAt),
           sql`(
-            regexp_replace(coalesce(${patients.phone}, ''), '\\D', '', 'g') IN (${intl}, ${local})
-            OR regexp_replace(coalesce(${patients.whatsapp}, ''), '\\D', '', 'g') IN (${intl}, ${local})
+            REGEXP_REPLACE(COALESCE(${patients.phone}, ''), '\\D', '') IN (${intl}, ${local})
+            OR REGEXP_REPLACE(COALESCE(${patients.whatsapp}, ''), '\\D', '') IN (${intl}, ${local})
           )`,
         ),
       )
@@ -66,7 +66,7 @@ export class PatientsReadPort {
     ];
     if (branchId) conds.push(eq(patients.branchId, branchId));
     const rows = await tx
-      .select({ n: sql<number>`count(*)::int` })
+      .select({ n: sql<number>`count(*)` })
       .from(patients)
       .where(and(...conds));
     return rows[0]?.n ?? 0;
@@ -97,7 +97,7 @@ export class PatientsReadPort {
   /** Count relationships for a patient (dashboard context). */
   async countRelationships(tx: DbClient, orgId: string, patientId: string): Promise<number> {
     const rows = await tx
-      .select({ n: sql<number>`count(*)::int` })
+      .select({ n: sql<number>`count(*)` })
       .from(patientRelationships)
       .where(eq(patientRelationships.patientId, patientId));
     return rows[0]?.n ?? 0;

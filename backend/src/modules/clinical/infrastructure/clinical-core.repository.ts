@@ -140,13 +140,11 @@ export class ClinicalCoreRepository {
    * Double-sign is prevented by the signed_at IS NULL predicate.
    */
   async signNote(tx: DbClient, orgId: string, id: string, signedBy: string): Promise<ClinicalNote | null> {
-    const rows = await tx.execute(sql`
-      UPDATE clinical_notes
-      SET signed_at = now(), signed_by = ${signedBy}
-      WHERE org_id = ${orgId} AND id = ${id} AND signed_at IS NULL
-      RETURNING *`);
-    const list = (rows as unknown as { rows: ClinicalNote[] }).rows;
-    return list[0] ?? null;
+    const rows = await tx.update(clinicalNotes)
+      .set({ signedAt: new Date(), signedBy })
+      .where(and(eq(clinicalNotes.orgId, orgId), eq(clinicalNotes.id, id), isNull(clinicalNotes.signedAt)))
+      .returning();
+    return rows[0] ?? null;
   }
 
   /**
@@ -169,21 +167,55 @@ export class ClinicalCoreRepository {
     notes: string | null; createdBy: string;
   }): Promise<ToothRecord> {
     try {
-      const rows = await tx.insert(toothRecords).values({
-        orgId, branchId: input.branchId, patientId: input.patientId,
-        encounterId: input.encounterId, doctorId: input.doctorId,
-        fdiNo: input.fdiNo, condition: input.condition,
-        surfaces: input.surfaces as string | null, notes: input.notes,
-        createdBy: input.createdBy, updatedBy: input.createdBy,
-      }).onConflictDoUpdate({
-        target: [toothRecords.encounterId, toothRecords.fdiNo],
-        set: {
-          condition: input.condition, surfaces: input.surfaces as string | null,
-          notes: input.notes, updatedAt: new Date(), updatedBy: input.createdBy,
-          deletedAt: null,
-        },
-      }).returning();
-      return rows[0]!;
+      const uniqueWhere = and(
+        eq(toothRecords.orgId, orgId),
+        eq(toothRecords.encounterId, input.encounterId),
+        eq(toothRecords.fdiNo, input.fdiNo),
+      );
+
+      const updateExisting = async (): Promise<ToothRecord | null> => {
+        const found = await tx
+          .select({ id: toothRecords.id })
+          .from(toothRecords)
+          .where(uniqueWhere)
+          .limit(1);
+
+        if (!found[0]) return null;
+        const rows = await tx
+          .update(toothRecords)
+          .set({
+            condition: input.condition,
+            surfaces: input.surfaces as string | null,
+            notes: input.notes,
+            updatedAt: new Date(),
+            updatedBy: input.createdBy,
+            deletedAt: null,
+          })
+          .where(eq(toothRecords.id, found[0].id))
+          .returning();
+        return rows[0] ?? null;
+      };
+
+      const existing = await updateExisting();
+      if (existing) return existing;
+
+      try {
+        const rows = await tx.insert(toothRecords).values({
+          orgId, branchId: input.branchId, patientId: input.patientId,
+          encounterId: input.encounterId, doctorId: input.doctorId,
+          fdiNo: input.fdiNo, condition: input.condition,
+          surfaces: input.surfaces as string | null, notes: input.notes,
+          createdBy: input.createdBy, updatedBy: input.createdBy,
+        }).returning();
+        return rows[0]!;
+      } catch (e) {
+        const root = (e as any)?.cause ?? e;
+        const duplicate = root?.code === 'ER_DUP_ENTRY' || root?.errno === 1062 || root?.sqlState === '23000';
+        if (!duplicate) throw e;
+        const row = await updateExisting();
+        if (row) return row;
+        throw e;
+      }
     } catch (e) { throw toDomainError(e); }
   }
 
@@ -289,7 +321,7 @@ export class ClinicalCoreRepository {
   }
 
   async countPendingItems(tx: DbClient, orgId: string, planId: string): Promise<number> {
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(treatmentPlanItems)
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(treatmentPlanItems)
       .where(and(
         eq(treatmentPlanItems.orgId, orgId), eq(treatmentPlanItems.planId, planId),
         eq(treatmentPlanItems.status, 'pending'), isNull(treatmentPlanItems.deletedAt),
@@ -320,7 +352,7 @@ export class ClinicalCoreRepository {
   }
 
   async nextSessionNo(tx: DbClient, orgId: string, planId: string): Promise<number> {
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(treatmentSessions)
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(treatmentSessions)
       .where(and(eq(treatmentSessions.orgId, orgId), eq(treatmentSessions.planId, planId)));
     return (rows[0]?.n ?? 0) + 1;
   }

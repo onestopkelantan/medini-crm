@@ -7,6 +7,7 @@ import { DbContextService } from '../../../core/auth/db-context.service';
 import { OrgAllocator } from '../../../shared/allocators/org-allocator';
 import { doctorHolidays } from '../../../infrastructure/database/schema';
 import IORedis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
 const BRANCH_ID = 'da6ca871-3c49-4ef6-8bca-f208a0bfba77';
@@ -298,21 +299,19 @@ export class WhatsappWebhookController {
         let conversationId = (conversations as any).rows?.[0]?.id;
 
         if (!conversationId) {
-          const created = await tx.execute(sql`
+          conversationId = randomUUID();
+          await tx.execute(sql`
             INSERT INTO wa_conversations
               (
-                org_id, branch_id, channel_id,
+                id, org_id, branch_id, channel_id,
                 contact_phone, status, unread_count
               )
             VALUES
               (
-                ${ORG_ID}, ${BRANCH_ID}, ${channelId},
+                ${conversationId}, ${ORG_ID}, ${BRANCH_ID}, ${channelId},
                 ${phone}, 'open', 0
               )
-            RETURNING id
           `);
-
-          conversationId = (created as any).rows?.[0]?.id;
         }
 
         if (!conversationId) return;
@@ -332,12 +331,12 @@ export class WhatsappWebhookController {
         await tx.execute(sql`
           INSERT INTO wa_messages
             (
-              org_id, branch_id, channel_id, conversation_id,
+              id, org_id, branch_id, channel_id, conversation_id,
               direction, sender_type, body, status, idempotency_key
             )
           VALUES
             (
-              ${ORG_ID}, ${BRANCH_ID}, ${channelId}, ${conversationId},
+              ${randomUUID()}, ${ORG_ID}, ${BRANCH_ID}, ${channelId}, ${conversationId},
               'in', 'patient', ${text}, 'delivered', ${messageKey}
             )
         `);
@@ -534,7 +533,7 @@ export class WhatsappWebhookController {
           FROM ${doctorHolidays}
           WHERE ${doctorHolidays.orgId} = ${ORG_ID}
             AND ${doctorHolidays.branchId} = ${BRANCH_ID}
-            AND ${doctorHolidays.holidayDate} = ${date}::date
+            AND ${doctorHolidays.holidayDate} = CAST(${date} AS DATE)
           LIMIT 1
         `);
 
@@ -552,12 +551,9 @@ export class WhatsappWebhookController {
             AND ds.branch_id = ${BRANCH_ID}
             AND s.org_id = ${ORG_ID}
             AND ds.schedule_date = ${date}
-            AND ds.start_time::time <= ${time}::time
-            AND (${date}::date + ds.end_time::time)
-                >= (
-                  ${date}::date + ${time}::time
-                  + interval '30 minutes'
-                )
+            AND ds.start_time <= CAST(${time} AS TIME)
+            AND TIMESTAMP(${date}, ds.end_time)
+                >= DATE_ADD(TIMESTAMP(${date}, CAST(${time} AS TIME)), INTERVAL 30 MINUTE)
             AND s.role = 'doctor'
             AND s.status = 'Active'
             AND s.deleted_at IS NULL
@@ -568,12 +564,9 @@ export class WhatsappWebhookController {
                 AND a.branch_id = ${BRANCH_ID}
                 AND a.doctor_id = s.id
                 AND a.scheduled_date = ${date}
-                AND a.scheduled_time::time
-                    < (${time}::time + interval '30 minutes')
-                AND (
-                  a.scheduled_time::time
-                  + a.duration_min * interval '1 minute'
-                ) > ${time}::time
+                AND a.scheduled_time
+                    < ADDTIME(CAST(${time} AS TIME), '00:30:00')
+                AND ADDTIME(a.scheduled_time, SEC_TO_TIME(a.duration_min * 60)) > CAST(${time} AS TIME)
                 AND a.deleted_at IS NULL
                 AND a.status NOT IN (
                   'completed', 'cancelled', 'no-show'
@@ -631,19 +624,17 @@ export class WhatsappWebhookController {
 
         if (!patientId) {
           const mrn = await new OrgAllocator(tx as any).nextMrn(ORG_ID);
+          patientId = randomUUID();
 
-          const created = await tx.execute(sql`
+          await tx.execute(sql`
             INSERT INTO patients
-              (org_id, branch_id, mrn, name, phone, whatsapp)
+              (id, org_id, branch_id, mrn, name, phone, whatsapp)
             VALUES
               (
-                ${ORG_ID}, ${BRANCH_ID}, ${mrn},
+                ${patientId}, ${ORG_ID}, ${BRANCH_ID}, ${mrn},
                 ${name}, ${phone}, ${phone}
               )
-            RETURNING id
           `);
-
-          patientId = (created as any).rows?.[0]?.id;
         }
 
         if (!patientId) {
@@ -652,23 +643,21 @@ export class WhatsappWebhookController {
 
         const code = await new OrgAllocator(tx as any).nextAptCode(ORG_ID);
 
-        const appointment = await tx.execute(sql`
+        const appointmentId = randomUUID();
+        await tx.execute(sql`
           INSERT INTO appointments
             (
-              org_id, branch_id, code, patient_id, patient_name,
+              id, org_id, branch_id, code, patient_id, patient_name,
               doctor_id, treatment_ref, scheduled_date,
               scheduled_time, duration_min, status, notes
             )
           VALUES
             (
-              ${ORG_ID}, ${BRANCH_ID}, ${code}, ${patientId}, ${name},
+              ${appointmentId}, ${ORG_ID}, ${BRANCH_ID}, ${code}, ${patientId}, ${name},
               ${selectedDoctor.doctor_id}, ${treatment}, ${date},
               ${time}, 30, 'confirmed', ${text}
             )
-          RETURNING id
         `);
-
-        const appointmentId = (appointment as any).rows?.[0]?.id;
 
         if (!appointmentId) {
           throw new Error('Appointment gagal dicipta');
@@ -677,13 +666,13 @@ export class WhatsappWebhookController {
         await tx.execute(sql`
           INSERT INTO booking_requests
             (
-              org_id, branch_id, contact_phone, patient_name,
+              id, org_id, branch_id, contact_phone, patient_name,
               preferred_date, preferred_time, treatment,
               branch_name, raw_message, status, linked_appointment_id
             )
           VALUES
             (
-              ${ORG_ID}, ${BRANCH_ID}, ${phone}, ${name},
+              ${randomUUID()}, ${ORG_ID}, ${BRANCH_ID}, ${phone}, ${name},
               ${date}, ${time}, ${treatment},
               'Setia Tropika', ${text}, 'confirmed', ${appointmentId}
             )
@@ -942,7 +931,7 @@ export class WhatsappWebhookController {
         },
         async (tx) => tx.execute(sql`
           UPDATE appointments
-          SET status = 'cancelled', updated_at = NOW()
+          SET status = 'cancelled', updated_at = NOW(6)
           WHERE id = ${pendingId}
             AND org_id = ${ORG_ID}
             AND branch_id = ${BRANCH_ID}
@@ -958,7 +947,6 @@ export class WhatsappWebhookController {
                 AND deleted_at IS NULL
                 AND (phone = ${phone} OR whatsapp = ${phone})
             )
-          RETURNING id
         `),
       );
 
@@ -966,7 +954,7 @@ export class WhatsappWebhookController {
 
       await this.sendText(
         chatId,
-        (result as any).rows?.length
+        Number((result as any).affectedRows ?? 0) > 0
           ? 'Appointment berjaya dibatalkan.'
           : 'Appointment tidak dapat dibatalkan. Sila hubungi klinik untuk semakan.',
       );
@@ -993,7 +981,7 @@ export class WhatsappWebhookController {
         SELECT
           a.id,
           a.patient_name,
-          to_char(a.scheduled_date, 'YYYY-MM-DD') AS booking_date,
+          DATE_FORMAT(a.scheduled_date, '%Y-%m-%d') AS booking_date,
           a.scheduled_time
         FROM appointments a
         JOIN patients p ON p.id = a.patient_id
@@ -1005,7 +993,7 @@ export class WhatsappWebhookController {
           AND a.status IN (
             'booked', 'confirmed', 'checked-in', 'waiting'
           )
-          AND a.scheduled_date >= ${malaysiaDate()}::date
+          AND a.scheduled_date >= CAST(${malaysiaDate()} AS DATE)
           AND a.deleted_at IS NULL
           AND p.deleted_at IS NULL
         ORDER BY a.scheduled_date, a.scheduled_time

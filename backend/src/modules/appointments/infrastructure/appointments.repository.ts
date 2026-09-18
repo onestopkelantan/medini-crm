@@ -106,8 +106,8 @@ export class AppointmentsRepository {
           eq(appointments.doctorId, doctorId),
           eq(appointments.scheduledDate, date),
           isNull(appointments.deletedAt),
-          sql`${appointments.scheduledTime}::time < ${end}::time`,
-          sql`${endTimeExpr(appointments.scheduledTime, appointments.durationMin)} > ${start}::time`,
+          sql`${appointments.scheduledTime} < CAST(${end} AS TIME)`,
+          sql`${endTimeExpr(appointments.scheduledTime, appointments.durationMin)} > CAST(${start} AS TIME)`,
           sql`${appointments.status} NOT IN ('completed','cancelled','no-show')`,
           excludeId ? sql`${appointments.id} <> ${excludeId}` : sql`true`,
         ),
@@ -175,7 +175,7 @@ export class AppointmentsRepository {
           inArray(appointments.status, QUEUE_ACTIVE),
         ),
       )
-      .orderBy(sql`${appointments.scheduledTime}::time ASC`, appointments.createdAt);
+      .orderBy(appointments.scheduledTime, appointments.createdAt);
   }
 }
 
@@ -193,5 +193,5 @@ function endTime(start: string, durationMin: number): string {
 
 /** SQL expression for start + duration of a row. */
 function endTimeExpr(colStart: unknown, colDuration: unknown) {
-  return sql`((${colStart})::time + (${colDuration})::int * interval '1 minute')`;
+  return sql`ADDTIME(${colStart}, SEC_TO_TIME(${colDuration} * 60))`;
 }

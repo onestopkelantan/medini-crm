@@ -43,14 +43,14 @@ export class AppointmentsExportService {
     const q = parsed.data;
     const branchId = this.readBranch(principal);
 
-    const rows = await this.dbCtx.runAs(principal, (tx) => {
+    const rows = (await this.dbCtx.runAs(principal, (tx) => {
       const c = [eq(appointments.orgId, principal.orgId), isNull(appointments.deletedAt)];
       if (branchId) c.push(eq(appointments.branchId, branchId));
       if (q.from) c.push(gte(appointments.scheduledDate, q.from));
       if (q.to) c.push(lte(appointments.scheduledDate, q.to));
       return tx.select().from(appointments).where(and(...c))
         .orderBy(asc(appointments.scheduledDate), asc(appointments.scheduledTime));
-    });
+    })) as Array<typeof appointments.$inferSelect>;
 
     if (q.format === 'csv') {
       const csvRows = rows.map((a) => ({

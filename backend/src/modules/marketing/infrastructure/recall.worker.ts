@@ -46,7 +46,7 @@ export class RecallScheduler implements OnModuleInit {
   async listDueBranches(ctx: ScopedSystemWorkerContext, today: string): Promise<string[]> {
     return this.dbCtx.runAsWorker(ctx, async (tx) => {
       const rows = await tx.execute(
-        sql`SELECT DISTINCT branch_id::text AS branch_id FROM recall_cases
+        sql`SELECT DISTINCT branch_id AS branch_id FROM recall_cases
             WHERE org_id = ${ctx.orgId} AND status = 'open' AND due_date <= ${today} AND deleted_at IS NULL`,
       );
       return (rows as unknown as { rows: Array<{ branch_id: string }> }).rows.map((r) => r.branch_id);

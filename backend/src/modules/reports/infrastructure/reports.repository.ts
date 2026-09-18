@@ -38,7 +38,7 @@ export class ReportsRepository {
     const rows = await tx.select({ id: branches.id, name: branches.shortName })
       .from(branches)
       .where(and(eq(branches.orgId, orgId), inArray(branches.id, branchIds)));
-    return new Map(rows.map((r) => [r.id, r.name]));
+    return new Map(rows.map((r: { id: string; name: string }) => [r.id, r.name]));
   }
 
   /** Doctor display names for the production table (in-scope only). */
@@ -47,6 +47,6 @@ export class ReportsRepository {
     const rows = await tx.select({ id: staff.id, name: staff.name })
       .from(staff)
       .where(and(eq(staff.orgId, orgId), inArray(staff.id, doctorIds)));
-    return new Map(rows.map((r) => [r.id, r.name]));
+    return new Map(rows.map((r: { id: string; name: string }) => [r.id, r.name]));
   }
 }

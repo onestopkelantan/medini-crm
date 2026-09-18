@@ -1,4 +1,4 @@
-﻿/* Booking requests - admin reads + acts on WhatsApp booking intake (RLS-scoped).
+/* Booking requests - admin reads + acts on WhatsApp booking intake (RLS-scoped).
    On confirm/reject, auto-notifies the patient via WhatsApp (WAHA sendText). */
 
 import {
@@ -111,13 +111,18 @@ export class BookingRequestsController {
         : sql`branch_id = ${req.principal!.branchId}`;
 
     const booking = await this.dbCtx.runAs(req.principal!, async (tx) => {
-      const rows = await tx.execute(sql`
+      const changed = await tx.execute(sql`
         UPDATE booking_requests
         SET status = ${status},
-            updated_at = now()
+            updated_at = NOW(6)
         WHERE id = ${id}
           AND ${branchCondition}
-        RETURNING
+      `);
+
+      if (Number((changed as any).affectedRows ?? 0) < 1) return null;
+
+      const rows = await tx.execute(sql`
+        SELECT
           id,
           contact_phone,
           patient_name,
@@ -126,8 +131,11 @@ export class BookingRequestsController {
           treatment,
           branch_name,
           status
+        FROM booking_requests
+        WHERE id = ${id}
+          AND ${branchCondition}
+        LIMIT 1
       `);
-
       return (rows as unknown as { rows: BookingRow[] }).rows[0] ?? null;
     });
 

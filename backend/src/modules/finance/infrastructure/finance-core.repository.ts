@@ -88,8 +88,8 @@ export class FinanceCoreRepository {
     if (opts.from) cond.push(gte(saleRecords.saleDate, opts.from));
     if (opts.to) cond.push(lte(saleRecords.saleDate, opts.to));
     const rows = await tx.select({
-      total: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)::text`,
-      count: sql<number>`COUNT(*)::int`,
+      total: sql<string>`COALESCE(SUM(${saleRecords.amount}), 0)`,
+      count: sql<number>`COUNT(*)`,
     }).from(saleRecords).where(and(...cond));
     return { total: rows[0]!.total, count: rows[0]!.count };
   }
@@ -177,8 +177,8 @@ export class FinanceCoreRepository {
     if (opts.to) cond.push(lte(expenses.expenseDate, opts.to));
     return tx.select({
       category: expenses.category,
-      total: sql<string>`COALESCE(SUM(${expenses.amount}), 0)::text`,
-      count: sql<number>`COUNT(*)::int`,
+      total: sql<string>`COALESCE(SUM(${expenses.amount}), 0)`,
+      count: sql<number>`COUNT(*)`,
     }).from(expenses).where(and(...cond)).groupBy(expenses.category)
       .orderBy(desc(sql`SUM(${expenses.amount})`));
   }

@@ -1,12 +1,12 @@
 import { registerAs } from '@nestjs/config';
 
 /**
- * Database configuration (PostgreSQL). No credentials in source.
+ * Database configuration (MySQL migration branch). No credentials in source.
  *
- *  - url        : admin/owner connection (migrations, seed) — DATABASE_URL.
+ *  - url        : migration/admin connection — DATABASE_URL.
  *  - runtimeUrl : application runtime connection — DATABASE_RUNTIME_URL.
- *                 MUST be the non-owner, RLS-subject role (medini_app), never
- *                 the table owner (medini). Falls back to `url` only in dev.
+ *                 Falls back to DATABASE_URL when a separate runtime user is
+ *                 not configured. Prefer a least-privilege MySQL runtime user.
  */
 export default registerAs('database', () => ({
   url: process.env.DATABASE_URL ?? '',

@@ -89,7 +89,7 @@ export class DoctorScheduleService {
               ),
             );
 
-          const doctor = doctors.find((row) =>
+          const doctor = doctors.find((row: typeof staff.$inferSelect) =>
             name === 'DR HANI'
               ? row.username === 'farhanimzln' ||
                 row.name.toUpperCase().includes('FARHANI')
@@ -107,30 +107,44 @@ export class DoctorScheduleService {
           });
         }
 
-        const rows = await tx
-          .insert(doctorSchedules)
-          .values({
-            orgId: principal.orgId,
-            branchId,
-            doctorId,
-            scheduleDate: parsed.data.scheduleDate,
-            startTime: parsed.data.startTime,
-            endTime: parsed.data.endTime,
-            notes: parsed.data.notes ?? null,
-          })
-          .onConflictDoNothing({
-            target: [
-              doctorSchedules.orgId,
-              doctorSchedules.branchId,
-              doctorSchedules.doctorId,
-              doctorSchedules.scheduleDate,
-              doctorSchedules.startTime,
-              doctorSchedules.endTime,
-            ],
-          })
-          .returning();
+        const slotWhere = and(
+          eq(doctorSchedules.orgId, principal.orgId),
+          eq(doctorSchedules.branchId, branchId),
+          eq(doctorSchedules.doctorId, doctorId),
+          eq(doctorSchedules.scheduleDate, parsed.data.scheduleDate),
+          eq(doctorSchedules.startTime, parsed.data.startTime),
+          eq(doctorSchedules.endTime, parsed.data.endTime),
+        );
 
-        return rows[0] ?? null;
+        const existing = await tx
+          .select({ id: doctorSchedules.id })
+          .from(doctorSchedules)
+          .where(slotWhere)
+          .limit(1);
+
+        if (existing[0]) return null;
+
+        try {
+          const rows = await tx
+            .insert(doctorSchedules)
+            .values({
+              orgId: principal.orgId,
+              branchId,
+              doctorId,
+              scheduleDate: parsed.data.scheduleDate,
+              startTime: parsed.data.startTime,
+              endTime: parsed.data.endTime,
+              notes: parsed.data.notes ?? null,
+            })
+            .returning();
+
+          return rows[0] ?? null;
+        } catch (error) {
+          // A concurrent request may have created the same unique slot after
+          // the pre-check. Preserve the old ON CONFLICT DO NOTHING behavior.
+          if (this.isDuplicateKey(error)) return null;
+          throw error;
+        }
       });
     } catch (error) {
       this.logger.error(
@@ -238,24 +252,49 @@ export class DoctorScheduleService {
     const branchId = this.branch(principal);
 
     return this.dbCtx.runAs(principal, async (tx) => {
-      const rows = await tx.insert(doctorHolidays).values({
-        orgId: principal.orgId,
-        branchId,
-        holidayDate: data.data.holidayDate,
-        reason: data.data.reason,
-      }).onConflictDoUpdate({
-        target: [
-          doctorHolidays.orgId,
-          doctorHolidays.branchId,
-          doctorHolidays.holidayDate,
-        ],
-        set: {
-          reason: data.data.reason,
-          updatedAt: new Date(),
-        },
-      }).returning();
+      const holidayWhere = and(
+        eq(doctorHolidays.orgId, principal.orgId),
+        eq(doctorHolidays.branchId, branchId),
+        eq(doctorHolidays.holidayDate, data.data.holidayDate),
+      );
 
-      return rows[0];
+      const updateExisting = async () => {
+        const found = await tx
+          .select({ id: doctorHolidays.id })
+          .from(doctorHolidays)
+          .where(holidayWhere)
+          .limit(1);
+
+        if (!found[0]) return null;
+        const rows = await tx
+          .update(doctorHolidays)
+          .set({ reason: data.data.reason, updatedAt: new Date() })
+          .where(eq(doctorHolidays.id, found[0].id))
+          .returning();
+        return rows[0] ?? null;
+      };
+
+      const existing = await updateExisting();
+      if (existing) return existing;
+
+      try {
+        const rows = await tx
+          .insert(doctorHolidays)
+          .values({
+            orgId: principal.orgId,
+            branchId,
+            holidayDate: data.data.holidayDate,
+            reason: data.data.reason,
+          })
+          .returning();
+        return rows[0];
+      } catch (error) {
+        // Concurrent insert: the unique key guarantees one row per branch/day.
+        if (!this.isDuplicateKey(error)) throw error;
+        const row = await updateExisting();
+        if (row) return row;
+        throw error;
+      }
     });
   }
 
@@ -282,6 +321,12 @@ export class DoctorScheduleService {
       return rows[0];
     });
   }
+  private isDuplicateKey(error: unknown): boolean {
+    const root = (error as { cause?: unknown })?.cause ?? error;
+    const e = root as { code?: string; errno?: number; sqlState?: string };
+    return e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062 || e?.sqlState === '23000';
+  }
+
   private errorText(error: unknown): string {
     if (error instanceof Error) {
       const cause = (error as Error & { cause?: unknown }).cause;

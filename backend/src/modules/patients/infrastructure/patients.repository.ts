@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq, and, isNull, or, ilike, desc } from 'drizzle-orm';
+import { eq, and, isNull, or, like, desc } from 'drizzle-orm';
 import { Database } from '../../../infrastructure/database/database';
 import {
   patients, patientRelationships, patientTimelineEvents,
@@ -10,7 +10,7 @@ import { findDuplicates, DuplicateCandidate } from '../domain/duplicate';
 import { toDomainError } from '../../../shared/errors/pg-error';
 
 /** Accepts either the pool client or a drizzle transaction (from runAs). */
-export type DbClient = Database | Parameters<Parameters<Database['transaction']>[0]>[0];
+export type DbClient = Database;
 
 export interface CreatePatientInput {
   mrn: string;
@@ -110,10 +110,10 @@ export class PatientsRepository {
       const q = `%${query.q.trim()}%`;
       conditions.push(
         or(
-          ilike(patients.name, q),
-          ilike(patients.mrn, q),
-          ilike(patients.phone, q),
-          ilike(patients.ic, q),
+          like(patients.name, q),
+          like(patients.mrn, q),
+          like(patients.phone, q),
+          like(patients.ic, q),
         )!,
       );
     }

@@ -46,7 +46,7 @@ export class ClinicalExtendedRepository {
   }
 
   async latestTemplateVersion(tx: DbClient, orgId: string, title: string): Promise<number> {
-    const rows = await tx.select({ v: sql<number>`coalesce(max(version), 0)::int` })
+    const rows = await tx.select({ v: sql<number>`coalesce(max(version), 0)` })
       .from(consentTemplates)
       .where(and(eq(consentTemplates.orgId, orgId), sql`lower(${consentTemplates.title}) = lower(${title})`));
     return rows[0]?.v ?? 0;
@@ -88,7 +88,7 @@ export class ClinicalExtendedRepository {
   }
 
   async countConsentsForPlan(tx: DbClient, orgId: string, planId: string): Promise<number> {
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(consentRecords)
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(consentRecords)
       .where(and(eq(consentRecords.orgId, orgId), eq(consentRecords.planId, planId)));
     return rows[0]?.n ?? 0;
   }
@@ -179,7 +179,7 @@ export class ClinicalExtendedRepository {
   }
 
   async countSevereAdverseEvents(tx: DbClient, orgId: string, patientId: string): Promise<number> {
-    const rows = await tx.select({ n: sql<number>`count(*)::int` }).from(adverseEvents)
+    const rows = await tx.select({ n: sql<number>`count(*)` }).from(adverseEvents)
       .where(and(
         eq(adverseEvents.orgId, orgId), eq(adverseEvents.patientId, patientId),
         eq(adverseEvents.severity, 'severe'),

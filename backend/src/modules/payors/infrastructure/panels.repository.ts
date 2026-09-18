@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq, and, isNull, or, ilike, desc, sql } from 'drizzle-orm';
+import { eq, and, isNull, or, like, desc, sql } from 'drizzle-orm';
 import { panelCompanies, PanelCompany } from '../../../infrastructure/database/schema';
 import { toDomainError } from '../../../shared/errors/pg-error';
 import { DbClient } from '../../patients/infrastructure/patients.repository';
@@ -73,7 +73,7 @@ export class PanelsRepository {
     const conditions = [eq(panelCompanies.orgId, orgId), isNull(panelCompanies.deletedAt)];
     if (query.q && query.q.trim().length >= 2) {
       const q = `%${query.q.trim()}%`;
-      conditions.push(or(ilike(panelCompanies.name, q), ilike(panelCompanies.code, q))!);
+      conditions.push(or(like(panelCompanies.name, q), like(panelCompanies.code, q))!);
     }
     return tx
       .select()

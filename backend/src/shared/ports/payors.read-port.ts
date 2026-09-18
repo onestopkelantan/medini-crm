@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq, and, isNull, ilike, asc } from 'drizzle-orm';
+import { eq, and, isNull, like, asc } from 'drizzle-orm';
 import {
   panelCompanies, insuranceCompanies, PanelCompany, InsuranceCompany,
 } from '../../infrastructure/database/schema';
@@ -68,7 +68,7 @@ export class PayorsReadPort {
       .from(panelCompanies)
       .where(and(
         eq(panelCompanies.orgId, orgId),
-        ilike(panelCompanies.name, normalizedName),
+        like(panelCompanies.name, normalizedName),
         isNull(panelCompanies.deletedAt),
       ))
       .limit(1);

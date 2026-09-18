@@ -207,7 +207,7 @@ export class WhatsappService {
        * minimal fields, ambiguity-safe — NEVER arbitrarily pick a patient. */
       let patientId: string | null = null;
       if (input.linkPatient !== false) {
-        const matches = await this.patients.findByPhone(tx, p.orgId, contact);
+        const matches = (await this.patients.findByPhone(tx, p.orgId, contact)) as Array<{ id: string; branchId: string | null }>;
         const visible = p.role === 'hq' ? matches : matches.filter((m) => m.branchId === channel.branchId);
         const uniqueIds = new Set(visible.map((m) => m.id));
         if (uniqueIds.size === 1) {

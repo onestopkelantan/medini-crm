@@ -103,7 +103,7 @@ export class AiManagerRepository {
       eq(aiApprovalRules.orgId, orgId), eq(aiApprovalRules.actionKey, actionKey),
       agentId ? or(eq(aiApprovalRules.agentId, agentId), isNull(aiApprovalRules.agentId)) : isNull(aiApprovalRules.agentId),
     ));
-    return rows.find((r) => r.agentId === agentId) ?? rows[0] ?? null;
+    return rows.find((r: AiApprovalRule) => r.agentId === agentId) ?? rows[0] ?? null;
   }
   async createApprovalRule(tx: DbClient, values: typeof aiApprovalRules.$inferInsert): Promise<AiApprovalRule> {
     try { return (await tx.insert(aiApprovalRules).values(values).returning())[0]!; } catch (e) { throw toDomainError(e); }
@@ -113,7 +113,7 @@ export class AiManagerRepository {
   async capabilitiesForDomain(tx: DbClient, orgId: string, agentId: string, domain: string): Promise<AiCapabilityClass[]> {
     const rows = await tx.select({ capability: aiCapabilities.capability }).from(aiCapabilities)
       .where(and(eq(aiCapabilities.orgId, orgId), eq(aiCapabilities.agentId, agentId), eq(aiCapabilities.domain, domain)));
-    return rows.map((r) => r.capability as AiCapabilityClass);
+    return rows.map((r: { capability: AiCapabilityClass }) => r.capability);
   }
 
   /* ---------- audit ---------- */

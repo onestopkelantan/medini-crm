@@ -34,7 +34,7 @@ export class RecallReadPort {
     ];
     if (branchId) cond.push(eq(recallCases.branchId, branchId));
     const rows = await tx
-      .select({ status: recallCases.status, n: sql<number>`count(*)::int` })
+      .select({ status: recallCases.status, n: sql<number>`count(*)` })
       .from(recallCases)
       .where(and(...cond))
       .groupBy(recallCases.status);
