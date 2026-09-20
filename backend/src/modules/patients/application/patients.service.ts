@@ -90,6 +90,17 @@ export class PatientsService {
     return p.branchId;
   }
 
+  /**
+   * MySQL has no PostgreSQL RLS backstop. Patient-by-id access must enforce
+   * branch scope explicitly at the application layer.
+   */
+  private assertPatientBranch(principal: Principal, patient: Patient): void {
+    const branchId = this.readBranch(principal);
+    if (branchId !== null && patient.branchId !== branchId) {
+      throw new NotFoundError('Patient', patient.id);
+    }
+  }
+
   async register(principal: Principal, raw: unknown): Promise<RegisterPatientResult> {
     const parsed = createPatientSchema.safeParse(raw);
     if (!parsed.success) {
@@ -130,6 +141,7 @@ export class PatientsService {
     return this.dbCtx.runAs(principal, async (tx) => {
       const patient = await this.repo.findById(tx, principal.orgId, id);
       if (!patient) throw new NotFoundError('Patient', id);
+      this.assertPatientBranch(principal, patient);
       await this.assertDoctorCanSee(principal, patient.id, tx);
       return patient;
     });
@@ -148,10 +160,19 @@ export class PatientsService {
     return this.dbCtx.runAs(principal, async (tx) => {
       const before = await this.repo.findById(tx, principal.orgId, id);
       if (!before) throw new NotFoundError('Patient', id);
+      this.assertPatientBranch(principal, before);
       await this.assertDoctorCanSee(principal, id, tx);
 
       const set: Record<string, unknown> = {};
       const input = parsed.data;
+
+      if (
+        principal.role !== 'hq' &&
+        input.branchId !== undefined &&
+        input.branchId !== principal.branchId
+      ) {
+        throw new ForbiddenError('Cannot move a patient to another branch');
+      }
       if (input.name !== undefined) set['name'] = input.name;
       if (input.ic !== undefined) set['ic'] = input.ic;
       if (input.dob !== undefined) set['dob'] = input.dob;
@@ -208,6 +229,8 @@ export class PatientsService {
     return this.dbCtx.runAs(principal, async (tx) => {
       const patient = await this.repo.findById(tx, principal.orgId, patientId);
       if (!patient) throw new NotFoundError('Patient', patientId);
+      this.assertPatientBranch(principal, patient);
+      await this.assertDoctorCanSee(principal, patientId, tx);
       const rel = await this.repo.addRelationship(tx, principal.orgId, {
         patientId,
         relatedPatientId: parsed.data.relatedPatientId ?? null,
@@ -234,6 +257,7 @@ export class PatientsService {
     return this.dbCtx.runAs(principal, async (tx) => {
       const patient = await this.repo.findById(tx, principal.orgId, patientId);
       if (!patient) throw new NotFoundError('Patient', patientId);
+      this.assertPatientBranch(principal, patient);
       await this.assertDoctorCanSee(principal, patientId, tx);
       return this.repo.listRelationships(tx, principal.orgId, patientId);
     });
@@ -244,6 +268,7 @@ export class PatientsService {
     return this.dbCtx.runAs(principal, async (tx) => {
       const patient = await this.repo.findById(tx, principal.orgId, patientId);
       if (!patient) throw new NotFoundError('Patient', patientId);
+      this.assertPatientBranch(principal, patient);
       await this.assertDoctorCanSee(principal, patientId, tx);
       return this.repo.listTimeline(tx, principal.orgId, patientId, limit);
     });
