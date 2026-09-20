@@ -871,6 +871,11 @@ export class WhatsappWebhookController {
     if (!this.redis) return;
 
     try {
+      // Booking and appointment-cancellation state must never overlap.
+      // A stale pending cancellation could otherwise consume a normal
+      // "Ya" reply from the booking flow and cancel the appointment.
+      await this.redis.del(this.appointmentActionKey(chatId));
+
       await this.redis.set(
         this.bookingKey(chatId),
         JSON.stringify(value),
@@ -1011,6 +1016,9 @@ export class WhatsappWebhookController {
       return true;
     }
 
+    // Entering cancellation flow invalidates any stale booking session,
+    // so a later "Ya" has only one possible meaning.
+    await this.deleteBookingMemory(chatId);
     await this.redis.set(key, String(row.id), 'EX', 600);
 
     await this.sendText(
