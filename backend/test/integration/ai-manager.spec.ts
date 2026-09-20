@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
 import {
@@ -611,7 +611,7 @@ describe('S7 AI Manager - MySQL isolated integration', () => {
   );
 
   dbIt(
-    'agent lifecycle works with MySQL returning compatibility',
+    'agent lifecycle works with MySQL insert and update compatibility',
     async () => {
       await withFixture(async (svc) => {
         const agent = await svc.registerAgent(hq, {
