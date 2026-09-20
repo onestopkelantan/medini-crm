@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+﻿import { Injectable, Inject } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { DATABASE } from '../../infrastructure/database/database.module';
@@ -7,24 +7,36 @@ import { DbContextService } from './db-context.service';
 import { PasswordService } from './password.service';
 import { staff } from '../../infrastructure/database/schema';
 import {
-  ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
 } from '../../shared/errors/errors';
 
 const ORG_ID = '00000000-0000-0000-0000-000000000001';
 
 /**
- * StaffRegistrationService — HQ-controlled staff self-registration (S10 T1).
+ * StaffRegistrationService — HQ-controlled staff self-registration.
  *
  * Governance model:
- *   HQ invites (inviteStaff → status='Invited') → staff receives single-use
- *   invitation token → staff completes registration (username + password) →
- *   status='Pending' → HQ approves (activate) → 'Active' → login allowed.
+ *   HQ invites -> status='Invited'
+ *   -> staff receives a single-use invitation token
+ *   -> staff completes registration
+ *   -> status='Pending'
+ *   -> HQ approves
+ *   -> status='Active'.
  *
  * Security invariants:
- *  - No public signup: registration requires a valid, unexpired invitation token.
- *  - Staff CANNOT choose org/branch/role — those are HQ-assigned at invite time.
- *  - Passwords are Argon2id-hashed via PasswordService (never plaintext).
- *  - Invitation tokens are single-use (cleared on successful registration) and expire.
+ *  - No public signup: registration requires a valid, unexpired invite token.
+ *  - Staff cannot choose org/branch/role.
+ *  - Passwords are Argon2id hashed.
+ *  - Invitation tokens are single-use and expire.
+ *
+ * MySQL migration:
+ *  Registration no longer depends on PostgreSQL SECURITY DEFINER / RLS.
+ *  Validation and mutation run atomically inside a MySQL transaction with
+ *  SELECT ... FOR UPDATE so the same invitation cannot be consumed twice.
  */
 @Injectable()
 export class StaffRegistrationService {
@@ -36,30 +48,81 @@ export class StaffRegistrationService {
 
   /**
    * Generate a single-use invitation token for an invited staff member.
-   * Called by HQ after inviteStaff. Returns the raw token (to be shared
-   * out-of-band, e.g. printed/WhatsApp — no notification infra in T1).
    */
-  async generateInviteToken(hqPrincipal: { staffId: string; role: string; orgId: string }, staffId: string): Promise<{ token: string; expiresAt: Date }> {
-    if (hqPrincipal.role !== 'hq') throw new ForbiddenError('Only HQ can generate invitation tokens');
+  async generateInviteToken(
+    hqPrincipal: {
+      staffId: string;
+      role: string;
+      orgId: string;
+    },
+    staffId: string,
+  ): Promise<{ token: string; expiresAt: Date }> {
+    if (hqPrincipal.role !== 'hq') {
+      throw new ForbiddenError(
+        'Only HQ can generate invitation tokens',
+      );
+    }
+
     const token = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(Date.now() + 72 * 3600 * 1000); /* 72h expiry */
-    await this.dbCtx.runAs(hqPrincipal as never, async (tx) => {
-      const row = await tx.select({ status: staff.status }).from(staff)
-        .where(and(eq(staff.id, staffId), eq(staff.orgId, ORG_ID), isNull(staff.deletedAt))).limit(1);
-      if (!row[0]) throw new NotFoundError('staff', staffId);
-      if (row[0].status !== 'Invited') throw new ConflictError(`Staff is not in Invited status (current: ${row[0].status})`);
-      await tx.update(staff).set({
-        inviteToken: token,
-        inviteExpiresAt: expiresAt,
-        updatedAt: new Date(),
-      } as never).where(eq(staff.id, staffId));
-    });
+    const expiresAt = new Date(
+      Date.now() + 72 * 3600 * 1000,
+    );
+
+    await this.dbCtx.runAs(
+      hqPrincipal as never,
+      async (tx) => {
+        const rows = await tx
+          .select({ status: staff.status })
+          .from(staff)
+          .where(
+            and(
+              eq(staff.id, staffId),
+              eq(staff.orgId, ORG_ID),
+              isNull(staff.deletedAt),
+            ),
+          )
+          .limit(1);
+
+        const row = rows[0];
+
+        if (!row) {
+          throw new NotFoundError('staff', staffId);
+        }
+
+        if (row.status !== 'Invited') {
+          throw new ConflictError(
+            `Staff is not in Invited status (current: ${row.status})`,
+          );
+        }
+
+        await tx
+          .update(staff)
+          .set({
+            inviteToken: token,
+            inviteExpiresAt: expiresAt,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(staff.id, staffId),
+              eq(staff.orgId, ORG_ID),
+            ),
+          );
+      },
+    );
+
     return { token, expiresAt };
   }
 
   /**
-   * Staff self-registration: validate invite token, set username + password,
-   * transition Invited → Pending. Staff CANNOT change role/branch/org.
+   * Staff self-registration.
+   *
+   * MySQL transaction flow:
+   *  1. Lock the invitation row.
+   *  2. Validate token, status and expiry.
+   *  3. Update identity/password.
+   *  4. Clear the invitation token.
+   *  5. Transition Invited -> Pending.
    */
   async register(input: {
     inviteToken: string;
@@ -67,49 +130,115 @@ export class StaffRegistrationService {
     username: string;
     password: string;
   }): Promise<{ staffId: string; status: 'Pending' }> {
-    if (!input.inviteToken || !input.username || !input.password || !input.name) {
-      throw new ValidationError({ _: ['inviteToken, name, username, and password are required'] });
+    if (
+      !input.inviteToken ||
+      !input.username ||
+      !input.password ||
+      !input.name
+    ) {
+      throw new ValidationError({
+        _: [
+          'inviteToken, name, username, and password are required',
+        ],
+      });
     }
+
     if (input.password.length < 8) {
-      throw new ValidationError({ password: ['Password must be at least 8 characters'] });
+      throw new ValidationError({
+        password: [
+          'Password must be at least 8 characters',
+        ],
+      });
     }
+
     if (!/^[a-z0-9_.-]+$/.test(input.username)) {
-      throw new ValidationError({ username: ['Lowercase letters, digits, _ . - only'] });
+      throw new ValidationError({
+        username: [
+          'Lowercase letters, digits, _ . - only',
+        ],
+      });
     }
 
-    const passwordHash = await this.passwords.hash(input.password);
-
-    /* Pre-auth path: no Principal exists yet. Use SECURITY DEFINER function to
-     * bypass RLS for the registration update. RLS policies cannot reliably see
-     * transaction-local GUCs during policy evaluation, so direct UPDATE fails. */
-    if (!this.db) throw new UnauthorizedError('Authentication unavailable');
-
-    /* Get a single connection from the pool. */
-    const client = await (this.db as unknown as { $client: { connect: () => Promise<{ query: (q: string, p?: unknown[]) => Promise<{ rows: unknown[]; rowCount: number }>; release: () => void }> } }).$client.connect();
-    try {
-      /* Call SECURITY DEFINER function — validates token, checks status/expiry,
-       * and performs the update in one atomic step. */
-      const result = await client.query(
-        `SELECT id, status FROM register_staff_with_token($1, $2, $3, $4, $5)`,
-        [input.inviteToken, input.name, input.username, passwordHash, ORG_ID],
+    if (!this.db) {
+      throw new UnauthorizedError(
+        'Authentication unavailable',
       );
-      const row = result.rows[0] as { id: string; status: string } | undefined;
-      if (!row) throw new ConflictError('Registration failed — invitation may have been used');
-
-      return { staffId: row.id, status: 'Pending' as const };
-    } catch (e) {
-      /* Map SECURITY DEFINER function errors to domain errors. */
-      if (e && typeof e === 'object' && 'code' in e) {
-        const err = e as { code: string; message: string };
-        if (err.code === 'P0002') {
-          if (err.message.includes('expired')) throw new UnauthorizedError('Invitation has expired');
-          throw new UnauthorizedError('Invalid or expired invitation');
-        }
-        if (err.code === 'P0001') throw new ConflictError(err.message);
-      }
-      throw e;
-    } finally {
-      (client as unknown as { release: () => void }).release();
     }
+
+    const passwordHash =
+      await this.passwords.hash(input.password);
+
+    return this.dbCtx.runAsWorker(
+      {
+        orgId: ORG_ID,
+        branchIds: [],
+        correlationId: 'staff-registration',
+        source: 'system_worker',
+      },
+      async (tx) => {
+        const rows = await tx
+          .select({
+            id: staff.id,
+            status: staff.status,
+            inviteExpiresAt: staff.inviteExpiresAt,
+          })
+          .from(staff)
+          .where(
+            and(
+              eq(staff.inviteToken, input.inviteToken),
+              eq(staff.orgId, ORG_ID),
+              isNull(staff.deletedAt),
+            ),
+          )
+          .limit(1)
+          .for('update');
+
+        const member = rows[0];
+
+        if (!member) {
+          throw new UnauthorizedError(
+            'Invalid or expired invitation',
+          );
+        }
+
+        if (member.status !== 'Invited') {
+          throw new ConflictError(
+            `Invitation already used or invalid (status: ${member.status})`,
+          );
+        }
+
+        if (
+          member.inviteExpiresAt &&
+          member.inviteExpiresAt < new Date()
+        ) {
+          throw new UnauthorizedError(
+            'Invitation has expired',
+          );
+        }
+
+        await tx
+          .update(staff)
+          .set({
+            name: input.name,
+            username: input.username.toLowerCase(),
+            passwordHash,
+            status: 'Pending',
+            inviteToken: null,
+            inviteExpiresAt: null,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(staff.id, member.id),
+              eq(staff.orgId, ORG_ID),
+            ),
+          );
+
+        return {
+          staffId: member.id,
+          status: 'Pending' as const,
+        };
+      },
+    );
   }
 }
