@@ -48,7 +48,7 @@ const ORG_B = '99999999-9999-9999-9999-9999999999e2';
 interface RawRows { rows: Array<Record<string, unknown>> }
 
 function hq(org = ORG_A) {
-  return { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: org, branchId: null, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'Test User', username: 'hq', role: 'hq', orgId: org, branchId: null, doctorId: null };
 }
 
 async function purge(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<void> {

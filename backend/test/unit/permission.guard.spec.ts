@@ -24,9 +24,9 @@ function ctx(principal: Principal | undefined, target: { branchId?: string | nul
   return { guard, ctx: execCtx };
 }
 
-const hq: Principal = { staffId: 's1', username: 'hq', role: 'hq', orgId: 'org-1', branchId: null, doctorId: null };
-const bm: Principal = { staffId: 's2', username: 'manager', role: 'branch_manager', orgId: 'org-1', branchId: 'sentosa', doctorId: null };
-const doctor: Principal = { staffId: 's3', username: 'doctor', role: 'doctor', orgId: 'org-1', branchId: 'gp', doctorId: 'dr-aina' };
+const hq: Principal = { staffId: 's1', name: 'HQ User', username: 'hq', role: 'hq', orgId: 'org-1', branchId: null, doctorId: null };
+const bm: Principal = { staffId: 's2', name: 'Branch Manager', username: 'manager', role: 'branch_manager', orgId: 'org-1', branchId: 'sentosa', doctorId: null };
+const doctor: Principal = { staffId: 's3', name: 'Doctor', username: 'doctor', role: 'doctor', orgId: 'org-1', branchId: 'gp', doctorId: 'dr-aina' };
 
 describe('PermissionGuard (authorization enforcement)', () => {
   it('allows hq on finance.view (scope=all)', () => {
@@ -82,7 +82,7 @@ describe('PermissionGuard (authorization enforcement)', () => {
   });
 
   it('allows branch_admin VIEW without target branchId (derives from principal)', () => {
-    const reception: Principal = { staffId: 's4', username: 'reception', role: 'branch_admin', orgId: 'org-1', branchId: 'sentosa', doctorId: null };
+    const reception: Principal = { staffId: 's4', name: 'Reception', username: 'reception', role: 'branch_admin', orgId: 'org-1', branchId: 'sentosa', doctorId: null };
     const { guard, ctx: c } = ctx(reception, {}, { domain: 'patients', action: 'view' });
     expect(guard.canActivate(c)).toBe(true);
   });

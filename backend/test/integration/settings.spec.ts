@@ -22,10 +22,10 @@ const P = {
   ba: '70d1f1a2-0000-4000-8000-0000000000cc',
   dr: '70d1f1a2-0000-4000-8000-0000000000dd',
 };
-const hq = { staffId: P.hq, username: 'hq-s7s', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
-const bm = (b: string) => ({ staffId: P.bm, username: 'bm-s7s', role: 'branch_manager', orgId: TEST_ORG, branchId: b, doctorId: null });
-const ba = (b: string) => ({ staffId: P.ba, username: 'ba-s7s', role: 'branch_admin', orgId: TEST_ORG, branchId: b, doctorId: null });
-const doc = (b: string) => ({ staffId: P.dr, username: 'dr-s7s', role: 'doctor', orgId: TEST_ORG, branchId: b, doctorId: P.dr });
+const hq = { staffId: P.hq, name: 'Test User', username: 'hq-s7s', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const bm = (b: string) => ({ staffId: P.bm, name: 'Test User', username: 'bm-s7s', role: 'branch_manager', orgId: TEST_ORG, branchId: b, doctorId: null });
+const ba = (b: string) => ({ staffId: P.ba, name: 'Test User', username: 'ba-s7s', role: 'branch_admin', orgId: TEST_ORG, branchId: b, doctorId: null });
+const doc = (b: string) => ({ staffId: P.dr, name: 'Test User', username: 'dr-s7s', role: 'doctor', orgId: TEST_ORG, branchId: b, doctorId: P.dr });
 
 function build(db: ReturnType<typeof createFreshDatabase>['db'], audit: InMemoryAuditAdapter) {
   return new SettingsService(new DbContextService(db), new SettingsRepository(), new AuditService(audit));

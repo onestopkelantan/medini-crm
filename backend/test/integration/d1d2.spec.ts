@@ -108,7 +108,7 @@ describe('D2 — runAs() GUC ordering + HQ context (live PG)', () => {
   dbIt('HQ runAs sets app.role=hq FIRST then reads the full branch list', async () => {
     const { db, close } = createFreshDatabase(RUNTIME_URL);
     const ctx = new DbContextService(db);
-    const hqPrincipal = { staffId: 'x', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
+    const hqPrincipal = { staffId: 'x', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
     /* inside runAs, HQ should be able to read all branches (14) */
     const count = await ctx.runAs(hqPrincipal as never, async (tx) => {
       const r = await tx.execute(sql`SELECT count(*)::int AS n FROM branches`);
@@ -121,7 +121,7 @@ describe('D2 — runAs() GUC ordering + HQ context (live PG)', () => {
   dbIt('runAs sets transaction-local app.role (not visible after COMMIT)', async () => {
     const db = createDatabase(RUNTIME_URL);
     const ctx = new DbContextService(db);
-    const hqPrincipal = { staffId: 'x', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
+    const hqPrincipal = { staffId: 'x', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
     await ctx.runAs(hqPrincipal as never, async () => undefined);
     /* after the transaction commits, app.role must NOT remain set on the pool */
     const after = await db.execute(sql`SELECT NULLIF(current_setting('app.role', true), '') AS r`);
@@ -133,7 +133,7 @@ describe('D2 — runAs() GUC ordering + HQ context (live PG)', () => {
     const { db, close } = createFreshDatabase(RUNTIME_URL);
     const ctx = new DbContextService(db);
     /* a branch_manager with a single branchId gets only that branch's context */
-    const mgr = { staffId: 'y', username: 'manager', role: 'branch_manager', orgId: ORG, branchId: 'one-branch-id', doctorId: null };
+    const mgr = { staffId: 'y', name: 'Test User', username: 'manager', role: 'branch_manager', orgId: ORG, branchId: 'one-branch-id', doctorId: null };
     const branchesSeen = await ctx.runAs(mgr as never, async (tx) => {
       /* branch_manager is NOT hq → app_branch_ids has 1 entry → sees ≤1 branch row */
       const r = await tx.execute(sql`SELECT count(*)::int AS n FROM branches`);

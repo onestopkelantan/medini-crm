@@ -8,14 +8,14 @@ import { PatientsRepository } from '@modules/patients/infrastructure/patients.re
 import { PatientsReadPort } from '@shared/ports/patients.read-port';
 import { PatientsService } from '@modules/patients/application/patients.service';
 
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:medini_dev_password@localhost:5433/medini_dev';
+const ADMIN_URL = process.env.DATABASE_URL ?? 'mysql://medini:medini_dev_password@localhost:3306/medini_dev';
 const RUNTIME_URL =
   process.env.DATABASE_RUNTIME_URL ??
   process.env.DATABASE_URL ??
-  'postgres://medini_app:medini_app_password@localhost:5433/medini_dev';
+  'mysql://medini_app:medini_app_password@localhost:3306/medini_dev';
 
 const probe = pingDatabase(ADMIN_URL).then((ok) => {
-  if (!ok) console.warn('[atomicity] PostgreSQL not reachable — SKIPPING (honest skip).');
+  if (!ok) console.warn('[atomicity] MySQL not reachable — SKIPPING (honest skip).');
   return ok;
 });
 
@@ -30,7 +30,7 @@ function dbIt(name: string, fn: () => Promise<void>): void {
 const TEST_ORG = '99999999-9999-9999-9999-999999999950';
 
 function hqPrincipal() {
-  return { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'HQ Atomicity', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
 }
 
 /** Audit port that ALWAYS throws — forces the atomicity contract. */
@@ -41,7 +41,7 @@ class ThrowingAuditPort extends AuditPort {
 }
 
 async function branchId(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<string> {
-  const rows = await admin.execute(sql`SELECT id::text AS id FROM branches LIMIT 1`);
+  const rows = await admin.execute(sql`SELECT CAST(id AS CHAR) AS id FROM branches LIMIT 1`);
   return (rows as unknown as { rows: Array<{ id: string }> }).rows[0]!.id;
 }
 

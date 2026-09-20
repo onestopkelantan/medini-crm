@@ -35,13 +35,13 @@ function dbIt(name: string, fn: () => Promise<void>): void {
 const TEST_ORG = '99999999-9999-9999-9999-999999999960';
 
 function hqPrincipal() {
-  return { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'Test User', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
 }
 function bmPrincipal(branchId: string) {
-  return { staffId: '00000000-0000-0000-0000-0000000000bb', username: 'manager', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000bb', name: 'Branch Manager', username: 'manager', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null };
 }
 function doctorPrincipal(branchId: string, doctorId: string) {
-  return { staffId: doctorId, username: 'doctor', role: 'doctor', orgId: TEST_ORG, branchId, doctorId };
+  return { staffId: doctorId, name: 'Doctor', username: 'doctor', role: 'doctor', orgId: TEST_ORG, branchId, doctorId };
 }
 
 function build(db: ReturnType<typeof createFreshDatabase>['db']) {

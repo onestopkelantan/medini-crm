@@ -28,14 +28,14 @@ import { randomUUID } from 'node:crypto';
  *  - org-wide DELETEs are forbidden here (they caused cross-suite flakes)
  * Honest skip when the DB is genuinely unreachable.
  */
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:***@localhost:5433/medini_dev';
+const ADMIN_URL = process.env.DATABASE_URL ?? 'mysql://medini:***@localhost:3306/medini_dev';
 const RUNTIME_URL =
   process.env.DATABASE_RUNTIME_URL ??
   process.env.DATABASE_URL ??
-  'postgres://medini_app:***@localhost:5433/medini_dev';
+  'mysql://medini_app:***@localhost:3306/medini_dev';
 
 const probe = pingDatabase(ADMIN_URL).then((ok) => {
-  if (!ok) console.warn('[clinical-workflow] PostgreSQL not reachable — SKIPPING (honest skip).');
+  if (!ok) console.warn('[clinical-workflow] MySQL not reachable — SKIPPING (honest skip).');
   return ok;
 });
 
@@ -52,16 +52,16 @@ const DOC_A = '99999999-0000-0000-0000-0000000000a1';
 const DOC_B = '99999999-0000-0000-0000-0000000000b2';
 
 function hqPrincipal() {
-  return { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'HQ Clinical', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
 }
 function bmPrincipal(branchId: string) {
-  return { staffId: '00000000-0000-0000-0000-0000000000bb', username: 'manager', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000bb', name: 'Branch Manager Clinical', username: 'manager', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null };
 }
 function receptionPrincipal(branchId: string) {
-  return { staffId: '00000000-0000-0000-0000-0000000000cc', username: 'reception', role: 'branch_admin', orgId: TEST_ORG, branchId, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000cc', name: 'Reception Clinical', username: 'reception', role: 'branch_admin', orgId: TEST_ORG, branchId, doctorId: null };
 }
 function doctorPrincipal(branchId: string, doctorId: string) {
-  return { staffId: doctorId, username: 'doctor', role: 'doctor', orgId: TEST_ORG, branchId, doctorId };
+  return { staffId: doctorId, name: 'Doctor Clinical', username: 'doctor', role: 'doctor', orgId: TEST_ORG, branchId, doctorId };
 }
 
 /** Run `fn` under a suite-marked correlation id (audit/timeline scoping). */

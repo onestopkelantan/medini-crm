@@ -135,7 +135,7 @@ export const ROLE_DOMAIN_MATRIX: Record<string, Record<string, RoleDomainCell>> 
     operations:   R(true, true,  true,  true,  false, false, 'branch'),
     whatsapp:     R(true, true,  true,  false, false, false, 'branch'),
     ai:           R(true, false, false, false, false, false, 'branch'),
-    admin:         R(true, true, true, false, true, false, 'branch'),
+    admin:         NONE,
     settings:     R(true, false, true,  false, false, false, 'branch'),
   },
   branch_admin: {
@@ -151,7 +151,7 @@ export const ROLE_DOMAIN_MATRIX: Record<string, Record<string, RoleDomainCell>> 
     operations:   NONE,
     whatsapp:     R(true, true,  true,  false, false, false, 'branch'),
     ai:           NONE,
-    admin:         R(true, true, true, false, true, false, 'branch'),
+    admin:         NONE,
     settings:     R(true, false, false, false, false, false, 'branch'),
   },
   doctor: {
@@ -175,7 +175,7 @@ export const ROLE_DOMAIN_MATRIX: Record<string, Record<string, RoleDomainCell>> 
      * this: doctor is absent from all wa_* policies. */
     whatsapp:     NONE,
     ai:           NONE,
-    admin:         R(true, true, true, false, true, false, 'branch'),
+    admin:         NONE,
     settings:     R(true, false, false, false, false, false, 'own'),
   },
   /* S10 GLM 5.3 Remediation â€” Developer / System Admin. Technical-only

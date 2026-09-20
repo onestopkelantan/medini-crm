@@ -18,10 +18,10 @@ const probe = pingDatabase(ADMIN_URL).then((ok) => ok);
 function dbIt(name: string, fn: () => Promise<void>): void {
   it(name, async (ctx) => { if (!(await probe)) { ctx.skip(); return; } await fn(); });
 }
-const hq = { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
-const bm = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000bb', username: 'bm', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null });
-const ba = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000cc', username: 'ba', role: 'branch_admin', orgId: TEST_ORG, branchId, doctorId: null });
-const doc = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000dd', username: 'dr', role: 'doctor', orgId: TEST_ORG, branchId, doctorId: '00000000-0000-0000-0000-0000000000dd' });
+const hq = { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'Test User', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const bm = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000bb', name: 'Test User', username: 'bm', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null });
+const ba = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000cc', name: 'Test User', username: 'ba', role: 'branch_admin', orgId: TEST_ORG, branchId, doctorId: null });
+const doc = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000dd', name: 'Test User', username: 'dr', role: 'doctor', orgId: TEST_ORG, branchId, doctorId: '00000000-0000-0000-0000-0000000000dd' });
 
 function build(db: ReturnType<typeof createFreshDatabase>['db'], audit: InMemoryAuditAdapter, idem: InMemoryIdempotencyAdapter) {
   const ctx = new DbContextService(db);

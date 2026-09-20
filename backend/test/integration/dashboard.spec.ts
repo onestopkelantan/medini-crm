@@ -6,14 +6,14 @@ import { PatientsReadPort } from '@shared/ports/patients.read-port';
 import { AppointmentsReadPort } from '@shared/ports/appointments.read-port';
 import { DbContextService } from '@core/auth/db-context.service';
 
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:medini_dev_password@localhost:5433/medini_dev';
+const ADMIN_URL = process.env.DATABASE_URL ?? 'mysql://medini:medini_dev_password@localhost:3306/medini_dev';
 const RUNTIME_URL =
   process.env.DATABASE_RUNTIME_URL ??
   process.env.DATABASE_URL ??
-  'postgres://medini_app:medini_app_password@localhost:5433/medini_dev';
+  'mysql://medini_app:medini_app_password@localhost:3306/medini_dev';
 
 const probe = pingDatabase(ADMIN_URL).then((ok) => {
-  if (!ok) console.warn('[dashboard] PostgreSQL not reachable — SKIPPING (honest skip).');
+  if (!ok) console.warn('[dashboard] MySQL not reachable — SKIPPING (honest skip).');
   return ok;
 });
 
@@ -28,7 +28,7 @@ function dbIt(name: string, fn: () => Promise<void>): void {
 const TEST_ORG = '99999999-9999-9999-9999-999999999980';
 
 function principal(branchId: string, role = 'branch_manager') {
-  return { staffId: 'x', username: 'bm', role, orgId: TEST_ORG, branchId, doctorId: null };
+  return { staffId: 'x', name: 'Dashboard User', username: 'bm', role, orgId: TEST_ORG, branchId, doctorId: null };
 }
 
 describe('dashboard module — integration (live PG)', () => {

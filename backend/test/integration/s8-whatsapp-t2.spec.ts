@@ -144,7 +144,7 @@ describe('T2 — WhatsApp worker transport (live PG)', () => {
     const ctx = workerCtx(ORG_A, b1);
 
     /* Set channel to auto-paused (via HQ service path) */
-    const hqP = { staffId: '00000000-0000-0000-0000-000000000001', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
+    const hqP = { staffId: '00000000-0000-0000-0000-000000000001', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
     await svc.hqUpdateChannel(hqP, channelId, { autoPausedAt: new Date() });
 
     const msg = await db.transaction(async (tx) => {
@@ -161,7 +161,7 @@ describe('T2 — WhatsApp worker transport (live PG)', () => {
     await expect(svc.confirmWorkerSend(ctx, msg.id, 'ext-1')).rejects.toThrow(/auto-paused/i);
 
     /* Resume via human endpoint (HQ) */
-    const hq = { staffId: '00000000-0000-0000-0000-000000000001', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
+    const hq = { staffId: '00000000-0000-0000-0000-000000000001', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
     await svc.resumeAutoPause(hq, channelId);
 
     /* Now confirm works */
@@ -179,7 +179,7 @@ describe('T2 — WhatsApp worker transport (live PG)', () => {
     const ctx = workerCtx(ORG_A, b1);
 
     /* Set auto_paused_at to 16 minutes before the service's mock nowFn (2026-08-17T10:00:00+08:00) */
-    const hqP2 = { staffId: '00000000-0000-0000-0000-000000000001', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
+    const hqP2 = { staffId: '00000000-0000-0000-0000-000000000001', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
     const mockNow = new Date('2026-08-17T10:00:00+08:00');
     const sixteenMinAgo = new Date(mockNow.getTime() - 16 * 60_000);
     await svc.hqUpdateChannel(hqP2, channelId, { autoPausedAt: sixteenMinAgo });

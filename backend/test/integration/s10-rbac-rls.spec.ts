@@ -18,8 +18,8 @@ function dbIt(name: string, fn: () => Promise<void>): void {
 }
 
 const ORG = '00000000-0000-0000-0000-000000000001';
-const hq: Principal = { staffId: 'hq-1', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
-const bm = (branchId: string): Principal => ({ staffId: 'bm-1', username: 'bm', role: 'branch_manager', orgId: ORG, branchId, doctorId: null });
+const hq: Principal = { staffId: 'hq-1', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
+const bm = (branchId: string): Principal => ({ staffId: 'bm-1', name: 'Test User', username: 'bm', role: 'branch_manager', orgId: ORG, branchId, doctorId: null });
 
 describe('S10 T3 — RBAC + RLS + IDOR', () => {
   dbIt('HQ can read branches (org-wide)', async () => {

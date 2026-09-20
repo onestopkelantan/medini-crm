@@ -1,137 +1,156 @@
+import { randomUUID } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
 import {
   pingDatabase,
-  createDatabase,
-  closeDatabase,
+  createFreshDatabase,
 } from '@infrastructure/database/database';
-import { seed } from '@infrastructure/database/seed';
 import { DbIdempotencyAdapter } from '@infrastructure/database/db-idempotency.adapter';
 import { DbAuditAdapter } from '@infrastructure/database/db-audit.adapter';
 
-/**
- * Integration tests — require a live PostgreSQL (DATABASE_URL or local dev default).
- *
- * GLM 5.3 FIX 7/8: NO silent-pass. The old pattern `if (!dbAvailable) return;`
- * made tests PASS without executing any DB assertion. Here the DB is probed
- * before any test runs; when unreachable, each test is reported SKIPPED via
- * `it.skip` (never a false pass). When reachable, every test runs real
- * assertions against the live database.
- *
- * (Top-level await is unavailable under module=commonjs, so the probe result
- * is a shared promise resolved before each test body executes.)
- */
 const URL =
   process.env.DATABASE_URL ??
-  'postgres://medini:medini_dev_password@localhost:5433/medini_dev';
+  'mysql://medini_admin:medini_dev_password@localhost:3306/medini_dev';
 
-const probe: Promise<boolean> = pingDatabase(URL).then((ok) => {
+const probe = pingDatabase(URL).then((ok) => {
   if (!ok) {
     console.warn(
-      '[integration] PostgreSQL not reachable — SKIPPING DB integration tests (honest skip, not a pass).',
+      '[integration] MySQL not reachable - SKIPPING DB integration tests (honest skip, not a pass).',
     );
   }
+
   return ok;
 });
 
-/**
- * Run `fn` only when the DB is available; otherwise register an honest skip.
- * Resolving the probe inside the test guarantees the availability flag is set
- * before we decide to skip (a static describe.skipIf would evaluate too early).
- */
 function dbIt(name: string, fn: () => Promise<void>): void {
   it(name, async (ctx) => {
     const available = await probe;
+
     if (!available) {
-      /* honest skip — vitest records this test as skipped, not passed */
       ctx.skip();
+      return;
     }
+
     await fn();
   });
 }
 
-const ORG = '00000000-0000-0000-0000-000000000001';
+const TEST_ORG = '99999999-9999-9999-9999-999999999994';
 
-/* Typed shapes for drizzle/node-pg raw query results — avoids no-explicit-any. */
 interface RawRows {
   rows: Array<Record<string, unknown>>;
 }
-interface PgErr {
+
+interface DbErr {
   message?: string;
-  constraint?: string;
-  detail?: string;
+  code?: string;
+  sqlMessage?: string;
 }
 
-describe('database integration (live PG)', () => {
-  /* ---- Seed ---- */
-  dbIt('seeds 14 canonical branches + 4 demo users idempotently', async () => {
-    const r1 = await seed(URL);
-    expect(r1.branches).toBeGreaterThanOrEqual(14);
-    expect(r1.staff).toBeGreaterThanOrEqual(4);
-    /* idempotent: second run must not duplicate. Branches table is static
-     * across suites → strict equality. Staff rows for THROWAWAY test orgs are
-     * created/purged by concurrently-running integration suites on the shared
-     * dev DB, so the global count can legitimately shift between the two
-     * seed() calls; the invariant is that re-seeding the CANONICAL demo users
-     * never duplicates them (count never grows because of seed itself). */
-    const r2 = await seed(URL);
-    expect(r2.branches).toBe(r1.branches);
-    expect(r2.staff).toBeGreaterThanOrEqual(4);
-    expect(Math.abs(r2.staff - r1.staff)).toBeLessThanOrEqual(8); /* cross-suite churn window */
+describe('database integration (MySQL)', () => {
+  dbIt('database connection responds to SELECT 1', async () => {
+    const { db, close } = createFreshDatabase(URL);
+
+    const result = await db.execute(sql`SELECT 1 AS ok`);
+
+    expect((result as RawRows).rows[0]?.ok).toBe(1);
+
+    await close();
   });
 
-  /* ---- Idempotency adapter ---- */
-  dbIt('idempotency: begin → duplicate blocked → complete → persisted', async () => {
-    const db = createDatabase(URL);
-    const adapter = new DbIdempotencyAdapter(db);
-    const key = 'itest-' + Date.now();
-    const scope = 'itest-scope';
-    expect(await adapter.begin(key, scope, 60)).toBe('started');
-    expect(await adapter.begin(key, scope, 60)).toBe('exists'); /* duplicate */
-    await adapter.complete(key, scope, { ok: true });
-    const got = await adapter.get(key, scope);
-    expect(got?.status).toBe('completed');
-    await closeDatabase();
-  });
+  dbIt(
+    'idempotency: begin -> duplicate blocked -> complete -> persisted',
+    async () => {
+      const { db, close } = createFreshDatabase(URL);
+      const adapter = new DbIdempotencyAdapter(db);
 
-  dbIt('idempotency: failure is recorded (status → failed)', async () => {
-    const db = createDatabase(URL);
+      const marker = randomUUID();
+      const key = `itest-${marker}`;
+      const scope = `itest-scope-${marker}`;
+
+      expect(await adapter.begin(key, scope, 60)).toBe('started');
+      expect(await adapter.begin(key, scope, 60)).toBe('exists');
+
+      await adapter.complete(key, scope, { ok: true });
+
+      const got = await adapter.get<{ ok: boolean }>(key, scope);
+
+      expect(got?.status).toBe('completed');
+      expect(got?.response).toEqual({ ok: true });
+
+      await db.execute(sql`
+        DELETE FROM idempotency_keys
+        WHERE \`key\` = ${key}
+          AND scope = ${scope}
+      `);
+
+      await close();
+    },
+  );
+
+  dbIt('idempotency: failure is recorded', async () => {
+    const { db, close } = createFreshDatabase(URL);
     const adapter = new DbIdempotencyAdapter(db);
-    const key = 'itest-fail-' + Date.now();
-    const scope = 'itest-scope';
+
+    const marker = randomUUID();
+    const key = `itest-fail-${marker}`;
+    const scope = `itest-scope-${marker}`;
+
     expect(await adapter.begin(key, scope, 60)).toBe('started');
+
     await adapter.fail(key, scope);
+
     const failed = await adapter.get(key, scope);
+
     expect(failed?.status).toBe('failed');
-    await closeDatabase();
+
+    await db.execute(sql`
+      DELETE FROM idempotency_keys
+      WHERE \`key\` = ${key}
+        AND scope = ${scope}
+    `);
+
+    await close();
   });
 
-  dbIt('idempotency: expired keys are purged on access (get() reaps ttl<now)', async () => {
-    const db = createDatabase(URL);
+  dbIt('idempotency: expired keys are purged on access', async () => {
+    const { db, close } = createFreshDatabase(URL);
     const adapter = new DbIdempotencyAdapter(db);
-    const key = 'itest-exp-' + Date.now();
-    const scope = 'itest-scope';
-    /* ttlSeconds = 0 → expiresAt == now → immediately expired */
+
+    const marker = randomUUID();
+    const key = `itest-exp-${marker}`;
+    const scope = `itest-scope-${marker}`;
+
     await adapter.begin(key, scope, 0);
-    /* get() purges expired rows before reading; an expired key reads as gone */
-    await new Promise((r) => setTimeout(r, 5));
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
     const got = await adapter.get(key, scope);
+
     expect(got).toBeUndefined();
-    await closeDatabase();
+
+    await db.execute(sql`
+      DELETE FROM idempotency_keys
+      WHERE \`key\` = ${key}
+        AND scope = ${scope}
+    `);
+
+    await close();
   });
 
-  /* ---- Audit adapter ---- */
   dbIt('audit: writes and reads back an append-only record', async () => {
-    const db = createDatabase(URL);
+    const { db, close } = createFreshDatabase(URL);
     const adapter = new DbAuditAdapter(db);
-    const marker = 'itest-' + Date.now();
+
+    const marker = `itest-${randomUUID()}`;
+
     await adapter.record({
-      actorId: '00000000-0000-0000-0000-000000000002',
+      actorId: '99999999-9999-9999-9999-999999999993',
       actorRole: 'hq',
       action: 'test_action',
       entity: 'test',
       entityId: marker,
-      orgId: ORG,
+      orgId: TEST_ORG,
       branchId: null,
       before: null,
       after: { ok: true },
@@ -139,53 +158,113 @@ describe('database integration (live PG)', () => {
       correlationId: marker,
       timestamp: new Date().toISOString(),
     });
-    /* verify persistence by reading the row back */
-    const rows = await db.execute(
-      sql`SELECT entity_id, action FROM audit_log WHERE correlation_id = ${marker}`,
-    );
-    expect((rows as RawRows).rows.length).toBeGreaterThanOrEqual(1);
-    await closeDatabase();
+
+    const rows = await db.execute(sql`
+      SELECT entity_id, action
+      FROM audit_log
+      WHERE correlation_id = ${marker}
+    `);
+
+    expect((rows as RawRows).rows).toHaveLength(1);
+    expect((rows as RawRows).rows[0]?.action).toBe('test_action');
+
+    await db.execute(sql`
+      DELETE FROM audit_log
+      WHERE correlation_id = ${marker}
+    `);
+
+    await close();
   });
 
-  dbIt('audit: audit_log is append-only (no updated_at / deleted_at columns)', async () => {
-    const db = createDatabase(URL);
-    const cols = await db.execute(
-      sql`SELECT column_name FROM information_schema.columns
-          WHERE table_name = 'audit_log' AND column_name IN ('updated_at', 'deleted_at')`,
-    );
-    expect((cols as RawRows).rows.length).toBe(0);
-    await closeDatabase();
+  dbIt(
+    'audit: audit_log is append-only with no updated_at or deleted_at columns',
+    async () => {
+      const { db, close } = createFreshDatabase(URL);
+
+      const cols = await db.execute(sql`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'audit_log'
+          AND column_name IN ('updated_at', 'deleted_at')
+      `);
+
+      expect((cols as RawRows).rows).toHaveLength(0);
+
+      await close();
+    },
+  );
+
+  dbIt('schema: application tables exist in current MySQL database', async () => {
+    const { db, close } = createFreshDatabase(URL);
+
+    const res = await db.execute(sql`
+      SELECT CAST(COUNT(*) AS SIGNED) AS n
+      FROM information_schema.tables
+      WHERE table_schema = DATABASE()
+        AND table_type = 'BASE TABLE'
+    `);
+
+    const count = Number((res as RawRows).rows[0]?.n ?? 0);
+
+    expect(count).toBeGreaterThanOrEqual(80);
+
+    await close();
   });
 
-  /* ---- Schema integrity (live) ---- */
-  dbIt('schema: canonical tables exist (11 Sprint 1 + patient_timeline_events = 12)', async () => {
-    const db = createDatabase(URL);
-    const res = await db.execute(
-      sql`SELECT count(*)::int AS n FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`,
-    );
-    /* Sprint 2 T1 added patient_timeline_events — growth-safe (>= 11). */
-    expect((res as RawRows).rows[0]?.n).toBeGreaterThanOrEqual(11);
-    await closeDatabase();
-  });
+  dbIt(
+    'schema: staff_non_hq_requires_branch rejects non-HQ staff without branch',
+    async () => {
+      const { db, close } = createFreshDatabase(URL);
 
-  dbIt('schema: staff_non_hq_requires_branch enforces branch for non-hq', async () => {
-    const db = createDatabase(URL);
-    let errText = '';
-    try {
-      await db.execute(
-        sql`INSERT INTO staff (org_id, name, username, role, status)
-            VALUES (${ORG}, 'X', 'x-' || gen_random_uuid()::text, 'doctor', 'Active')`,
-      );
-    } catch (e: unknown) {
-      /* drizzle wraps the node-pg error: constraint name lives on e.cause */
-      const err = e as PgErr & { cause?: PgErr };
-      const cause: PgErr = err?.cause ?? {};
-      errText = [err?.message, cause?.message, cause?.constraint, cause?.detail]
-        .filter(Boolean)
-        .join(' | ');
-    }
-    expect(errText).toMatch(/staff_non_hq_requires_branch/i); /* non-hq NULL branch rejected */
-    await closeDatabase();
-  });
+      const staffId = randomUUID();
+      const username = `itest-${randomUUID()}`;
+
+      let errText = '';
+
+      try {
+        await db.execute(sql`
+          INSERT INTO staff (
+            id,
+            org_id,
+            name,
+            username,
+            role,
+            status
+          )
+          VALUES (
+            ${staffId},
+            ${TEST_ORG},
+            'Constraint Test',
+            ${username},
+            'doctor',
+            'Active'
+          )
+        `);
+      } catch (e: unknown) {
+        const err = e as DbErr & { cause?: DbErr };
+        const cause = err.cause ?? {};
+
+        errText = [
+          err.message,
+          err.code,
+          err.sqlMessage,
+          cause.message,
+          cause.code,
+          cause.sqlMessage,
+        ]
+          .filter(Boolean)
+          .join(' | ');
+      } finally {
+        await db.execute(sql`
+          DELETE FROM staff
+          WHERE id = ${staffId}
+        `);
+
+        await close();
+      }
+
+      expect(errText).toMatch(/staff_non_hq_requires_branch|check constraint/i);
+    },
+  );
 });

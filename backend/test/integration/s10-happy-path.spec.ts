@@ -58,7 +58,7 @@ describe('S10 GLM — Happy-path Registration', () => {
       VALUES (${staffId}, ${ORG}, ${branchId}, 'Happy Path Staff', ${username}, 'branch_admin', 'Invited')`);
 
     /* 2. HQ generates invite link */
-    const hqPrincipal = { staffId: 'hq-1', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null } as never;
+    const hqPrincipal = { staffId: 'hq-1', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null } as never;
     const { token } = await registration.generateInviteToken(hqPrincipal, staffId);
     expect(token).toBeTruthy();
     expect(token.length).toBeGreaterThan(20);
@@ -107,7 +107,7 @@ describe('S10 GLM — Happy-path Registration', () => {
     await admin.execute(sql`INSERT INTO staff (id, org_id, branch_id, name, username, role, status)
       VALUES (${staffId}, ${ORG}, ${branchId}, 'Single Use Staff', ${username}, 'branch_admin', 'Invited')`);
 
-    const hqPrincipal = { staffId: 'hq-1', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null } as never;
+    const hqPrincipal = { staffId: 'hq-1', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null } as never;
     const { token } = await registration.generateInviteToken(hqPrincipal, staffId);
 
     /* First registration succeeds */

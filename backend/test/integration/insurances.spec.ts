@@ -40,17 +40,17 @@ const TEST_ORG = '99999999-9999-9999-9999-9999999999d1';
 const OTHER_ORG = '99999999-9999-9999-9999-9999999999d2';
 
 function hq() {
-  return { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'Test User', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
 }
 function bm(branchId = 'b') {
-  return { staffId: '00000000-0000-0000-0000-0000000000bb', username: 'manager', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000bb', name: 'Branch Manager', username: 'manager', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null };
 }
 function reception(branchId = 'b') {
-  return { staffId: '00000000-0000-0000-0000-0000000000cc', username: 'reception', role: 'branch_admin', orgId: TEST_ORG, branchId, doctorId: null };
+  return { staffId: '00000000-0000-0000-0000-0000000000cc', name: 'Reception', username: 'reception', role: 'branch_admin', orgId: TEST_ORG, branchId, doctorId: null };
 }
 function doctor(branchId = 'b') {
   const id = '00000000-0000-0000-0000-0000000000dd';
-  return { staffId: id, username: 'doctor', role: 'doctor', orgId: TEST_ORG, branchId, doctorId: id };
+  return { staffId: id, name: 'Doctor', username: 'doctor', role: 'doctor', orgId: TEST_ORG, branchId, doctorId: id };
 }
 
 class RecordingAudit extends AuditPort {

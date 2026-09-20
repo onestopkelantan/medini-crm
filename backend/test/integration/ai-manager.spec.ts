@@ -8,8 +8,8 @@ import { AiManagerService } from '@modules/ai-manager/application/ai-manager.ser
 import { canTransitionAiAgent, evaluatePolicy } from '@modules/ai-manager/domain/ai-manager-policy';
 import { ForbiddenError, ConflictError, NotFoundError } from '@shared/errors/errors';
 
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:***@localhost:5433/medini_dev';
-const RUNTIME_URL = process.env.DATABASE_RUNTIME_URL ?? process.env.DATABASE_URL ?? 'postgres://medini_app:***@localhost:5433/medini_dev';
+const ADMIN_URL = process.env.DATABASE_URL ?? 'mysql://medini:***@localhost:3306/medini_dev';
+const RUNTIME_URL = process.env.DATABASE_RUNTIME_URL ?? process.env.DATABASE_URL ?? 'mysql://medini_app:***@localhost:3306/medini_dev';
 const TEST_ORG = 'aaaaaaaa-5a5a-4a5a-8a5a-000000000703';
 const probe = pingDatabase(ADMIN_URL).then((ok) => ok);
 function dbIt(name: string, fn: () => Promise<void>): void {
@@ -22,10 +22,10 @@ const P = {
   ba: '70d1f1a3-0000-4000-8000-0000000000cc',
   dr: '70d1f1a3-0000-4000-8000-0000000000dd',
 };
-const hq = { staffId: P.hq, username: 'hq-s7a', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
-const bm = (b: string) => ({ staffId: P.bm, username: 'bm-s7a', role: 'branch_manager', orgId: TEST_ORG, branchId: b, doctorId: null });
-const ba = (b: string) => ({ staffId: P.ba, username: 'ba-s7a', role: 'branch_admin', orgId: TEST_ORG, branchId: b, doctorId: null });
-const doc = (b: string) => ({ staffId: P.dr, username: 'dr-s7a', role: 'doctor', orgId: TEST_ORG, branchId: b, doctorId: P.dr });
+const hq = { staffId: P.hq, name: 'HQ S7A', username: 'hq-s7a', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const bm = (b: string) => ({ staffId: P.bm, name: 'BM S7A', username: 'bm-s7a', role: 'branch_manager', orgId: TEST_ORG, branchId: b, doctorId: null });
+const ba = (b: string) => ({ staffId: P.ba, name: 'BA S7A', username: 'ba-s7a', role: 'branch_admin', orgId: TEST_ORG, branchId: b, doctorId: null });
+const doc = (b: string) => ({ staffId: P.dr, name: 'Doctor S7A', username: 'dr-s7a', role: 'doctor', orgId: TEST_ORG, branchId: b, doctorId: P.dr });
 
 function build(db: ReturnType<typeof createFreshDatabase>['db'], audit: InMemoryAuditAdapter) {
   return new AiManagerService(new DbContextService(db), new AiManagerRepository(), new AuditService(audit));

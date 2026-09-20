@@ -88,8 +88,8 @@ describe('S9 reports endpoints — integration (live PG)', () => {
 
     const { db, close } = createFreshDatabase(RUNTIME_URL);
     const svc = makeService(db);
-    const hq = { staffId: '90d1f1a2-0000-4000-8000-000000000099', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
-    const mgr = { staffId: '90d1f1a2-0000-4000-8000-000000000098', username: 'bm', role: 'branch_manager', orgId: ORG, branchId: b1, doctorId: null };
+    const hq = { staffId: '90d1f1a2-0000-4000-8000-000000000099', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
+    const mgr = { staffId: '90d1f1a2-0000-4000-8000-000000000098', name: 'Test User', username: 'bm', role: 'branch_manager', orgId: ORG, branchId: b1, doctorId: null };
 
     /* --- HQ: org-wide KPIs (7D window covers seeded rows) --- */
     const hqKpis = await svc.kpis(hq, '7D');
@@ -152,8 +152,8 @@ describe('S9 reports endpoints — integration (live PG)', () => {
     expect((seedRows as unknown as { rows: Array<{ n: number }> }).rows[0]!.n).toBe(4);
 
     /* --- denied roles: doctor / receptionist (Q1) --- */
-    const doc = { staffId: '90d1f1a2-0000-4000-8000-000000000097', username: 'd', role: 'doctor', orgId: ORG, branchId: b1, doctorId: 'dr' };
-    const rec = { staffId: '90d1f1a2-0000-4000-8000-000000000096', username: 'r', role: 'receptionist', orgId: ORG, branchId: b1, doctorId: null };
+    const doc = { staffId: '90d1f1a2-0000-4000-8000-000000000097', name: 'Test User', username: 'd', role: 'doctor', orgId: ORG, branchId: b1, doctorId: 'dr' };
+    const rec = { staffId: '90d1f1a2-0000-4000-8000-000000000096', name: 'Test User', username: 'r', role: 'receptionist', orgId: ORG, branchId: b1, doctorId: null };
     await expect(svc.kpis(doc, '7D')).rejects.toBeInstanceOf(ForbiddenError);
     await expect(svc.kpis(rec, '7D')).rejects.toBeInstanceOf(ForbiddenError);
 
@@ -184,7 +184,7 @@ describe('S9 reports endpoints — integration (live PG)', () => {
     await purge(admin.db);
     const { db, close } = createFreshDatabase(RUNTIME_URL);
     const svc = makeService(db);
-    const hq = { staffId: '90d1f1a2-0000-4000-8000-000000000099', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
+    const hq = { staffId: '90d1f1a2-0000-4000-8000-000000000099', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG, branchId: null, doctorId: null };
 
     const kpis = await svc.kpis(hq, '30D');
     expect(Number(kpis.cards.find((c) => c.kpiKey === 'revenue')!.value)).toBe(0);

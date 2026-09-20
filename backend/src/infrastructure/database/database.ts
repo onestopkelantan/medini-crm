@@ -22,7 +22,21 @@ import * as schema from './schema';
  * PostgreSQL-specific repository code forever. Remove it after the MySQL
  * repository refactor and regression tests are complete.
  */
-export type Database = any;
+export interface Database {
+  transaction<T>(
+    callback: (tx: Database) => Promise<T>,
+    config?: unknown,
+  ): Promise<T>;
+
+  execute(query: unknown): Promise<CompatExecuteResult>;
+
+  insert(table: any): any;
+  update(table: any): any;
+  delete(table: any): any;
+  select(...args: any[]): any;
+
+  [key: string]: any;
+}
 
 let pool: Pool | null = null;
 
@@ -182,8 +196,7 @@ function wrapDelete(db: any, table: any, builder: any, state: { where?: SQL } = 
 }
 
 function wrapDatabase(rawDb: any): Database {
-  let proxy: any;
-  proxy = new Proxy(rawDb, {
+  const proxy: any = new Proxy(rawDb, {
     get(target, prop) {
       if (prop === 'insert') {
         return (table: any) => wrapInsert(proxy, table, target.insert(table));

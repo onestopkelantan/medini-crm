@@ -8,8 +8,8 @@ import { AdministrationService } from '@modules/administration/application/admin
 import { canTransitionStaffStatus } from '@modules/administration/domain/administration-lifecycle';
 import { ForbiddenError, ConflictError, ValidationError } from '@shared/errors/errors';
 
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:***@localhost:5433/medini_dev';
-const RUNTIME_URL = process.env.DATABASE_RUNTIME_URL ?? process.env.DATABASE_URL ?? 'postgres://medini_app:***@localhost:5433/medini_dev';
+const ADMIN_URL = process.env.DATABASE_URL ?? 'mysql://medini:***@localhost:3306/medini_dev';
+const RUNTIME_URL = process.env.DATABASE_RUNTIME_URL ?? process.env.DATABASE_URL ?? 'mysql://medini_app:***@localhost:3306/medini_dev';
 const TEST_ORG = 'aaaaaaaa-5a5a-4a5a-8a5a-000000000701';
 const probe = pingDatabase(ADMIN_URL).then((ok) => ok);
 function dbIt(name: string, fn: () => Promise<void>): void {
@@ -25,9 +25,9 @@ const P = {
   dr: '70d1f1a1-0000-4000-8000-0000000000dd',
   target: '70d1f1a1-0000-4000-8000-0000000000ee',
 };
-const hq = { staffId: P.hq1, username: 'hq-s7', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
-const hq2 = { staffId: P.hq2, username: 'hq2-s7', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
-const bm = (branchId: string) => ({ staffId: P.bm, username: 'bm-s7', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null });
+const hq = { staffId: P.hq1, name: 'HQ S7', username: 'hq-s7', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const hq2 = { staffId: P.hq2, name: 'HQ2 S7', username: 'hq2-s7', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const bm = (branchId: string) => ({ staffId: P.bm, name: 'BM S7', username: 'bm-s7', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null });
 
 function build(db: ReturnType<typeof createFreshDatabase>['db'], audit: InMemoryAuditAdapter) {
   const ctx = new DbContextService(db);
@@ -204,7 +204,7 @@ describe('S7 Administration — RBAC (HQ only) + lifecycle + last-HQ + versioned
     /* suspend HQ2 → DENY (HQ1 suspended no longer counts as ACTIVE — N7-1).
      * actor is hq2 acting on hq2 → would be self-protection; use a third hq
      * actor to isolate the last-HQ guard. */
-    const hq3 = { staffId: '70d1f1a1-0000-4000-8000-0000000000a3', username: 'hq3-s7', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+    const hq3 = { staffId: '70d1f1a1-0000-4000-8000-0000000000a3', name: 'Test User', username: 'hq3-s7', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
     await expect(svc.transitionStaff(hq3, P.hq2, 'suspend', { reason: 'second' })).rejects.toBeInstanceOf(ConflictError);
     /* final state: HQ2 still ACTIVE (exactly 1 active HQ) */
     const final = await svc.getStaff(hq2, P.hq2);
@@ -227,7 +227,7 @@ describe('S7 Administration — RBAC (HQ only) + lifecycle + last-HQ + versioned
       const c2 = createFreshDatabase(RUNTIME_URL);
       const svcA = build(c1.db, audit);
       const svcB = build(c2.db, audit);
-      const actor = { staffId: P.hq2, username: 'actor', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+      const actor = { staffId: P.hq2, name: 'Test User', username: 'actor', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
       const [resA, resB] = await Promise.allSettled([
         svcA.transitionStaff(actor, P.hq1, 'suspend', { reason: 'race A' }),
         svcB.transitionStaff(actor, P.hq2, 'suspend', { reason: 'race B' }),

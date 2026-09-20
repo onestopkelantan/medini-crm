@@ -292,8 +292,8 @@ describe('S9 reports foundation — integration (live PG)', () => {
     const appts = new AppointmentsReadPort(db);
     const clinical = new ClinicalReadPort(db);
     const recall = new RecallReadPort(db);
-    const hq = { staffId: 'x', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
-    const mgr = { staffId: 'y', username: 'bm', role: 'branch_manager', orgId: ORG_A, branchId: b1, doctorId: null };
+    const hq = { staffId: 'x', name: 'Test User', username: 'hq', role: 'hq', orgId: ORG_A, branchId: null, doctorId: null };
+    const mgr = { staffId: 'y', name: 'Test User', username: 'bm', role: 'branch_manager', orgId: ORG_A, branchId: b1, doctorId: null };
     const from = '2026-08-01'; const to = '2026-08-31';
 
     /* HQ org-wide */

@@ -10,9 +10,10 @@ import { FinanceClinicalRepository } from '@modules/finance/infrastructure/finan
 import { ClinicalFinanceService } from '@modules/finance/application/clinical-finance.service';
 import { ClinicalReadPort } from '@shared/ports/clinical.read-port';
 import { ConflictError } from '@shared/errors/errors';
+import { randomUUID } from 'node:crypto';
 
 /**
- * S4 P1 REMEDIATION — financial-integrity regression (live PG, real concurrency).
+ * S4 P1 REMEDIATION — financial-integrity regression (live MySQL, real concurrency).
  *
  *  P1-1  commission payout updates the ledger atomically (paid/outstanding/status),
  *        overpayment → 409, concurrent payouts serialize (one wins), same-tx audit.
@@ -23,14 +24,14 @@ import { ConflictError } from '@shared/errors/errors';
  *
  * Throwaway org + fixtures purged. Honest skip when DB unreachable.
  */
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:***@localhost:5433/medini_dev';
+const ADMIN_URL = process.env.DATABASE_URL ?? 'mysql://medini:***@localhost:3306/medini_dev';
 const RUNTIME_URL =
   process.env.DATABASE_RUNTIME_URL ??
   process.env.DATABASE_URL ??
-  'postgres://medini_app:***@localhost:5433/medini_dev';
+  'mysql://medini_app:***@localhost:3306/medini_dev';
 
 const probe = pingDatabase(ADMIN_URL).then((ok) => {
-  if (!ok) console.warn('[finance.p1] PG unreachable — SKIPPING (honest skip).');
+  if (!ok) console.warn('[finance.p1] MySQL unreachable — SKIPPING (honest skip).');
   return ok;
 });
 
@@ -49,7 +50,7 @@ const STAFF = '00000000-0000-0000-0000-0000000000aa';
 const DOCTOR = '00000000-0000-0000-0000-0000000000dd';
 
 function hq() {
-  return { staffId: STAFF, username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+  return { staffId: STAFF, name: 'HQ Finance P1', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
 }
 
 class RecordingAudit extends AuditPort {
@@ -58,9 +59,9 @@ class RecordingAudit extends AuditPort {
     if (tx) {
       const t = tx as { execute: (q: unknown) => Promise<unknown> };
       return t.execute(
-        sql`INSERT INTO audit_log (org_id, branch_id, actor_id, actor_role, action, entity, entity_id, before, after, source, correlation_id)
-            VALUES (${event.orgId}, ${event.branchId}, ${event.actorId}, ${event.actorRole}, ${event.action}, ${event.entity}, ${event.entityId},
-                    ${event.before ? JSON.stringify(event.before) : null}::jsonb, ${event.after ? JSON.stringify(event.after) : null}::jsonb,
+        sql`INSERT INTO audit_log (id, org_id, branch_id, actor_id, actor_role, action, entity, entity_id, before, after, source, correlation_id)
+            VALUES (${randomUUID()}, ${event.orgId}, ${event.branchId}, ${event.actorId}, ${event.actorRole}, ${event.action}, ${event.entity}, ${event.entityId},
+                    ${event.before ? JSON.stringify(event.before) : null}, ${event.after ? JSON.stringify(event.after) : null},
                     ${event.source}, ${event.correlationId})`,
       ).then(() => { this.events.push(event); });
     }
@@ -79,20 +80,23 @@ function buildSvc(db: ReturnType<typeof createFreshDatabase>['db'], audit?: Audi
 let branchId = '';
 
 async function fixtures(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<void> {
-  const b = await admin.execute(sql`SELECT id::text AS id FROM branches WHERE org_id = ${'00000000-0000-0000-0000-000000000001'} AND deleted_at IS NULL ORDER BY code LIMIT 1`);
+  const b = await admin.execute(sql`SELECT CAST(id AS CHAR) AS id FROM branches WHERE org_id = ${'00000000-0000-0000-0000-000000000001'} AND deleted_at IS NULL ORDER BY code LIMIT 1`);
   branchId = String((b as unknown as { rows: Array<{ id: string }> }).rows[0]!.id);
   /* doctor identity for commission linkage (FK to staff) */
   await admin.execute(sql`
     INSERT INTO staff (id, org_id, branch_id, name, username, role, status)
     VALUES (${DOCTOR}, ${TEST_ORG}, ${branchId}, 'P1 Doctor', ${'p1-doc-' + Date.now()}, 'doctor', 'Active')
-    ON CONFLICT (id) DO NOTHING
+    ON DUPLICATE KEY UPDATE id = id
   `);
   /* NOTE: only the commission sequence is created for the throwaway org
    * (calculateCommission uses OrgAllocator.nextCommissionCode). Lab/ledger
    * seed helpers insert codes directly via raw SQL (no OrgAllocator). The
    * canonical-org finance sequences are asserted separately in finance.schema. */
-  const key = TEST_ORG.replace(/-/g, '').slice(-8).toLowerCase();
-  await admin.execute(sql`CREATE SEQUENCE IF NOT EXISTS ${sql.raw(`medini_com_${key}`)} START WITH 1`);
+  await admin.execute(sql`
+    INSERT INTO org_counters (org_id, prefix, counter_value)
+    VALUES (${TEST_ORG}, 'com', 0)
+    ON DUPLICATE KEY UPDATE counter_value = counter_value
+  `);
 }
 
 async function purge(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<void> {
@@ -100,6 +104,7 @@ async function purge(admin: ReturnType<typeof createFreshDatabase>['db']): Promi
   await admin.execute(sql`DELETE FROM commission_ledger WHERE org_id = ${TEST_ORG}`);
   await admin.execute(sql`DELETE FROM lab_payables WHERE org_id = ${TEST_ORG}`);
   await admin.execute(sql`DELETE FROM audit_log WHERE org_id = ${TEST_ORG}`);
+  await admin.execute(sql`DELETE FROM org_counters WHERE org_id = ${TEST_ORG}`);
   await admin.execute(sql`DELETE FROM staff WHERE org_id = ${TEST_ORG}`);
 }
 
@@ -108,40 +113,62 @@ async function purge(admin: ReturnType<typeof createFreshDatabase>['db']): Promi
 async function seedLedger(admin: ReturnType<typeof createFreshDatabase>['db'], opts: {
   net?: string; paid?: string; outstanding?: string; status?: string; period?: string; doctor?: string;
 } = {}): Promise<string> {
-  const net = opts.net ?? '1000'; const paid = opts.paid ?? '0';
-  const outstanding = opts.outstanding ?? net; const status = opts.status ?? 'approved';
-  const period = opts.period ?? 'P1-' + Date.now(); const doctor = opts.doctor ?? DOCTOR;
-  /* gross=2500, costs=0, base=2500, rate=0.40 → commission_amount=1000 (matches `net`). */
+  const net = opts.net ?? '1000';
+  const paid = opts.paid ?? '0';
+  const outstanding = opts.outstanding ?? net;
+  const status = opts.status ?? 'approved';
+  const period = opts.period ?? 'P1-' + Date.now();
+  const doctor = opts.doctor ?? DOCTOR;
   const gross = (parseFloat(net) / 0.40).toFixed(4);
-  const r = await admin.execute(sql`
-    INSERT INTO commission_ledger (org_id, branch_id, doctor_id, commission_code, period, gross_revenue, eligible_direct_costs, commission_base, rate, commission_amount, net_payable, paid_amount, outstanding_amount, status)
-    VALUES (${TEST_ORG}, ${branchId}, ${doctor}, ${'COM-P1-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)}, ${period}, ${gross}, 0, ${gross}, 0.40, ${net}, ${net}, ${paid}, ${outstanding}, ${status})
-    RETURNING id::text AS id
+  const id = randomUUID();
+
+  await admin.execute(sql`
+    INSERT INTO commission_ledger
+      (id, org_id, branch_id, doctor_id, commission_code, period,
+       gross_revenue, eligible_direct_costs, commission_base, rate,
+       commission_amount, net_payable, paid_amount, outstanding_amount, status)
+    VALUES
+      (${id}, ${TEST_ORG}, ${branchId}, ${doctor},
+       ${'COM-P1-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)},
+       ${period}, ${gross}, 0, ${gross}, 0.40,
+       ${net}, ${net}, ${paid}, ${outstanding}, ${status})
   `);
-  return String((r as unknown as { rows: Array<{ id: string }> }).rows[0]!.id);
+
+  return id;
 }
 
 async function ledgerState(admin: ReturnType<typeof createFreshDatabase>['db'], id: string) {
-  const r = await admin.execute(sql`SELECT paid_amount::text AS paid, outstanding_amount::text AS outstanding, status FROM commission_ledger WHERE id = ${id}`);
+  const r = await admin.execute(sql`SELECT CAST(paid_amount AS CHAR) AS paid, CAST(outstanding_amount AS CHAR) AS outstanding, status FROM commission_ledger WHERE id = ${id}`);
   return (r as unknown as { rows: Array<{ paid: string; outstanding: string; status: string }> }).rows[0]!;
 }
 
 /** Insert an OUTSTANDING lab payable directly. */
-async function seedLab(admin: ReturnType<typeof createFreshDatabase>['db'], amount = '1000', status = 'OUTSTANDING'): Promise<string> {
-  const r = await admin.execute(sql`
-    INSERT INTO lab_payables (org_id, branch_id, lab_code, lab_name, amount, paid_amount, outstanding_amount, due_date, status)
-    VALUES (${TEST_ORG}, ${branchId}, ${'LAB-P1-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)}, 'P1 Lab', ${amount}, '0', ${amount}, '2026-09-01', ${status})
-    RETURNING id::text AS id
+async function seedLab(
+  admin: ReturnType<typeof createFreshDatabase>['db'],
+  amount = '1000',
+  status = 'OUTSTANDING',
+): Promise<string> {
+  const id = randomUUID();
+
+  await admin.execute(sql`
+    INSERT INTO lab_payables
+      (id, org_id, branch_id, lab_code, lab_name,
+       amount, paid_amount, outstanding_amount, due_date, status)
+    VALUES
+      (${id}, ${TEST_ORG}, ${branchId},
+       ${'LAB-P1-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)},
+       'P1 Lab', ${amount}, '0', ${amount}, '2026-09-01', ${status})
   `);
-  return String((r as unknown as { rows: Array<{ id: string }> }).rows[0]!.id);
+
+  return id;
 }
 
 async function labState(admin: ReturnType<typeof createFreshDatabase>['db'], id: string) {
-  const r = await admin.execute(sql`SELECT paid_amount::text AS paid, outstanding_amount::text AS outstanding, status FROM lab_payables WHERE id = ${id}`);
+  const r = await admin.execute(sql`SELECT CAST(paid_amount AS CHAR) AS paid, CAST(outstanding_amount AS CHAR) AS outstanding, status FROM lab_payables WHERE id = ${id}`);
   return (r as unknown as { rows: Array<{ paid: string; outstanding: string; status: string }> }).rows[0]!;
 }
 
-describe('S4 P1 remediation (live PG, real concurrency)', () => {
+describe('S4 P1 remediation (live MySQL, real concurrency)', () => {
   /* ============ P1-1: payout updates ledger atomically ============ */
   dbIt('P1-1 partial payout updates paid/outstanding; full payout sets status=paid', async () => {
     const admin = createFreshDatabase(ADMIN_URL);
@@ -179,7 +206,7 @@ describe('S4 P1 remediation (live PG, real concurrency)', () => {
     const s = await ledgerState(admin.db, ledgerId);
     expect(parseFloat(s.paid)).toBe(0);
     expect(parseFloat(s.outstanding)).toBe(2800);
-    const payouts = await admin.db.execute(sql`SELECT COUNT(*)::int AS c FROM commission_payouts WHERE commission_ledger_id = ${ledgerId}`);
+    const payouts = await admin.db.execute(sql`SELECT CAST(COUNT(*) AS SIGNED) AS c FROM commission_payouts WHERE commission_ledger_id = ${ledgerId}`);
     expect(Number((payouts as unknown as { rows: Array<{ c: number }> }).rows[0]!.c)).toBe(0);
 
     await purge(admin.db); await admin.close(); await close();
@@ -220,7 +247,7 @@ describe('S4 P1 remediation (live PG, real concurrency)', () => {
     const s = await ledgerState(admin.db, ledgerId);
     expect(parseFloat(s.paid)).toBe(700);
     expect(parseFloat(s.outstanding)).toBe(300);
-    const payouts = await admin.db.execute(sql`SELECT COUNT(*)::int AS c FROM commission_payouts WHERE commission_ledger_id = ${ledgerId}`);
+    const payouts = await admin.db.execute(sql`SELECT CAST(COUNT(*) AS SIGNED) AS c FROM commission_payouts WHERE commission_ledger_id = ${ledgerId}`);
     expect(Number((payouts as unknown as { rows: Array<{ c: number }> }).rows[0]!.c)).toBe(1); /* exactly ONE payout row */
 
     await purge(admin.db); await admin.close(); await a.close(); await b.close();
@@ -250,7 +277,7 @@ describe('S4 P1 remediation (live PG, real concurrency)', () => {
     expect(ok).toBe(1);
     expect(conflict).toBe(1);
 
-    const rows = await admin.db.execute(sql`SELECT COUNT(*)::int AS c FROM commission_ledger WHERE org_id = ${TEST_ORG} AND doctor_id = ${DOCTOR} AND period = ${period} AND deleted_at IS NULL`);
+    const rows = await admin.db.execute(sql`SELECT CAST(COUNT(*) AS SIGNED) AS c FROM commission_ledger WHERE org_id = ${TEST_ORG} AND doctor_id = ${DOCTOR} AND period = ${period} AND deleted_at IS NULL`);
     expect(Number((rows as unknown as { rows: Array<{ c: number }> }).rows[0]!.c)).toBe(1); /* EXACTLY ONE active ledger */
 
     await purge(admin.db); await admin.close(); await a.close(); await b.close();

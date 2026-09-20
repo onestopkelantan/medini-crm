@@ -44,6 +44,8 @@ export class PermissionGuard implements CanActivate {
      */
     if (
       principal.role === 'branch_manager' &&
+      required.domain === 'appointments' &&
+      required.action === 'edit' &&
       target.branchId == null &&
       principal.branchId
     ) {

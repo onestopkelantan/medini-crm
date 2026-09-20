@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTableConfig } from 'drizzle-orm/pg-core';
+import { getTableConfig } from 'drizzle-orm/mysql-core';
 import * as schema from '@infrastructure/database/schema';
 
 describe('database schema — canonical model structure', () => {

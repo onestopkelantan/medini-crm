@@ -18,7 +18,7 @@ function dbIt(name: string, fn: () => Promise<void>): void {
   it(name, async (ctx) => { if (!(await probe)) { ctx.skip(); return; } await fn(); });
 }
 
-const hq = { staffId: '70d1f1a4-0000-4000-8000-0000000000a1', username: 'hq-s7x', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const hq = { staffId: '70d1f1a4-0000-4000-8000-0000000000a1', name: 'Test User', username: 'hq-s7x', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
 
 describe('S7-T4 Cross-domain governance contracts (ports)', () => {
   dbIt('ConfigResolverPort: domain-neutral effective resolution + isEnabled + unknown key fail-safe', async () => {

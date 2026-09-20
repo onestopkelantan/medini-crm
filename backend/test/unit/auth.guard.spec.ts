@@ -34,7 +34,7 @@ function httpCtx(req: FakeReq): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-const staff: Principal = { staffId: 's1', username: 'hq', role: 'hq', orgId: 'org-1', branchId: null, doctorId: null };
+const staff: Principal = { staffId: 's1', name: 'HQ User', username: 'hq', role: 'hq', orgId: 'org-1', branchId: null, doctorId: null };
 
 describe('AuthGuard (authentication gate)', () => {
   it('401 when no Authorization header', async () => {

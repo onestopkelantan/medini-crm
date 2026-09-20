@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { pingDatabase, createFreshDatabase } from '@infrastructure/database/database';
@@ -5,206 +6,345 @@ import { AppointmentsRepository } from '@modules/appointments/infrastructure/app
 import { OrgAllocator } from '@shared/allocators/org-allocator';
 import { canTransition } from '@modules/appointments/domain/appointment-flow';
 
-const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://medini:medini_dev_password@localhost:5433/medini_dev';
+const ADMIN_URL =
+  process.env.DATABASE_URL ??
+  'mysql://medini_admin:medini_dev_password@localhost:3306/medini_dev';
+
 const RUNTIME_URL =
   process.env.DATABASE_RUNTIME_URL ??
   process.env.DATABASE_URL ??
-  'postgres://medini_app:medini_app_password@localhost:5433/medini_dev';
+  'mysql://medini_app:medini_app_password@localhost:3306/medini_dev';
 
-const probe = pingDatabase(ADMIN_URL).then((ok) => {
-  if (!ok) console.warn('[appointments] PostgreSQL not reachable — SKIPPING (honest skip).');
+const probe = Promise.all([
+  pingDatabase(ADMIN_URL),
+  pingDatabase(RUNTIME_URL),
+]).then(([adminOk, runtimeOk]) => {
+  const ok = adminOk && runtimeOk;
+  if (!ok) {
+    console.warn(
+      '[appointments] MySQL admin/runtime database not reachable - SKIPPING (honest skip).',
+    );
+  }
   return ok;
 });
 
 function dbIt(name: string, fn: () => Promise<void>): void {
   it(name, async (ctx) => {
     const ok = await probe;
-    if (!ok) { ctx.skip(); return; }
+    if (!ok) {
+      ctx.skip();
+      return;
+    }
     await fn();
   });
 }
 
 const TEST_ORG = '99999999-9999-9999-9999-999999999990';
+const TEST_BRANCH = '99999999-9999-9999-9999-999999999991';
+const TEST_DOCTOR = '99999999-9999-9999-9999-999999999992';
 
-/** Wipe any leftover fixtures for TEST_ORG so runs are idempotent. */
-async function ensureTestSequence(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<void> {
-  const key = TEST_ORG.replace(/-/g, '').slice(-8).toLowerCase();
-  await admin.execute(sql`CREATE SEQUENCE IF NOT EXISTS ${sql.raw(`medini_apt_${key}`)} START WITH 1`);
-  await admin.execute(sql`ALTER SEQUENCE ${sql.raw(`medini_apt_${key}`)} RESTART WITH 1`);
-}
-
-async function purgeTestData(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<void> {
-  await admin.execute(sql`DELETE FROM appointments WHERE org_id = ${TEST_ORG}`);
-  await admin.execute(sql`DELETE FROM patients WHERE org_id = ${TEST_ORG}`);
-}
-
-async function branchId(admin: ReturnType<typeof createFreshDatabase>['db']): Promise<string> {
-  const rows = await admin.execute(sql`SELECT id::text AS id FROM branches LIMIT 1`);
-  return (rows as unknown as { rows: Array<{ id: string }> }).rows[0]!.id;
-}
-
-async function seedPatient(admin: ReturnType<typeof createFreshDatabase>['db'], bId: string): Promise<string> {
-  const rows = await admin.execute(
-    sql`INSERT INTO patients (org_id, branch_id, mrn, name)
-        VALUES (${TEST_ORG}, ${bId}, 'MDN-TSTAP', 'Appt Patient')
-        RETURNING id::text AS id`,
+async function purgeTestData(
+  admin: ReturnType<typeof createFreshDatabase>['db'],
+): Promise<void> {
+  await admin.execute(
+    sql`DELETE FROM appointments WHERE org_id = ${TEST_ORG}`,
   );
-  return (rows as unknown as { rows: Array<{ id: string }> }).rows[0]!.id;
+
+  await admin.execute(
+    sql`DELETE FROM patients WHERE org_id = ${TEST_ORG}`,
+  );
+
+  await admin.execute(
+    sql`DELETE FROM org_counters WHERE org_id = ${TEST_ORG}`,
+  );
+
+  await admin.execute(
+    sql`DELETE FROM staff WHERE org_id = ${TEST_ORG}`,
+  );
+
+  await admin.execute(
+    sql`DELETE FROM branches WHERE org_id = ${TEST_ORG}`,
+  );
+
+  await admin.execute(
+    sql`DELETE FROM organizations WHERE id = ${TEST_ORG}`,
+  );
 }
 
-describe('appointments module — integration (live PG)', () => {
-  dbIt('book creates an appointment with code APT-0001 and status booked', async () => {
-    const admin = createFreshDatabase(ADMIN_URL);
-    await ensureTestSequence(admin.db);
-    await purgeTestData(admin.db);
-    const bId = await branchId(admin.db);
-    const patientId = await seedPatient(admin.db, bId);
+async function prepareFixtures(
+  admin: ReturnType<typeof createFreshDatabase>['db'],
+): Promise<void> {
+  await purgeTestData(admin);
 
-    const { db, close } = createFreshDatabase(RUNTIME_URL);
-    const repo = new AppointmentsRepository();
-    const appt = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-      await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-      const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
-      return repo.create(tx, TEST_ORG, bId, {
-        code, patientId, patientName: 'Appt Patient',
-        scheduledDate: '2026-09-01', scheduledTime: '09:00', durationMin: 30,
-      });
-    });
-    expect(appt.code).toBe('APT-0001');
-    expect(appt.status).toBe('booked');
+  await admin.execute(sql`
+    INSERT INTO organizations (id, name)
+    VALUES (${TEST_ORG}, 'Appointments Integration Test')
+  `);
 
-    /* cleanup via admin (runtime has no DELETE) */
-    await admin.db.execute(sql`DELETE FROM appointments WHERE id = ${appt.id}`);
-    await admin.db.execute(sql`DELETE FROM patients WHERE id = ${patientId}`);
-    await admin.close();
-    await close();
-  });
+  await admin.execute(sql`
+    INSERT INTO branches (
+      id,
+      org_id,
+      code,
+      short_name,
+      full_name
+    )
+    VALUES (
+      ${TEST_BRANCH},
+      ${TEST_ORG},
+      'appt-test',
+      'Appt Test',
+      'Appointments Integration Test Branch'
+    )
+  `);
 
-  dbIt('double-booking: same doctor overlapping time is rejected', async () => {
-    const admin = createFreshDatabase(ADMIN_URL);
-    await ensureTestSequence(admin.db);
-    await purgeTestData(admin.db);
-    const bId = await branchId(admin.db);
-    const patientId = await seedPatient(admin.db, bId);
-    const doctorId = await (async () => {
-      const r = await admin.db.execute(sql`SELECT id::text AS id FROM staff WHERE role='doctor' LIMIT 1`);
-      return (r as unknown as { rows: Array<{ id: string }> }).rows[0]!.id;
-    })();
+  await admin.execute(sql`
+    INSERT INTO staff (
+      id,
+      org_id,
+      branch_id,
+      name,
+      username,
+      role
+    )
+    VALUES (
+      ${TEST_DOCTOR},
+      ${TEST_ORG},
+      ${TEST_BRANCH},
+      'Appointment Test Doctor',
+      'appointment-test-doctor',
+      'doctor'
+    )
+  `);
+}
 
-    const { db, close } = createFreshDatabase(RUNTIME_URL);
-    const repo = new AppointmentsRepository();
-    const run = () =>
-      db.transaction(async (tx) => {
-        await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-        await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
+async function seedPatient(
+  admin: ReturnType<typeof createFreshDatabase>['db'],
+): Promise<string> {
+  const id = randomUUID();
+
+  await admin.execute(sql`
+    INSERT INTO patients (
+      id,
+      org_id,
+      branch_id,
+      mrn,
+      name
+    )
+    VALUES (
+      ${id},
+      ${TEST_ORG},
+      ${TEST_BRANCH},
+      'MDN-TSTAP',
+      'Appt Patient'
+    )
+  `);
+
+  return id;
+}
+
+describe('appointments module - integration (MySQL)', () => {
+  dbIt(
+    'book creates an appointment with code APT-0001 and status booked',
+    async () => {
+      const admin = createFreshDatabase(ADMIN_URL);
+      await prepareFixtures(admin.db);
+
+      const patientId = await seedPatient(admin.db);
+
+      const { db, close } = createFreshDatabase(RUNTIME_URL);
+      const repo = new AppointmentsRepository();
+
+      const appt = await db.transaction(async (tx) => {
         const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
-        return repo.create(tx, TEST_ORG, bId, {
-          code, patientId, patientName: 'Appt Patient',
-          doctorId, scheduledDate: '2026-09-02', scheduledTime: '10:00', durationMin: 60,
+
+        return repo.create(tx, TEST_ORG, TEST_BRANCH, {
+          code,
+          patientId,
+          patientName: 'Appt Patient',
+          scheduledDate: '2026-09-01',
+          scheduledTime: '09:00',
+          durationMin: 30,
         });
       });
 
-    const a = await run();
-    const clash = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-      await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-      return repo.findDoctorOverlap(tx, TEST_ORG, bId, doctorId, '2026-09-02', '10:30', 60);
-    });
-    expect(clash?.id).toBe(a.id);
+      expect(appt.code).toBe('APT-0001');
+      expect(appt.status).toBe('booked');
 
-    await admin.db.execute(sql`DELETE FROM appointments WHERE id = ${a.id}`);
-    await admin.db.execute(sql`DELETE FROM patients WHERE id = ${patientId}`);
-    await admin.close();
-    await close();
-  });
+      await close();
+      await purgeTestData(admin.db);
+      await admin.close();
+    },
+  );
 
-  dbIt('status transition + version optimistic lock works end to end', async () => {
-    const admin = createFreshDatabase(ADMIN_URL);
-    await ensureTestSequence(admin.db);
-    await purgeTestData(admin.db);
-    const bId = await branchId(admin.db);
-    const patientId = await seedPatient(admin.db, bId);
+  dbIt(
+    'double-booking: same doctor overlapping time is rejected',
+    async () => {
+      const admin = createFreshDatabase(ADMIN_URL);
+      await prepareFixtures(admin.db);
 
-    const { db, close } = createFreshDatabase(RUNTIME_URL);
-    const repo = new AppointmentsRepository();
-    const appt = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-      await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-      const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
-      return repo.create(tx, TEST_ORG, bId, {
-        code, patientId, patientName: 'Appt Patient',
-        scheduledDate: '2026-09-03', scheduledTime: '11:00',
-      });
-    });
+      const patientId = await seedPatient(admin.db);
 
-    expect(canTransition('booked', 'confirmed')).toBe(true);
-    const updated = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-      await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-      return repo.updateStatus(tx, TEST_ORG, appt.id, 'confirmed', appt.version);
-    });
-    expect(updated?.status).toBe('confirmed');
-    expect(updated?.version).toBe(2);
+      const { db, close } = createFreshDatabase(RUNTIME_URL);
+      const repo = new AppointmentsRepository();
 
-    /* stale version → null (concurrent modification denied) */
-    const stale = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-      await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-      return repo.updateStatus(tx, TEST_ORG, appt.id, 'checked-in', 1);
-    });
-    expect(stale).toBeNull();
+      const run = () =>
+        db.transaction(async (tx) => {
+          const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
 
-    await admin.db.execute(sql`DELETE FROM appointments WHERE id = ${appt.id}`);
-    await admin.db.execute(sql`DELETE FROM patients WHERE id = ${patientId}`);
-    await admin.close();
-    await close();
-  });
-
-  dbIt('day queue returns only active statuses in time order', async () => {
-    const admin = createFreshDatabase(ADMIN_URL);
-    await ensureTestSequence(admin.db);
-    await purgeTestData(admin.db);
-    const bId = await branchId(admin.db);
-    const patientId = await seedPatient(admin.db, bId);
-
-    const { db, close } = createFreshDatabase(RUNTIME_URL);
-    const repo = new AppointmentsRepository();
-    const mk = async (time: string, status: string) => {
-      return db.transaction(async (tx) => {
-        await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-        await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-        const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
-        const a = await repo.create(tx, TEST_ORG, bId, {
-          code, patientId, patientName: 'Appt Patient',
-          scheduledDate: '2026-09-04', scheduledTime: time, durationMin: 30,
+          return repo.create(tx, TEST_ORG, TEST_BRANCH, {
+            code,
+            patientId,
+            patientName: 'Appt Patient',
+            doctorId: TEST_DOCTOR,
+            scheduledDate: '2026-09-02',
+            scheduledTime: '10:00',
+            durationMin: 60,
+          });
         });
-        if (status !== 'booked') await repo.updateStatus(tx, TEST_ORG, a.id, status, 1);
-        return a;
+
+      const appointment = await run();
+
+      const clash = await db.transaction(async (tx) =>
+        repo.findDoctorOverlap(
+          tx,
+          TEST_ORG,
+          TEST_BRANCH,
+          TEST_DOCTOR,
+          '2026-09-02',
+          '10:30',
+          60,
+        ),
+      );
+
+      expect(clash?.id).toBe(appointment.id);
+
+      await close();
+      await purgeTestData(admin.db);
+      await admin.close();
+    },
+  );
+
+  dbIt(
+    'status transition + version optimistic lock works end to end',
+    async () => {
+      const admin = createFreshDatabase(ADMIN_URL);
+      await prepareFixtures(admin.db);
+
+      const patientId = await seedPatient(admin.db);
+
+      const { db, close } = createFreshDatabase(RUNTIME_URL);
+      const repo = new AppointmentsRepository();
+
+      const appt = await db.transaction(async (tx) => {
+        const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
+
+        return repo.create(tx, TEST_ORG, TEST_BRANCH, {
+          code,
+          patientId,
+          patientName: 'Appt Patient',
+          scheduledDate: '2026-09-03',
+          scheduledTime: '11:00',
+        });
       });
-    };
-    const later = await mk('14:00', 'waiting');
-    const earlier = await mk('09:00', 'checked-in');
-    await mk('15:00', 'completed'); /* excluded from queue */
 
-    const queue = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.role', 'branch_manager', true)`);
-      await tx.execute(sql`SELECT set_config('app.org_id', ${TEST_ORG}, true)`);
-      await tx.execute(sql`SELECT set_config('app.branch_ids', ${bId}, true)`);
-      return repo.dayQueue(tx, TEST_ORG, bId, '2026-09-04');
-    });
-    expect(queue.map((q) => q.id)).toEqual([earlier.id, later.id]);
+      expect(canTransition('booked', 'confirmed')).toBe(true);
 
-    await admin.db.execute(sql`DELETE FROM appointments WHERE patient_id = ${patientId}`);
-    await admin.db.execute(sql`DELETE FROM patients WHERE id = ${patientId}`);
-    await admin.close();
-    await close();
-  });
+      const updated = await db.transaction((tx) =>
+        repo.updateStatus(
+          tx,
+          TEST_ORG,
+          appt.id,
+          'confirmed',
+          appt.version,
+        ),
+      );
+
+      expect(updated?.status).toBe('confirmed');
+      expect(updated?.version).toBe(2);
+
+      const stale = await db.transaction((tx) =>
+        repo.updateStatus(
+          tx,
+          TEST_ORG,
+          appt.id,
+          'checked-in',
+          1,
+        ),
+      );
+
+      expect(stale).toBeNull();
+
+      await close();
+      await purgeTestData(admin.db);
+      await admin.close();
+    },
+  );
+
+  dbIt(
+    'day queue returns only active statuses in time order',
+    async () => {
+      const admin = createFreshDatabase(ADMIN_URL);
+      await prepareFixtures(admin.db);
+
+      const patientId = await seedPatient(admin.db);
+
+      const { db, close } = createFreshDatabase(RUNTIME_URL);
+      const repo = new AppointmentsRepository();
+
+      const mk = async (time: string, status: string) =>
+        db.transaction(async (tx) => {
+          const code = await new OrgAllocator(tx).nextAptCode(TEST_ORG);
+
+          const appointment = await repo.create(
+            tx,
+            TEST_ORG,
+            TEST_BRANCH,
+            {
+              code,
+              patientId,
+              patientName: 'Appt Patient',
+              scheduledDate: '2026-09-04',
+              scheduledTime: time,
+              durationMin: 30,
+            },
+          );
+
+          if (status !== 'booked') {
+            await repo.updateStatus(
+              tx,
+              TEST_ORG,
+              appointment.id,
+              status,
+              1,
+            );
+          }
+
+          return appointment;
+        });
+
+      const later = await mk('14:00', 'waiting');
+      const earlier = await mk('09:00', 'checked-in');
+
+      await mk('15:00', 'completed');
+
+      const queue = await db.transaction((tx) =>
+        repo.dayQueue(
+          tx,
+          TEST_ORG,
+          TEST_BRANCH,
+          '2026-09-04',
+        ),
+      );
+
+      expect(queue.map((q: { id: string }) => q.id)).toEqual([
+        earlier.id,
+        later.id,
+      ]);
+
+      await close();
+      await purgeTestData(admin.db);
+      await admin.close();
+    },
+  );
 });

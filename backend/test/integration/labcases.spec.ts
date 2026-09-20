@@ -18,8 +18,8 @@ const probe = pingDatabase(ADMIN_URL).then((ok) => ok);
 function dbIt(name: string, fn: () => Promise<void>): void {
   it(name, async (ctx) => { if (!(await probe)) { ctx.skip(); return; } await fn(); });
 }
-const hq = { staffId: '00000000-0000-0000-0000-0000000000aa', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
-const bm = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000bb', username: 'bm', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null });
+const hq = { staffId: '00000000-0000-0000-0000-0000000000aa', name: 'Test User', username: 'hq', role: 'hq', orgId: TEST_ORG, branchId: null, doctorId: null };
+const bm = (branchId: string) => ({ staffId: '00000000-0000-0000-0000-0000000000bb', name: 'Test User', username: 'bm', role: 'branch_manager', orgId: TEST_ORG, branchId, doctorId: null });
 
 function build(db: ReturnType<typeof createFreshDatabase>['db'], audit: InMemoryAuditAdapter, idem: InMemoryIdempotencyAdapter) {
   const ctx = new DbContextService(db);
