@@ -17,9 +17,9 @@ export interface ReadinessReport {
 }
 
 /**
- * HealthService — honest dependency readiness.
- * Sprint 1: PostgreSQL is pinged for real when configured (never faked ok).
- * Redis/BullMQ arrives in the queue phase — still reported as pending.
+ * HealthService - honest dependency readiness.
+ * MySQL is pinged for real when configured (never faked ok).
+ * Redis is also probed through QueueRegistry.
  */
 @Injectable()
 export class HealthService {
@@ -38,41 +38,73 @@ export class HealthService {
   }
 
   async readiness(): Promise<ReadinessReport> {
-    const dbUrl = this.config.get<string>('database.url') ?? '';
+    const dbUrl = this.config.get<string>('database.runtimeUrl') ?? '';
     const redisConfigured = Boolean(this.config.get<string>('redis.url'));
 
-    /* PostgreSQL — real probe when configured. Honest status. */
-    let postgres: DependencyStatus;
+    /* MySQL - real probe using the same runtime connection as the application. */
+    let mysql: DependencyStatus;
+
     if (!dbUrl) {
-      postgres = { configured: false, status: 'not_configured', note: 'DATABASE_URL not set.' };
+      mysql = {
+        configured: false,
+        status: 'not_configured',
+        note: 'DATABASE_RUNTIME_URL / DATABASE_URL not set.',
+      };
     } else {
       const ok = await pingDatabase(dbUrl);
-      postgres = ok
-        ? { configured: true, status: 'ok', note: 'PostgreSQL reachable.' }
-        : { configured: true, status: 'degraded', note: 'PostgreSQL configured but UNREACHABLE.' };
+
+      mysql = ok
+        ? {
+            configured: true,
+            status: 'ok',
+            note: 'MySQL reachable.',
+          }
+        : {
+            configured: true,
+            status: 'degraded',
+            note: 'MySQL configured but UNREACHABLE.',
+          };
     }
 
-    /* Tier 1 (P7-F7): Redis is pinged for real when configured (never faked).
-     * The app reports 'degraded' overall if a CONFIGURED dependency is
-     * unreachable — honest readiness (BullMQ depends on Redis). */
+    /* Redis is pinged for real when configured. */
     let redis: DependencyStatus;
+
     if (!redisConfigured) {
-      redis = { configured: false, status: 'not_configured', note: 'REDIS_URL not set.' };
+      redis = {
+        configured: false,
+        status: 'not_configured',
+        note: 'REDIS_URL not set.',
+      };
     } else {
       const ok = await this.queues.ping();
+
       redis = ok
-        ? { configured: true, status: 'ok', note: 'Redis reachable.' }
-        : { configured: true, status: 'degraded', note: 'Redis configured but UNREACHABLE.' };
+        ? {
+            configured: true,
+            status: 'ok',
+            note: 'Redis reachable.',
+          }
+        : {
+            configured: true,
+            status: 'degraded',
+            note: 'Redis configured but UNREACHABLE.',
+          };
     }
 
-    const dependencies = { postgres, redis };
-    /* ready only if all configured deps ok; degraded if any configured-but-unreachable */
-    const anyDegraded = postgres.status === 'degraded' || redis.status === 'degraded';
+    const dependencies = { mysql, redis };
+
+    const anyDegraded =
+      mysql.status === 'degraded' ||
+      redis.status === 'degraded';
+
     const status: ReadinessReport['status'] =
-      postgres.status === 'ok' && !anyDegraded ? 'ready'
-      : postgres.status === 'degraded' ? 'degraded'
-      : anyDegraded ? 'degraded'
-      : 'not_ready';
+      mysql.status === 'ok' && !anyDegraded
+        ? 'ready'
+        : mysql.status === 'degraded'
+          ? 'degraded'
+          : anyDegraded
+            ? 'degraded'
+            : 'not_ready';
 
     return {
       status,

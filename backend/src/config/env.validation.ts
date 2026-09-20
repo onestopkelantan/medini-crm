@@ -65,19 +65,46 @@ export function validateEnv(config: Record<string, unknown>): Env {
     if (!env.DATABASE_URL) throw new Error('DATABASE_URL is required in production');
     if (!env.REDIS_URL) throw new Error('REDIS_URL is required in production');
 
-    /* GLM R1/R2 + Part 10/23/24: production runtime DB identity must be the
-     * non-owner RLS-subject role (medini_app), never the table owner, and never
-     * the development default credential. */
-    const runtimeUrl = env.DATABASE_RUNTIME_URL || env.DATABASE_URL;
+    /* Production MySQL runtime must use a dedicated least-privilege
+     * account. DATABASE_URL may be the migration/admin connection, while
+     * DATABASE_RUNTIME_URL is used by the application itself. */
     if (!env.DATABASE_RUNTIME_URL) {
-      throw new Error('DATABASE_RUNTIME_URL (non-owner medini_app) is required in production');
+      throw new Error('DATABASE_RUNTIME_URL is required in production');
     }
-    if (/medini_app_password/i.test(runtimeUrl)) {
-      throw new Error('DATABASE_RUNTIME_URL must not use the development default medini_app credential in production');
+
+    let adminDbUrl: URL;
+    let runtimeDbUrl: URL;
+
+    try {
+      adminDbUrl = new URL(env.DATABASE_URL);
+      runtimeDbUrl = new URL(env.DATABASE_RUNTIME_URL);
+    } catch {
+      throw new Error('DATABASE_URL and DATABASE_RUNTIME_URL must be valid database URLs');
     }
-    if (/postgres:\/\/medini:/i.test(runtimeUrl)) {
-      throw new Error('DATABASE_RUNTIME_URL must use the non-owner runtime role, not the table owner "medini"');
+
+    if (adminDbUrl.protocol !== 'mysql:') {
+      throw new Error('DATABASE_URL must use mysql:// in production');
     }
+
+    if (runtimeDbUrl.protocol !== 'mysql:') {
+      throw new Error('DATABASE_RUNTIME_URL must use mysql:// in production');
+    }
+
+    const adminUser = decodeURIComponent(adminDbUrl.username || '').toLowerCase();
+    const runtimeUser = decodeURIComponent(runtimeDbUrl.username || '').toLowerCase();
+
+    if (!runtimeUser) {
+      throw new Error('DATABASE_RUNTIME_URL must include a MySQL username');
+    }
+
+    if (runtimeUser === 'root') {
+      throw new Error('DATABASE_RUNTIME_URL must use a non-root least-privilege MySQL user');
+    }
+
+    if (adminUser && runtimeUser === adminUser) {
+      throw new Error('DATABASE_RUNTIME_URL must use a different least-privilege user from DATABASE_URL');
+    }
+
   }
   return env;
 }
