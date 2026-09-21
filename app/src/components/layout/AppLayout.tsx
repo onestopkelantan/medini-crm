@@ -65,7 +65,7 @@ const navByRole: Record<string, NavSection[]> = {
     ]},
     { section: "AI & Communication", items: [
       { label: "WhatsApp", path: "/whatsapp", icon: MessageSquare },
-      { label: "WhatsApp Blast", path: "/whatsapp-blast", icon: Megaphone },
+      { label: "WhatsApp Campaign", path: "/whatsapp-blast", icon: Megaphone },
       { label: "Booking WhatsApp", path: "/booking-requests", icon: MessageSquare },
       { label: "AI Manager", path: "/ai", icon: Bot },
     ]},

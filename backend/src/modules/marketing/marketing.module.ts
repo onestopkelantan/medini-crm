@@ -4,8 +4,10 @@ import { PatientsReadPort } from '../../shared/ports/patients.read-port';
 import { AppointmentsReadPort } from '../../shared/ports/appointments.read-port';
 import { ClinicalReadPort } from '../../shared/ports/clinical.read-port';
 import { MarketingController } from './presentation/marketing.controller';
+import { ScrubbingController } from './presentation/scrubbing.controller';
 import { MarketingContentController } from './presentation/marketing-content.controller';
 import { MarketingService } from './application/marketing.service';
+import { ScrubbingService } from './application/scrubbing.service';
 import { MarketingContentService } from './application/marketing-content.service';
 import { MarketingRepository } from './infrastructure/marketing.repository';
 import { MarketingContentRepository } from './infrastructure/marketing-content.repository';
@@ -33,9 +35,10 @@ const RECALL_RECOVERY_SWEEP = {
 
 @Module({
   imports: [AuthModule],
-  controllers: [MarketingController, MarketingContentController],
+  controllers: [MarketingController, MarketingContentController, ScrubbingController],
   providers: [
     MarketingService, MarketingRepository,
+    ScrubbingService,
     MarketingContentService, MarketingContentRepository,
     PatientsReadPort, AppointmentsReadPort, ClinicalReadPort,
     RecallScheduler, RecallWorker, RECALL_RECOVERY_SWEEP,

@@ -1,6 +1,19 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send, ShieldCheck, Users, Radio } from "lucide-react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  Brain,
+  CalendarDays,
+  Megaphone,
+  Radio,
+  Send,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+
 import { api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -11,11 +24,9 @@ import { toast } from "sonner";
 interface Channel {
   id: string;
   phone: string;
-  sessionName?: string | null;
   status: string;
   healthScore: number;
   sentTodayCount?: number;
-  sentTodayDate?: string | null;
   autoPausedAt?: string | null;
 }
 
@@ -28,30 +39,65 @@ interface BlastResult {
   remaining: number;
 }
 
-export default function WhatsAppBlast() {
-  const qc = useQueryClient();
-  const { user } = useAuth();
+interface ScrubbingCandidate {
+  patientId: string;
+  mrn: string;
+  name: string;
+  contactPhone: string;
+  lastVisitDate: string;
+  daysSinceLastVisit: number;
+  monthsSinceLastVisit: number;
+  lastTreatment: string;
+  suggestedReason: string;
+}
 
-  const [channelId, setChannelId] = useState("");
-  const [numbers, setNumbers] = useState("");
-  const [message, setMessage] = useState("");
-  const [consent, setConsent] = useState(false);
+type Mode = "scrubbing" | "marketing";
+
+export default function WhatsAppBlast() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const [mode, setMode] =
+    useState<Mode>("scrubbing");
+
+  const [months, setMonths] =
+    useState(6);
+
+  const [selected, setSelected] =
+    useState<string[]>([]);
+
+  const [channelId, setChannelId] =
+    useState("");
+
+  const [numbers, setNumbers] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  const [consent, setConsent] =
+    useState(false);
+
   const [lastResult, setLastResult] =
     useState<BlastResult | null>(null);
 
   const channelsQuery = useQuery({
-    queryKey: ["whatsapp-blast", "channels"],
+    queryKey: ["whatsapp-campaign", "channels"],
     queryFn: () =>
-      api.get<Channel[]>("/whatsapp/channels?limit=100"),
+      api.get<Channel[]>(
+        "/whatsapp/channels?limit=100",
+      ),
   });
 
-  const channels = channelsQuery.data ?? [];
+  const channels =
+    channelsQuery.data ?? [];
 
   useEffect(() => {
     if (channelId) return;
 
     const working = channels.find(
-      (channel) => channel.status === "working",
+      (channel) =>
+        channel.status === "working",
     );
 
     if (working) {
@@ -59,45 +105,81 @@ export default function WhatsAppBlast() {
     }
   }, [channels, channelId]);
 
+  const scrubbingQuery = useQuery({
+    queryKey: [
+      "whatsapp-campaign",
+      "scrubbing",
+      months,
+    ],
+    queryFn: () =>
+      api.get<ScrubbingCandidate[]>(
+        `/marketing/scrubbing-candidates?months=${months}&limit=100`,
+      ),
+    enabled: mode === "scrubbing",
+  });
+
+  const candidates =
+    scrubbingQuery.data ?? [];
+
+  useEffect(() => {
+    setSelected([]);
+  }, [months]);
+
+  const selectedSet =
+    useMemo(
+      () => new Set(selected),
+      [selected],
+    );
+
   const recipients = useMemo(() => {
-    const values = numbers
+    const rows = numbers
       .split(/[\n,;]+/)
       .map((value) => value.trim())
       .filter(Boolean);
 
-    return [...new Set(values)];
+    return [...new Set(rows)];
   }, [numbers]);
 
-  const selectedChannel = channels.find(
-    (channel) => channel.id === channelId,
-  );
+  const selectedChannel =
+    channels.find(
+      (channel) =>
+        channel.id === channelId,
+    );
 
-  const sentToday = selectedChannel?.sentTodayCount ?? 0;
-
-  const remainingDisplay =
+  const remaining =
     lastResult?.remaining ??
-    Math.max(0, 50 - sentToday);
+    Math.max(
+      0,
+      50 -
+        (selectedChannel?.sentTodayCount ?? 0),
+    );
 
   const blast = useMutation({
     mutationFn: () =>
-      api.post<BlastResult>("/whatsapp/blast", {
-        branchId: user?.branchId,
-        channelId,
-        recipients,
-        body: message,
-        consentConfirmed: consent,
-      }),
+      api.post<BlastResult>(
+        "/whatsapp/blast",
+        {
+          branchId: user?.branchId,
+          channelId,
+          recipients,
+          body: message,
+          consentConfirmed: consent,
+        },
+      ),
 
     onSuccess: (result) => {
       setLastResult(result);
       setNumbers("");
 
       qc.invalidateQueries({
-        queryKey: ["whatsapp-blast", "channels"],
+        queryKey: [
+          "whatsapp-campaign",
+          "channels",
+        ],
       });
 
       toast.success(
-        `${result.queued} mesej dimasukkan ke queue WhatsApp`,
+        `${result.queued} mesej dimasukkan ke queue`,
       );
     },
 
@@ -105,263 +187,560 @@ export default function WhatsAppBlast() {
       toast.error(
         errorMessage(
           error,
-          "WhatsApp Blast gagal dimasukkan ke queue",
+          "WhatsApp Blast gagal",
         ),
       );
     },
   });
 
-  const invalid =
+  const togglePatient = (
+    patientId: string,
+  ) => {
+    setSelected((current) =>
+      current.includes(patientId)
+        ? current.filter(
+            (id) => id !== patientId,
+          )
+        : [...current, patientId],
+    );
+  };
+
+  const selectAll = () => {
+    if (
+      selected.length ===
+      candidates.length
+    ) {
+      setSelected([]);
+      return;
+    }
+
+    setSelected(
+      candidates.map(
+        (candidate) =>
+          candidate.patientId,
+      ),
+    );
+  };
+
+  const blastInvalid =
     !channelId ||
     recipients.length < 1 ||
     recipients.length > 50 ||
     !message.trim() ||
     !consent ||
-    selectedChannel?.status !== "working";
+    selectedChannel?.status !==
+      "working";
 
   return (
     <div className="space-y-6">
       <div>
-        <h2
-          className="text-xl font-extrabold"
-          style={{
-            color: "#0B132B",
-            fontFamily: "'Outfit', sans-serif",
-          }}
-        >
-          WhatsApp Blast
+        <h2 className="text-xl font-extrabold text-[#0B132B]">
+          WhatsApp Campaign
         </h2>
 
         <p className="mt-1 text-sm text-slate-500">
-          Hantar mesej kepada maksimum 50 penerima sehari
-          melalui WhatsApp cawangan.
+          AI patient follow-up dan
+          marketing blast dalam satu sistem.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-teal-50 p-2 text-teal-600">
-              <Users className="h-5 w-5" />
+      <div className="grid gap-4 md:grid-cols-2">
+        <button
+          onClick={() =>
+            setMode("scrubbing")
+          }
+          className={`rounded-2xl border p-5 text-left transition ${
+            mode === "scrubbing"
+              ? "border-teal-400 bg-teal-50 shadow-sm"
+              : "border-slate-200 bg-white hover:bg-slate-50"
+          }`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-teal-100 p-3 text-teal-700">
+              <Brain className="h-6 w-6" />
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-slate-400">
-                Penerima Batch
+              <p className="font-bold text-slate-800">
+                AI Scrubbing
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Analisa rekod pesakit dan
+                cari siapa yang perlu
+                follow-up.
+              </p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() =>
+            setMode("marketing")
+          }
+          className={`rounded-2xl border p-5 text-left transition ${
+            mode === "marketing"
+              ? "border-cyan-400 bg-cyan-50 shadow-sm"
+              : "border-slate-200 bg-white hover:bg-slate-50"
+          }`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-cyan-100 p-3 text-cyan-700">
+              <Megaphone className="h-6 w-6" />
+            </div>
+
+            <div>
+              <p className="font-bold text-slate-800">
+                Marketing Blast
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Promosi, poster dan kempen
+                kepada pelanggan.
+              </p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {mode === "scrubbing" && (
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <Users className="h-5 w-5 text-teal-600" />
+
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                CALON FOLLOW-UP
+              </p>
+
+              <p className="text-2xl font-bold text-slate-800">
+                {candidates.length}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <Brain className="h-5 w-5 text-cyan-600" />
+
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                DIPILIH
+              </p>
+
+              <p className="text-2xl font-bold text-slate-800">
+                {selected.length}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <CalendarDays className="h-5 w-5 text-indigo-600" />
+
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                TEMPOH
+              </p>
+
+              <p className="text-2xl font-bold text-slate-800">
+                {months} bulan
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <Label>
+                  Last visit melebihi
+                </Label>
+
+                <select
+                  value={months}
+                  onChange={(event) =>
+                    setMonths(
+                      Number(
+                        event.target.value,
+                      ),
+                    )
+                  }
+                  className="mt-2 block rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                >
+                  <option value={1}>
+                    1 bulan
+                  </option>
+
+                  <option value={3}>
+                    3 bulan
+                  </option>
+
+                  <option value={6}>
+                    6 bulan
+                  </option>
+
+                  <option value={12}>
+                    12 bulan
+                  </option>
+
+                  <option value={24}>
+                    24 bulan
+                  </option>
+                </select>
+              </div>
+
+              {candidates.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={selectAll}
+                  className="rounded-xl"
+                >
+                  {selected.length ===
+                  candidates.length
+                    ? "Kosongkan Semua"
+                    : "Pilih Semua"}
+                </Button>
+              )}
+            </div>
+
+            <div className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-blue-700">
+              Pesakit yang sudah mempunyai
+              appointment akan datang tidak
+              dimasukkan dalam senarai.
+            </div>
+
+            {scrubbingQuery.isLoading && (
+              <div className="py-12 text-center text-sm text-slate-400">
+                Membaca rekod pesakit...
+              </div>
+            )}
+
+            {scrubbingQuery.isError && (
+              <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-600">
+                {errorMessage(
+                  scrubbingQuery.error,
+                  "AI Scrubbing gagal membaca data",
+                )}
+              </div>
+            )}
+
+            {!scrubbingQuery.isLoading &&
+              !scrubbingQuery.isError &&
+              candidates.length === 0 && (
+                <div className="py-12 text-center text-sm text-slate-400">
+                  Tiada pesakit memenuhi
+                  kriteria ini.
+                </div>
+              )}
+
+            <div className="mt-5 space-y-3">
+              {candidates.map(
+                (candidate) => {
+                  const checked =
+                    selectedSet.has(
+                      candidate.patientId,
+                    );
+
+                  return (
+                    <button
+                      key={
+                        candidate.patientId
+                      }
+                      onClick={() =>
+                        togglePatient(
+                          candidate.patientId,
+                        )
+                      }
+                      className={`w-full rounded-2xl border p-4 text-left transition ${
+                        checked
+                          ? "border-teal-300 bg-teal-50"
+                          : "border-slate-100 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex gap-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          readOnly
+                          className="mt-1 h-4 w-4"
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col justify-between gap-2 sm:flex-row">
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                {
+                                  candidate.name
+                                }
+                              </p>
+
+                              <p className="text-xs text-slate-400">
+                                {
+                                  candidate.mrn
+                                }{" "}
+                                ·{" "}
+                                {
+                                  candidate.contactPhone
+                                }
+                              </p>
+                            </div>
+
+                            <span className="h-fit w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                              {
+                                candidate.monthsSinceLastVisit
+                              }{" "}
+                              bulan
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-4 md:grid-cols-3">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase text-slate-400">
+                                Last Visit
+                              </p>
+
+                              <p className="mt-1 text-sm text-slate-700">
+                                {
+                                  candidate.lastVisitDate
+                                }
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase text-slate-400">
+                                Rekod Rawatan
+                              </p>
+
+                              <p className="mt-1 text-sm text-slate-700">
+                                {
+                                  candidate.lastTreatment
+                                }
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase text-slate-400">
+                                Cadangan
+                              </p>
+
+                              <p className="mt-1 text-sm text-slate-700">
+                                {
+                                  candidate.suggestedReason
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            {selected.length > 0 && (
+              <div className="mt-5 rounded-xl border border-teal-100 bg-teal-50 p-4">
+                <p className="font-semibold text-teal-800">
+                  {selected.length} pesakit
+                  dipilih.
+                </p>
+
+                <p className="mt-1 text-xs text-teal-700">
+                  Belum ada WhatsApp dihantar.
+                  Langkah seterusnya kita akan
+                  generate mesej follow-up dan
+                  preview sebelum dihantar.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {mode === "marketing" && (
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <Users className="h-5 w-5 text-teal-600" />
+
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                PENERIMA
               </p>
 
               <p className="text-2xl font-bold text-slate-800">
                 {recipients.length}/50
               </p>
             </div>
-          </div>
-        </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-cyan-50 p-2 text-cyan-600">
-              <Send className="h-5 w-5" />
-            </div>
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <Send className="h-5 w-5 text-cyan-600" />
 
-            <div>
-              <p className="text-xs font-semibold text-slate-400">
-                Baki Hari Ini
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                BAKI HARI INI
               </p>
 
               <p className="text-2xl font-bold text-slate-800">
-                {remainingDisplay}/50
+                {remaining}/50
               </p>
             </div>
-          </div>
-        </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
-              <Radio className="h-5 w-5" />
-            </div>
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <Radio className="h-5 w-5 text-emerald-600" />
 
-            <div>
-              <p className="text-xs font-semibold text-slate-400">
-                Channel
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                CHANNEL
               </p>
 
               <p className="text-sm font-bold text-slate-800">
                 {selectedChannel
-                  ? selectedChannel.status === "working"
+                  ? selectedChannel.status ===
+                    "working"
                     ? "Connected"
                     : selectedChannel.status
                   : "Belum dipilih"}
               </p>
-
-              {selectedChannel && (
-                <p className="text-xs text-slate-400">
-                  {selectedChannel.phone}
-                </p>
-              )}
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6">
-        <div className="space-y-5">
-          <div>
-            <Label>WhatsApp Channel</Label>
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="space-y-5">
+              <div>
+                <Label>
+                  WhatsApp Channel
+                </Label>
 
-            <select
-              value={channelId}
-              onChange={(event) => {
-                setChannelId(event.target.value);
-                setLastResult(null);
-              }}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
-            >
-              <option value="">
-                Pilih WhatsApp Channel
-              </option>
-
-              {channels.map((channel) => (
-                <option
-                  key={channel.id}
-                  value={channel.id}
+                <select
+                  value={channelId}
+                  onChange={(event) =>
+                    setChannelId(
+                      event.target.value,
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 >
-                  {channel.phone} - {channel.status}
-                </option>
-              ))}
-            </select>
-          </div>
+                  <option value="">
+                    Pilih Channel
+                  </option>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <Label>Nombor Penerima</Label>
+                  {channels.map(
+                    (channel) => (
+                      <option
+                        key={channel.id}
+                        value={channel.id}
+                      >
+                        {channel.phone} -{" "}
+                        {channel.status}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
 
-              <span
-                className={`text-xs font-semibold ${
-                  recipients.length > 50
-                    ? "text-red-600"
-                    : "text-slate-400"
-                }`}
-              >
-                {recipients.length} nombor
-              </span>
+              <div>
+                <Label>
+                  Nombor Penerima
+                </Label>
+
+                <Textarea
+                  value={numbers}
+                  onChange={(event) =>
+                    setNumbers(
+                      event.target.value,
+                    )
+                  }
+                  rows={7}
+                  className="mt-2"
+                  placeholder={`60123456789
+60198765432`}
+                />
+              </div>
+
+              <div>
+                <Label>
+                  Caption Promosi
+                </Label>
+
+                <Textarea
+                  value={message}
+                  onChange={(event) =>
+                    setMessage(
+                      event.target.value.slice(
+                        0,
+                        4096,
+                      ),
+                    )
+                  }
+                  rows={7}
+                  className="mt-2"
+                  placeholder="Tulis mesej promosi..."
+                />
+              </div>
+
+              <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                <Megaphone className="mx-auto h-7 w-7 text-slate-400" />
+
+                <p className="mt-3 font-semibold text-slate-700">
+                  Gambar / Poster Promosi
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  Fungsi upload gambar akan
+                  kita sambungkan dengan WAHA
+                  media selepas AI Scrubbing.
+                </p>
+              </div>
+
+              <label className="flex gap-3 rounded-xl bg-teal-50 p-4">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(event) =>
+                    setConsent(
+                      event.target.checked,
+                    )
+                  }
+                  className="mt-1 h-4 w-4"
+                />
+
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <ShieldCheck className="h-4 w-4 text-teal-600" />
+                    Pengesahan penerima
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Saya mengesahkan penerima
+                    telah memberikan kebenaran
+                    menerima mesej daripada
+                    klinik.
+                  </p>
+                </div>
+              </label>
+
+              {lastResult && (
+                <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">
+                  {lastResult.queued} mesej
+                  dimasukkan ke queue. Baki{" "}
+                  {lastResult.remaining}/50.
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  disabled={
+                    blastInvalid ||
+                    blast.isPending
+                  }
+                  onClick={() =>
+                    blast.mutate()
+                  }
+                  className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+
+                  {blast.isPending
+                    ? "Memasukkan ke Queue..."
+                    : `Hantar (${recipients.length})`}
+                </Button>
+              </div>
             </div>
-
-            <Textarea
-              value={numbers}
-              onChange={(event) =>
-                setNumbers(event.target.value)
-              }
-              rows={9}
-              placeholder={`Masukkan satu nombor setiap baris.
-
-Contoh:
-60123456789
-60198765432
-60111222333`}
-              className="mt-2 rounded-xl"
-            />
-
-            <p className="mt-2 text-xs text-slate-400">
-              Boleh paste sehingga 50 nombor. Nombor berulang
-              akan dikira sekali sahaja.
-            </p>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <Label>Mesej Blast</Label>
-
-              <span className="text-xs text-slate-400">
-                {message.length}/4096
-              </span>
-            </div>
-
-            <Textarea
-              value={message}
-              onChange={(event) =>
-                setMessage(
-                  event.target.value.slice(0, 4096),
-                )
-              }
-              rows={7}
-              placeholder="Tulis mesej WhatsApp..."
-              className="mt-2 rounded-xl"
-            />
-          </div>
-
-          <label className="flex items-start gap-3 rounded-xl border border-teal-100 bg-teal-50/60 p-4">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(event) =>
-                setConsent(event.target.checked)
-              }
-              className="mt-1 h-4 w-4"
-            />
-
-            <span>
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-                <ShieldCheck className="h-4 w-4 text-teal-600" />
-                Pengesahan penerima
-              </span>
-
-              <span className="mt-1 block text-xs leading-relaxed text-slate-500">
-                Saya mengesahkan penerima ini telah memberikan
-                kebenaran untuk menerima mesej WhatsApp daripada
-                klinik.
-              </span>
-            </span>
-          </label>
-
-          {recipients.length > 50 && (
-            <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-600">
-              Maksimum 50 nombor sahaja untuk satu batch.
-            </p>
-          )}
-
-          {selectedChannel?.autoPausedAt && (
-            <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-700">
-              Channel sedang dalam safety pause. Queue akan
-              diteruskan selepas tempoh rehat keselamatan.
-            </p>
-          )}
-
-          {lastResult && (
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-              <p className="font-semibold text-emerald-700">
-                Blast berjaya dimasukkan ke queue.
-              </p>
-
-              <p className="mt-1 text-sm text-emerald-700">
-                {lastResult.queued} penerima · baki hari ini{" "}
-                {lastResult.remaining}/50
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end">
-            <Button
-              onClick={() => blast.mutate()}
-              disabled={invalid || blast.isPending}
-              className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-6 text-white hover:from-teal-600 hover:to-cyan-600"
-            >
-              <Send className="mr-2 h-4 w-4" />
-
-              {blast.isPending
-                ? "Memasukkan ke Queue..."
-                : `Hantar ke Queue (${recipients.length})`}
-            </Button>
           </div>
         </div>
-      </div>
-
-      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs leading-relaxed text-slate-500">
-        Penghantaran dibuat secara berperingkat melalui queue
-        WhatsApp. Sistem tidak menghantar semua 50 mesej serentak.
-        Safety pause digunakan selepas 25 penghantaran sebelum
-        penghantaran seterusnya diteruskan.
-      </div>
+      )}
     </div>
   );
 }
