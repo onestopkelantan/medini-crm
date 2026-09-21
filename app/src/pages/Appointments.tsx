@@ -145,19 +145,48 @@ function getBookingSlots(date: string): string[] {
   return slots;
 }
 
+function malaysiaToday(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const value = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function addDays(date: string, amount: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day));
+
+  value.setUTCDate(value.getUTCDate() + amount);
+
+  return value.toISOString().slice(0, 10);
+}
+
+function dayOfWeek(date: string): number {
+  const [year, month, day] = date.split("-").map(Number);
+
+  return new Date(
+    Date.UTC(year, month - 1, day),
+  ).getUTCDay();
+}
+
 function getWeekDates(date: string): string[] {
-  const current = new Date(`${date}T00:00:00`);
-  const start = new Date(current);
+  const start = addDays(
+    date,
+    -dayOfWeek(date),
+  );
 
-  start.setDate(current.getDate() - current.getDay());
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const value = new Date(start);
-
-    value.setDate(start.getDate() + index);
-
-    return value.toISOString().slice(0, 10);
-  });
+  return Array.from(
+    { length: 7 },
+    (_, index) =>
+      addDays(start, index),
+  );
 }
 
 function dateLabel(value: string) {
@@ -782,9 +811,7 @@ export default function Appointments() {
     selectedDate,
     setSelectedDate,
   ] = useState(() =>
-    new Date()
-      .toISOString()
-      .slice(0, 10),
+    malaysiaToday(),
   );
 
   const pageSize = 20;
@@ -1092,21 +1119,10 @@ export default function Appointments() {
               className="rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-500"
               onClick={() =>
                 setSelectedDate(
-                  new Date(
-                    new Date(
-                      selectedDate,
-                    ).setDate(
-                      new Date(
-                        selectedDate,
-                      ).getDate() -
-                        1,
-                    ),
-                  )
-                    .toISOString()
-                    .slice(
-                      0,
-                      10,
-                    ),
+                  addDays(
+                    selectedDate,
+                    -1,
+                  ),
                 )
               }
             >
@@ -1123,21 +1139,10 @@ export default function Appointments() {
               className="rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-500"
               onClick={() =>
                 setSelectedDate(
-                  new Date(
-                    new Date(
-                      selectedDate,
-                    ).setDate(
-                      new Date(
-                        selectedDate,
-                      ).getDate() +
-                        1,
-                    ),
-                  )
-                    .toISOString()
-                    .slice(
-                      0,
-                      10,
-                    ),
+                  addDays(
+                    selectedDate,
+                    1,
+                  ),
                 )
               }
             >
@@ -1148,12 +1153,7 @@ export default function Appointments() {
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-600"
               onClick={() =>
                 setSelectedDate(
-                  new Date()
-                    .toISOString()
-                    .slice(
-                      0,
-                      10,
-                    ),
+                  malaysiaToday(),
                 )
               }
             >
@@ -1226,12 +1226,11 @@ export default function Appointments() {
                   );
 
                   const key =
-                    d
-                      .toISOString()
-                      .slice(
-                        0,
-                        10,
-                      );
+                    `${d.getFullYear()}-${String(
+                      d.getMonth() + 1,
+                    ).padStart(2, "0")}-${String(
+                      d.getDate(),
+                    ).padStart(2, "0")}`;
 
                   const items =
                     rows.filter(
