@@ -159,6 +159,30 @@ function malaysiaToday(): string {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
+function malaysiaDateKey(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10);
+  }
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 function addDays(date: string, amount: number): string {
   const [year, month, day] = date.split("-").map(Number);
   const value = new Date(Date.UTC(year, month - 1, day));
@@ -816,20 +840,56 @@ export default function Appointments() {
 
   const pageSize = 20;
 
+  const weekDates =
+    getWeekDates(
+      selectedDate,
+    );
+
   const list = useQuery({
     queryKey: [
       "appointments",
       "list",
       page,
+      view,
+      selectedDate,
     ],
 
-    queryFn: () =>
-      api.get<Appointment[]>(
-        `/appointments?limit=${pageSize}&offset=${
-          (page - 1) *
-          pageSize
-        }`,
-      ),
+    queryFn: () => {
+      const params =
+        new URLSearchParams({
+          limit: String(pageSize),
+          offset: String(
+            (page - 1) *
+              pageSize,
+          ),
+        });
+
+      if (view === "day") {
+        params.set(
+          "dateFrom",
+          selectedDate,
+        );
+        params.set(
+          "dateTo",
+          selectedDate,
+        );
+      }
+
+      if (view === "week") {
+        params.set(
+          "dateFrom",
+          weekDates[0],
+        );
+        params.set(
+          "dateTo",
+          weekDates[6],
+        );
+      }
+
+      return api.get<Appointment[]>(
+        `/appointments?${params.toString()}`,
+      );
+    },
   });
 
   const changeStatus =
@@ -874,29 +934,18 @@ export default function Appointments() {
   const rows =
     list.data ?? [];
 
-  const weekDates =
-    getWeekDates(
-      selectedDate,
-    );
-
   const displayRows =
     view === "day"
       ? rows.filter(
           (appointment) =>
-            appointment.scheduledDate.slice(
-              0,
-              10,
-            ) ===
+            malaysiaDateKey(appointment.scheduledDate) ===
             selectedDate,
         )
       : view === "week"
         ? rows.filter(
             (appointment) =>
               weekDates.includes(
-                appointment.scheduledDate.slice(
-                  0,
-                  10,
-                ),
+                malaysiaDateKey(appointment.scheduledDate),
               ),
           )
         : rows;
@@ -1237,10 +1286,7 @@ export default function Appointments() {
                       (
                         a,
                       ) =>
-                        a.scheduledDate.slice(
-                          0,
-                          10,
-                        ) ===
+                        malaysiaDateKey(a.scheduledDate) ===
                         key,
                     );
 
@@ -1310,10 +1356,7 @@ export default function Appointments() {
                         (
                           a,
                         ) =>
-                          a.scheduledDate.slice(
-                            0,
-                            10,
-                          ) ===
+                          malaysiaDateKey(a.scheduledDate) ===
                           d,
                       )
                       .map(
@@ -1447,10 +1490,7 @@ export default function Appointments() {
                         ].includes(
                           a.status,
                         )
-                      : a.scheduledDate.slice(
-                          0,
-                          10,
-                        ) ===
+                      : malaysiaDateKey(a.scheduledDate) ===
                         selectedDate,
                 )
                 .map(
