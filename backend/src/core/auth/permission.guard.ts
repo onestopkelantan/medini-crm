@@ -48,7 +48,10 @@ export class PermissionGuard implements CanActivate {
      */
     if (
       principal.role !== 'hq' &&
-      required.domain === 'appointments' &&
+      (
+        required.domain === 'appointments' ||
+        required.domain === 'patients'
+      ) &&
       (
         required.action === 'create' ||
         required.action === 'edit'
