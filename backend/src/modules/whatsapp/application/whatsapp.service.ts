@@ -159,7 +159,79 @@ export class WhatsappService {
   }
   async listChannels(p: Principal, branchId?: string, rawPage?: unknown) {
     const pg = this.pageOf(rawPage);
-    return this.dbCtx.runAs(p, (tx) => this.repo.listChannels(tx, p.orgId, this.scoped(p, branchId), pg.limit, pg.offset));
+
+    const rows = await this.dbCtx.runAs(
+      p,
+      (tx) =>
+        this.repo.listChannels(
+          tx,
+          p.orgId,
+          this.scoped(p, branchId),
+          pg.limit,
+          pg.offset,
+        ),
+    );
+
+    if (!this.waha.configured) {
+      return rows;
+    }
+
+    for (const channel of rows) {
+      if (!channel.sessionName) continue;
+
+      try {
+        const live =
+          await this.waha.sessionStatus(
+            channel.sessionName,
+          );
+
+        let status: WaChannelState | null = null;
+
+        if (live === 'working') {
+          status = 'working';
+        } else if (live === 'starting') {
+          status = 'starting';
+        } else if (
+          live === 'scan_qr_code' ||
+          live === 'scan_qr' ||
+          live === 'need_qr'
+        ) {
+          status = 'need_qr';
+        } else if (live === 'failed') {
+          status = 'failed';
+        } else if (live === 'stopped') {
+          status = 'stopped';
+        }
+
+        if (status && status !== channel.status) {
+          const updated =
+            await this.dbCtx.runAs(
+              p,
+              (tx) =>
+                this.repo.updateChannel(
+                  tx,
+                  p.orgId,
+                  channel.id,
+                  {
+                    status,
+                    ...(status === 'working'
+                      ? { lastSeenAt: new Date() }
+                      : {}),
+                  },
+                ),
+            );
+
+          if (updated) {
+            Object.assign(channel, updated);
+          }
+        }
+      } catch {
+        // Jika WAHA sementara tidak dapat dicapai,
+        // kekalkan status terakhir dalam CRM.
+      }
+    }
+
+    return rows;
   }
 
   async transitionChannel(p: Principal, id: string, raw: unknown) {
