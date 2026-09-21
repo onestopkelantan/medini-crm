@@ -9,6 +9,7 @@ function makeController(dbCtx: any = {}) {
     {} as any,
     dbCtx as any,
     {} as any,
+    {} as any,
   ) as any;
 
   if (oldRedisUrl !== undefined) {
@@ -95,4 +96,114 @@ describe('WhatsApp booking/cancellation state isolation', () => {
       600,
     );
   });
+
+  it('does not auto-select when multiple active appointments exist', async () => {
+    const dbCtx = {
+      runAsWorker: vi.fn(async () => ({
+        rows: [
+          {
+            id: 'appointment-1',
+            code: 'APT-0065',
+            patient_name: 'Patient One',
+            booking_date: '2026-09-22',
+            scheduled_time: '10:00:00',
+          },
+          {
+            id: 'appointment-2',
+            code: 'APT-0066',
+            patient_name: 'Audit Test',
+            booking_date: '2026-09-22',
+            scheduled_time: '10:30:00',
+          },
+        ],
+      })),
+    };
+
+    const controller = makeController(dbCtx);
+
+    const redis = {
+      get: vi.fn(async () => null),
+      del: vi.fn(async () => 1),
+      set: vi.fn(async () => 'OK'),
+    };
+
+    controller.redis = redis;
+    controller.resolvePhone =
+      vi.fn(async () => '60123456789');
+    controller.sendText =
+      vi.fn(async () => undefined);
+
+    const handled =
+      await controller.handleAppointmentAction(
+        '60123456789@c.us',
+        'saya nak cancel',
+        {},
+      );
+
+    expect(handled).toBe(true);
+
+    expect(redis.set).not.toHaveBeenCalled();
+
+    expect(controller.sendText).toHaveBeenCalledWith(
+      '60123456789@c.us',
+      expect.stringContaining('APT-0065'),
+    );
+
+    expect(controller.sendText).toHaveBeenCalledWith(
+      '60123456789@c.us',
+      expect.stringContaining('APT-0066'),
+    );
+  });
+
+  it('selects the requested appointment code for cancellation', async () => {
+    const dbCtx = {
+      runAsWorker: vi.fn(async () => ({
+        rows: [
+          {
+            id: 'appointment-0066',
+            code: 'APT-0066',
+            patient_name: 'Audit Test',
+            booking_date: '2026-09-22',
+            scheduled_time: '10:30:00',
+          },
+        ],
+      })),
+    };
+
+    const controller = makeController(dbCtx);
+
+    const redis = {
+      get: vi.fn(async () => null),
+      del: vi.fn(async () => 1),
+      set: vi.fn(async () => 'OK'),
+    };
+
+    controller.redis = redis;
+    controller.resolvePhone =
+      vi.fn(async () => '60123456789');
+    controller.sendText =
+      vi.fn(async () => undefined);
+
+    const handled =
+      await controller.handleAppointmentAction(
+        '60123456789@c.us',
+        'cancel APT-0066',
+        {},
+      );
+
+    expect(handled).toBe(true);
+
+    expect(redis.set).toHaveBeenCalledWith(
+      'medini:whatsapp:appointment-action:60123456789@c.us',
+      'appointment-0066',
+      'EX',
+      600,
+    );
+
+    expect(controller.sendText).toHaveBeenCalledWith(
+      '60123456789@c.us',
+      expect.stringContaining('APT-0066'),
+    );
+  });
+
 });

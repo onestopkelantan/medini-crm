@@ -1032,6 +1032,9 @@ export class WhatsappWebhookController {
 
     const phone = await this.resolvePhone(chatId, payload);
 
+    const requestedCode =
+      normalized.match(/\bapt-\d+\b/i)?.[0]?.toUpperCase() ?? '';
+
     const result = await this.dbCtx.runAsWorker(
       {
         orgId: ORG_ID,
@@ -1039,39 +1042,121 @@ export class WhatsappWebhookController {
         correlationId: 'wa-find-appointment-to-cancel',
         source: 'system_worker',
       },
-      async (tx) => tx.execute(sql`
-        SELECT
-          a.id,
-          a.patient_name,
-          DATE_FORMAT(a.scheduled_date, '%Y-%m-%d') AS booking_date,
-          a.scheduled_time
-        FROM appointments a
-        JOIN patients p ON p.id = a.patient_id
-        WHERE a.org_id = ${ORG_ID}
-          AND a.branch_id = ${BRANCH_ID}
-          AND p.org_id = ${ORG_ID}
-          AND p.branch_id = ${BRANCH_ID}
-          AND (p.phone = ${phone} OR p.whatsapp = ${phone})
-          AND a.status IN (
-            'booked', 'confirmed', 'checked-in', 'waiting'
-          )
-          AND a.scheduled_date >= CAST(${malaysiaDate()} AS DATE)
-          AND a.deleted_at IS NULL
-          AND p.deleted_at IS NULL
-        ORDER BY a.scheduled_date, a.scheduled_time
-        LIMIT 1
-      `),
+      async (tx) => {
+        if (requestedCode) {
+          return tx.execute(sql`
+            SELECT
+              a.id,
+              a.code,
+              a.patient_name,
+              DATE_FORMAT(
+                a.scheduled_date,
+                '%Y-%m-%d'
+              ) AS booking_date,
+              a.scheduled_time
+            FROM appointments a
+            JOIN patients p
+              ON p.id = a.patient_id
+            WHERE a.org_id = ${ORG_ID}
+              AND a.branch_id = ${BRANCH_ID}
+              AND p.org_id = ${ORG_ID}
+              AND p.branch_id = ${BRANCH_ID}
+              AND (
+                p.phone = ${phone}
+                OR p.whatsapp = ${phone}
+              )
+              AND a.code = ${requestedCode}
+              AND a.status IN (
+                'booked',
+                'confirmed',
+                'checked-in',
+                'waiting'
+              )
+              AND a.scheduled_date
+                >= CAST(${malaysiaDate()} AS DATE)
+              AND a.deleted_at IS NULL
+              AND p.deleted_at IS NULL
+            LIMIT 1
+          `);
+        }
+
+        return tx.execute(sql`
+          SELECT
+            a.id,
+            a.code,
+            a.patient_name,
+            DATE_FORMAT(
+              a.scheduled_date,
+              '%Y-%m-%d'
+            ) AS booking_date,
+            a.scheduled_time
+          FROM appointments a
+          JOIN patients p
+            ON p.id = a.patient_id
+          WHERE a.org_id = ${ORG_ID}
+            AND a.branch_id = ${BRANCH_ID}
+            AND p.org_id = ${ORG_ID}
+            AND p.branch_id = ${BRANCH_ID}
+            AND (
+              p.phone = ${phone}
+              OR p.whatsapp = ${phone}
+            )
+            AND a.status IN (
+              'booked',
+              'confirmed',
+              'checked-in',
+              'waiting'
+            )
+            AND a.scheduled_date
+              >= CAST(${malaysiaDate()} AS DATE)
+            AND a.deleted_at IS NULL
+            AND p.deleted_at IS NULL
+          ORDER BY
+            a.scheduled_date,
+            a.scheduled_time
+          LIMIT 10
+        `);
+      },
     );
 
-    const row = (result as any).rows?.[0];
+    const rows =
+      (result as any).rows ?? [];
 
-    if (!row) {
+    if (!rows.length) {
       await this.sendText(
         chatId,
-        'Maaf, saya tidak jumpa appointment aktif untuk nombor ini.',
+        requestedCode
+          ? `Maaf, saya tidak jumpa appointment aktif dengan kod ${requestedCode} untuk nombor ini.`
+          : 'Maaf, saya tidak jumpa appointment aktif untuk nombor ini.',
       );
       return true;
     }
+
+    if (!requestedCode && rows.length > 1) {
+      await this.deleteBookingMemory(chatId);
+      await this.redis.del(key);
+
+      const options = rows
+        .map(
+          (row: any) =>
+            `${row.code} - ${row.patient_name}, ${row.booking_date} ${String(row.scheduled_time).slice(0, 5)}`,
+        )
+        .join('\n');
+
+      await this.sendText(
+        chatId,
+        [
+          'Anda ada lebih daripada satu appointment aktif:',
+          options,
+          '',
+          `Sila nyatakan kod yang hendak dibatalkan, contoh: cancel ${rows[0].code}`,
+        ].join('\n'),
+      );
+
+      return true;
+    }
+
+    const row = rows[0];
 
     // Entering cancellation flow invalidates any stale booking session,
     // so a later "Ya" has only one possible meaning.
@@ -1080,7 +1165,7 @@ export class WhatsappWebhookController {
 
     await this.sendText(
       chatId,
-      `Betul nak batalkan appointment ${row.patient_name} pada ${row.booking_date} pukul ${String(row.scheduled_time).slice(0, 5)}? Balas Ya untuk sahkan.`,
+      `Betul nak batalkan appointment ${row.code} - ${row.patient_name} pada ${row.booking_date} pukul ${String(row.scheduled_time).slice(0, 5)}? Balas Ya untuk sahkan.`,
     );
 
     return true;
