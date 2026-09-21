@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -291,15 +291,67 @@ function BookingDialog({
   const qc = useQueryClient();
 
   /*
-   * Senarai pesakit.
-   *
-   * Buat masa sekarang kita ikut API asal sistem:
-   * maksimum 100 pesakit dimuatkan.
+   * Carian pesakit terus ke database.
+   * Ini menggantikan kaedah lama yang hanya
+   * memuatkan 100 pesakit pertama.
    */
+  const [patientSearch, setPatientSearch] =
+    useState("");
+
+  const [patientQuery, setPatientQuery] =
+    useState("");
+
+  const [
+    selectedPatient,
+    setSelectedPatient,
+  ] = useState<Patient | null>(null);
+
+  /*
+   * Debounce supaya API tidak dipanggil
+   * pada setiap keystroke terlalu cepat.
+   */
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPatientQuery(
+        patientSearch.trim(),
+      );
+    }, 300);
+
+    return () =>
+      window.clearTimeout(timer);
+  }, [patientSearch]);
+
   const patients = useQuery({
-    queryKey: ["patients", "all"],
-    queryFn: () =>
-      api.get<Patient[]>("/patients?limit=100"),
+    queryKey: [
+      "patients",
+      "appointment-search",
+      patientQuery,
+    ],
+
+    queryFn: () => {
+      const params =
+        new URLSearchParams({
+          limit: "50",
+        });
+
+      if (patientQuery.length >= 2) {
+        params.set(
+          "q",
+          patientQuery,
+        );
+      }
+
+      return api.get<Patient[]>(
+        `/patients?${params.toString()}`,
+      );
+    },
+
+    enabled:
+      open &&
+      (
+        patientQuery.length === 0 ||
+        patientQuery.length >= 2
+      ),
   });
 
   const doctors = useQuery({
@@ -322,43 +374,11 @@ function BookingDialog({
   });
 
   /*
-   * Carian pesakit.
+   * Backend telah melakukan carian
+   * berdasarkan nama, MRN, telefon dan IC.
    */
-  const [patientSearch, setPatientSearch] =
-    useState("");
-
-  /*
-   * Filter pesakit berdasarkan:
-   * 1. Nama
-   * 2. MRN
-   */
-  const filteredPatients = (
-    patients.data ?? []
-  ).filter((patient) => {
-    const keyword = patientSearch
-      .trim()
-      .toLowerCase();
-
-    if (!keyword) {
-      return true;
-    }
-
-    return (
-      patient.name
-        ?.toLowerCase()
-        .includes(keyword) ||
-      patient.mrn
-        ?.toLowerCase()
-        .includes(keyword)
-    );
-  });
-
-  const selectedPatient = (
-    patients.data ?? []
-  ).find(
-    (patient) =>
-      patient.id === form.patientId,
-  );
+  const filteredPatients =
+    patients.data ?? [];
 
   const slots = getBookingSlots(
     form.scheduledDate,
@@ -400,13 +420,6 @@ function BookingDialog({
 
   const book = useMutation({
     mutationFn: () => {
-      const patient = (
-        patients.data ?? []
-      ).find(
-        (p) =>
-          p.id === form.patientId,
-      );
-
       return api.post<Appointment>(
         "/appointments",
         {
@@ -414,7 +427,7 @@ function BookingDialog({
             form.patientId,
 
           patientName:
-            patient?.name ?? "",
+            selectedPatient?.name ?? "",
 
           doctorId:
             form.doctorId || null,
@@ -453,6 +466,8 @@ function BookingDialog({
       });
 
       setPatientSearch("");
+      setPatientQuery("");
+      setSelectedPatient(null);
 
       onClose();
     },
@@ -523,6 +538,10 @@ function BookingDialog({
                       ...form,
                       patientId: "",
                     });
+
+                    setSelectedPatient(
+                      null,
+                    );
                   }
                 }}
                 placeholder="Cari nama atau MRN pesakit..."
@@ -545,6 +564,10 @@ function BookingDialog({
                   ...form,
                   patientId: value,
                 });
+
+                setSelectedPatient(
+                  selected ?? null,
+                );
 
                 /*
                  * Paparkan nama pesakit
