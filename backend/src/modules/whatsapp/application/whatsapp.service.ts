@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import { DbContextService, ScopedSystemWorkerContext, SYSTEM_WORKER_PRINCIPAL } from '../../../core/auth/db-context.service';
@@ -36,6 +37,17 @@ const assignInput = z.object({ staffId: uuid });
 const aiQueueInput = z.object({ state: z.enum(['received', 'buffering', 'ready', 'processing', 'responded', 'waiting', 'handoff', 'closed']) });
 const templateInput = z.object({ branchId: uuid, name: z.string().trim().min(1).max(256), body: z.string().trim().min(1).max(4096), category: z.string().trim().max(64).nullish() });
 const templatePatchInput = z.object({ name: z.string().trim().min(1).max(256).optional(), body: z.string().trim().min(1).max(4096).optional(), category: z.string().trim().max(64).nullish(), active: z.boolean().optional() });
+
+const blastInput = z.object({
+  branchId: uuid,
+  channelId: uuid,
+  recipients: z
+    .array(z.string().trim().min(6).max(64))
+    .min(1)
+    .max(50),
+  body: z.string().trim().min(1).max(4096),
+  consentConfirmed: z.literal(true),
+});
 
 /** Internal carrier for a blocked safety evaluation (never surfaced as-is;
  * converted to ForbiddenError after the decision is persisted out-of-tx). */
@@ -652,6 +664,262 @@ export class WhatsappService {
       await this.audit.record(this.auditEvent(p, 'wa_ai_queue_started', 'wa_conversations', id, conv.branchId), tx);
       return updated;
     });
+  }
+
+  async queueBlast(p: Principal, raw: unknown) {
+    if (p.role !== 'branch_manager') {
+      throw new ForbiddenError(
+        'Only branch manager can send WhatsApp blast',
+      );
+    }
+
+    if (!p.branchId) {
+      throw new ForbiddenError(
+        'No branch context — access denied',
+      );
+    }
+
+    const input = this.parse(blastInput, raw);
+
+    if (input.branchId !== p.branchId) {
+      throw new ForbiddenError(
+        'Cannot send blast for another branch',
+      );
+    }
+
+    const recipients = [
+      ...new Set(
+        input.recipients
+          .map((phone) => normalizePhone(phone))
+          .filter((phone) => phone.length >= 9),
+      ),
+    ];
+
+    if (!recipients.length) {
+      throw new ValidationError({
+        recipients: ['Tiada nombor WhatsApp yang sah'],
+      });
+    }
+
+    if (recipients.length > 50) {
+      throw new ValidationError({
+        recipients: ['Maksimum 50 penerima sehari'],
+      });
+    }
+
+    const batchId = randomUUID();
+
+    const result = await this.dbCtx.runAs(
+      p,
+      async (tx) => {
+        const channel = await this.repo.lockChannel(
+          tx,
+          p.orgId,
+          input.channelId,
+        );
+
+        if (!channel) {
+          throw new NotFoundError(
+            'waChannel',
+            input.channelId,
+          );
+        }
+
+        if (channel.branchId !== p.branchId) {
+          throw new ForbiddenError(
+            'Channel belongs to another branch',
+          );
+        }
+
+        if (channel.status !== 'working') {
+          throw new ConflictError(
+            'WhatsApp channel is not connected',
+          );
+        }
+
+        if (channel.healthScore < 70) {
+          throw new ConflictError(
+            'WhatsApp channel health is too low for blast',
+          );
+        }
+
+        const now = this.nowFn();
+
+        const malaysiaToday = new Date(
+          now.getTime() + 8 * 60 * 60 * 1000,
+        )
+          .toISOString()
+          .slice(0, 10);
+
+        const sentToday =
+          channel.sentTodayDate === malaysiaToday
+            ? channel.sentTodayCount
+            : 0;
+
+        const pendingResult = await tx.execute(sql`
+          SELECT COUNT(*) AS total
+          FROM wa_messages
+          WHERE org_id = ${p.orgId}
+            AND branch_id = ${p.branchId}
+            AND channel_id = ${channel.id}
+            AND direction = 'out'
+            AND status IN ('queued', 'processing')
+            AND deleted_at IS NULL
+        `);
+
+        const pending = Number(
+          (pendingResult as any).rows?.[0]?.total ?? 0,
+        );
+
+        const remaining = Math.max(
+          0,
+          50 - sentToday - pending,
+        );
+
+        if (recipients.length > remaining) {
+          throw new ConflictError(
+            `Baki kuota WhatsApp hari ini hanya ${remaining} mesej`,
+          );
+        }
+
+        const jobs: Array<{
+          messageId: string;
+          conversationId: string;
+          channelId: string;
+          branchId: string;
+        }> = [];
+
+        for (const phone of recipients) {
+          let conversation =
+            await this.repo.findActiveConversation(
+              tx,
+              p.orgId,
+              channel.id,
+              phone,
+            );
+
+          if (!conversation) {
+            conversation =
+              await this.repo.createConversation(
+                tx,
+                {
+                  orgId: p.orgId,
+                  branchId: p.branchId,
+                  channelId: channel.id,
+                  contactPhone: phone,
+                  patientId: null,
+                  status: 'new',
+                  createdBy: p.staffId,
+                  updatedBy: p.staffId,
+                },
+              );
+          }
+
+          const message =
+            await this.repo.createMessage(
+              tx,
+              {
+                orgId: p.orgId,
+                branchId: p.branchId,
+                channelId: channel.id,
+                conversationId: conversation.id,
+                direction: 'out',
+                senderType: 'human',
+                body: input.body,
+                mediaType: null,
+                status: 'queued',
+                idempotencyKey:
+                  `blast:${batchId}:${phone}`,
+                createdBy: p.staffId,
+                updatedBy: p.staffId,
+              },
+            );
+
+          await this.repo.updateConversation(
+            tx,
+            p.orgId,
+            conversation.id,
+            {
+              lastMessageAt: now,
+            },
+          );
+
+          await this.repo.createSafetyDecision(
+            tx,
+            {
+              orgId: p.orgId,
+              branchId: p.branchId,
+              channelId: channel.id,
+              conversationId: conversation.id,
+              messageId: message.id,
+              actorId: p.staffId,
+              decision: 'allowed',
+              blockedReason: null,
+              gates: {
+                source: 'whatsapp_blast',
+                consentConfirmed: true,
+                dailyCap: 50,
+              },
+            },
+          );
+
+          jobs.push({
+            messageId: message.id,
+            conversationId: conversation.id,
+            channelId: channel.id,
+            branchId: p.branchId,
+          });
+        }
+
+        await this.audit.record(
+          this.auditEvent(
+            p,
+            'wa_blast_queued',
+            'wa_channels',
+            channel.id,
+            p.branchId,
+            undefined,
+            {
+              batchId,
+              recipients: jobs.length,
+              dailyCap: 50,
+            },
+          ),
+          tx,
+        );
+
+        return {
+          jobs,
+          sentToday,
+          pending,
+        };
+      },
+    );
+
+    for (const job of result.jobs) {
+      await this.dispatchQueuedMessage(
+        job.messageId,
+        p.orgId,
+        job.branchId,
+        job.channelId,
+        job.conversationId,
+      );
+    }
+
+    return {
+      ok: true,
+      batchId,
+      queued: result.jobs.length,
+      dailyLimit: 50,
+      usedBefore: result.sentToday + result.pending,
+      remaining: Math.max(
+        0,
+        50 -
+          result.sentToday -
+          result.pending -
+          result.jobs.length,
+      ),
+    };
   }
 
   /* ==========================================================================

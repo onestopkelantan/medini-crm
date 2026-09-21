@@ -15,6 +15,7 @@ import Reports from "@/pages/Reports";
 import Marketing from "@/pages/Marketing";
 import Operations from "@/pages/Operations";
 import WhatsAppHub from "@/pages/WhatsAppHub";
+import WhatsAppBlast from "@/pages/WhatsAppBlast";
 import AIManager from "@/pages/AIManager";
 import Administration from "@/pages/Administration";
 import SettingsPage from "@/pages/Settings";
@@ -50,6 +51,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 const roleGuard: Record<string, string[]> = {
   "/administration": ["hq", "branch_manager"],
   "/doctor-schedule": ["branch_manager"],
+  "/whatsapp-blast": ["branch_manager"],
   "/marketing": ["hq", "branch_manager"],
   "/finance": ["hq", "branch_manager"],
   "/reports": ["hq", "branch_manager"],
@@ -89,6 +91,7 @@ function AppRoutes() {
         <Route path="/marketing" element={<Guarded path="/marketing"><Marketing /></Guarded>} />
         <Route path="/operations" element={<Operations />} />
         <Route path="/whatsapp" element={<WhatsAppHub />} />
+        <Route path="/whatsapp-blast" element={<Guarded path="/whatsapp-blast"><WhatsAppBlast /></Guarded>} />
         <Route path="/ai" element={<AIManager />} />
         <Route path="/administration" element={<Guarded path="/administration"><Administration /></Guarded>} />
         <Route path="/doctor-schedule" element={<Guarded path="/doctor-schedule"><DoctorSchedule /></Guarded>} />

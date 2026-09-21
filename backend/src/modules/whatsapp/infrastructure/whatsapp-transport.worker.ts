@@ -4,7 +4,7 @@ import { QueueRegistry } from '../../../infrastructure/queue/queue.registry';
 import { ScopedSystemWorkerContext } from '../../../core/auth/db-context.service';
 import { WhatsappService } from '../application/whatsapp.service';
 import { WahaError } from '../infrastructure/waha.adapter';
-import { WA_SEND_DELAY_MIN_MS, WA_SEND_DELAY_MAX_MS } from '../domain/whatsapp-lifecycle';
+import { WA_SEND_DELAY_MIN_MS, WA_SEND_DELAY_MAX_MS, WA_AUTO_PAUSE_MS } from '../domain/whatsapp-lifecycle';
 
 export interface WhatsappSendJob {
   messageId: string;
@@ -52,15 +52,40 @@ export class WhatsappTransportWorker implements OnModuleInit, OnApplicationShutd
     };
 
     /* 1. Validate channel scope before any external call. */
-    const channel = await this.whatsapp.validateChannelScope(ctx, channelId);
+    let channel = await this.whatsapp.validateChannelScope(ctx, channelId);
     if (channel.status !== 'working') {
       throw new Error(`Channel ${channelId} not working (status=${channel.status})`);
     }
     if (channel.autoPausedAt) {
-      throw new Error(`Channel ${channelId} auto-paused — worker must not send`);
+      const pausedAt =
+        new Date(channel.autoPausedAt).getTime();
+
+      const remainingPauseMs = Math.max(
+        0,
+        WA_AUTO_PAUSE_MS -
+          (Date.now() - pausedAt),
+      );
+
+      if (remainingPauseMs > 0) {
+        await sleep(remainingPauseMs);
+      }
+
+      await this.whatsapp.autoResumeExpiredChannels(ctx);
+
+      channel =
+        await this.whatsapp.validateChannelScope(
+          ctx,
+          channelId,
+        );
+
+      if (channel.autoPausedAt) {
+        throw new Error(
+          `Channel ${channelId} is still auto-paused`,
+        );
+      }
     }
 
-    /* 2. Mark processing (idempotent — safe on retry). */
+/* 2. Mark processing (idempotent — safe on retry). */
     const msg = await this.whatsapp.markMessageProcessing(ctx, messageId);
 
     /* 3. Resolve actual WhatsApp chatId from conversation.contact_phone (F-01).

@@ -18,6 +18,18 @@ import { WhatsappService } from '../application/whatsapp.service';
 export class WhatsappController {
   constructor(private readonly service: WhatsappService) {}
 
+  @Post('blast')
+  @RequirePermission('whatsapp', 'create')
+  blast(
+    @Req() req: AuthedRequest,
+    @Body() body: unknown,
+  ) {
+    return this.service.queueBlast(
+      req.principal!,
+      body,
+    );
+  }
+
   @Post('channels')
   @RequirePermission('whatsapp', 'create')
   createChannel(
