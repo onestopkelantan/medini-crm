@@ -54,9 +54,56 @@ export class WahaAdapter {
     await response.text();
   }
   async sessionStatus(session: string): Promise<string> {
-    const response = await this.request(`/api/sessions/${encodeURIComponent(session)}`);
-    const body = await response.json() as Record<string, unknown>;
-    return String(body.status ?? body.state ?? 'unknown').toLowerCase();
+    const encoded = encodeURIComponent(session);
+
+    const response =
+      await this.request(
+        `/api/sessions/${encoded}`,
+      );
+
+    const body =
+      await response.json() as Record<string, unknown>;
+
+    const status =
+      String(
+        body.status ??
+        body.state ??
+        'unknown',
+      ).toLowerCase();
+
+    if (status !== 'starting') {
+      return status;
+    }
+
+    /*
+     * Sesetengah sesi WAHA boleh kekal melaporkan STARTING
+     * walaupun akaun WhatsApp sebenarnya sudah authenticated.
+     *
+     * Semak endpoint /me sebagai pengesahan kedua.
+     * Jika /me berjaya, sesi boleh digunakan dan dianggap WORKING.
+     */
+    try {
+      const me =
+        await this.request(
+          `/api/sessions/${encoded}/me`,
+        );
+
+      if (me.ok) {
+        const account =
+          await me.json() as Record<string, unknown>;
+
+        if (
+          account &&
+          Object.keys(account).length > 0
+        ) {
+          return 'working';
+        }
+      }
+    } catch {
+      // Belum authenticated / WAHA belum benar-benar ready.
+    }
+
+    return status;
   }
   /** Sends a text message. Throws WahaError (retryable flag) on failure. */
   async sendText(session: string, chatId: string, text: string): Promise<WahaSendResult> {
