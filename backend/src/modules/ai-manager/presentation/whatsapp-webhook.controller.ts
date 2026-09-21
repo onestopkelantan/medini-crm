@@ -3,8 +3,9 @@ import { sql } from 'drizzle-orm';
 import { Public } from '../../../core/auth/decorators';
 import { MinimaxAdapter } from '../infrastructure/minimax.adapter';
 import { WhatsappPromptService } from '../application/whatsapp-prompt.service';
-import { DbContextService } from '../../../core/auth/db-context.service';
+import { DbContextService, SYSTEM_WORKER_PRINCIPAL } from '../../../core/auth/db-context.service';
 import { OrgAllocator } from '../../../shared/allocators/org-allocator';
+import { AuditService } from '../../../shared/audit/audit.service';
 import { doctorHolidays } from '../../../infrastructure/database/schema';
 import IORedis from 'ioredis';
 import { randomUUID } from 'node:crypto';
@@ -150,6 +151,7 @@ export class WhatsappWebhookController {
     private readonly minimax: MinimaxAdapter,
     private readonly dbCtx: DbContextService,
     private readonly whatsappPrompt: WhatsappPromptService,
+    private readonly audit: AuditService,
   ) {
     const url = process.env.REDIS_URL;
 
@@ -934,25 +936,80 @@ export class WhatsappWebhookController {
           correlationId: 'wa-cancel-appointment',
           source: 'system_worker',
         },
-        async (tx) => tx.execute(sql`
-          UPDATE appointments
-          SET status = 'cancelled', updated_at = NOW(6)
-          WHERE id = ${pendingId}
-            AND org_id = ${ORG_ID}
-            AND branch_id = ${BRANCH_ID}
-            AND deleted_at IS NULL
-            AND status IN (
-              'booked', 'confirmed', 'checked-in', 'waiting'
-            )
-            AND patient_id IN (
-              SELECT id
-              FROM patients
-              WHERE org_id = ${ORG_ID}
-                AND branch_id = ${BRANCH_ID}
-                AND deleted_at IS NULL
-                AND (phone = ${phone} OR whatsapp = ${phone})
-            )
-        `),
+        async (tx) => {
+          const beforeResult = await tx.execute(sql`
+            SELECT a.status
+            FROM appointments a
+            WHERE a.id = ${pendingId}
+              AND a.org_id = ${ORG_ID}
+              AND a.branch_id = ${BRANCH_ID}
+              AND a.deleted_at IS NULL
+              AND a.status IN (
+                'booked', 'confirmed', 'checked-in', 'waiting'
+              )
+              AND a.patient_id IN (
+                SELECT id
+                FROM patients
+                WHERE org_id = ${ORG_ID}
+                  AND branch_id = ${BRANCH_ID}
+                  AND deleted_at IS NULL
+                  AND (phone = ${phone} OR whatsapp = ${phone})
+              )
+            LIMIT 1
+            FOR UPDATE
+          `);
+
+          const beforeStatus =
+            (beforeResult as any).rows?.[0]?.status;
+
+          if (!beforeStatus) {
+            return { affectedRows: 0 };
+          }
+
+          const updateResult = await tx.execute(sql`
+            UPDATE appointments
+            SET status = 'cancelled',
+                updated_at = NOW(6)
+            WHERE id = ${pendingId}
+              AND org_id = ${ORG_ID}
+              AND branch_id = ${BRANCH_ID}
+              AND deleted_at IS NULL
+              AND status IN (
+                'booked', 'confirmed', 'checked-in', 'waiting'
+              )
+          `);
+
+          const affectedRows =
+            Number((updateResult as any).affectedRows ?? 0);
+
+          if (affectedRows > 0) {
+            await this.audit.record(
+              {
+                actorId:
+                  SYSTEM_WORKER_PRINCIPAL.staffId,
+                actorRole:
+                  SYSTEM_WORKER_PRINCIPAL.role,
+                action:
+                  'appointment_cancelled_whatsapp',
+                entity: 'appointments',
+                entityId: pendingId,
+                orgId: ORG_ID,
+                branchId: BRANCH_ID,
+                source: 'integration',
+                before: {
+                  status: beforeStatus,
+                },
+                after: {
+                  status: 'cancelled',
+                  channel: 'whatsapp',
+                },
+              },
+              tx,
+            );
+          }
+
+          return { affectedRows };
+        },
       );
 
       await this.redis.del(key);
