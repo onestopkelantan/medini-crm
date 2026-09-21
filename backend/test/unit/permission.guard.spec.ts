@@ -96,4 +96,57 @@ describe('PermissionGuard (authorization enforcement)', () => {
     const { guard, ctx: c } = ctx(bm, {}, { domain: 'patients', action: 'create' });
     expect(() => guard.canActivate(c)).toThrow(ForbiddenError);
   });
+
+  it('allows branch_manager appointments.create without target branchId', () => {
+    const { guard, ctx: c } = ctx(
+      bm,
+      {},
+      { domain: 'appointments', action: 'create' },
+    );
+
+    expect(guard.canActivate(c)).toBe(true);
+  });
+
+  it('allows branch_admin appointments.create without target branchId', () => {
+    const reception: Principal = {
+      staffId: 's4',
+      name: 'Reception',
+      username: 'reception',
+      role: 'branch_admin',
+      orgId: 'org-1',
+      branchId: 'sentosa',
+      doctorId: null,
+    };
+
+    const { guard, ctx: c } = ctx(
+      reception,
+      {},
+      { domain: 'appointments', action: 'create' },
+    );
+
+    expect(guard.canActivate(c)).toBe(true);
+  });
+
+  it('denies branch_manager appointments.create for foreign branch', () => {
+    const { guard, ctx: c } = ctx(
+      bm,
+      { branchId: 'pearl' },
+      { domain: 'appointments', action: 'create' },
+    );
+
+    expect(() => guard.canActivate(c))
+      .toThrow(ForbiddenError);
+  });
+
+  it('denies doctor appointments.create', () => {
+    const { guard, ctx: c } = ctx(
+      doctor,
+      {},
+      { domain: 'appointments', action: 'create' },
+    );
+
+    expect(() => guard.canActivate(c))
+      .toThrow(ForbiddenError);
+  });
+
 });

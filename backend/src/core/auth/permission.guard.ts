@@ -38,14 +38,21 @@ export class PermissionGuard implements CanActivate {
     };
 
     /*
-     * HQ boleh pilih branch sendiri.
-     * Branch manager mesti menggunakan branch miliknya sendiri.
-     * Ini penting untuk mutation seperti Sahkan/Tolak booking.
+     * Appointment mutation untuk user cawangan menggunakan branch
+     * daripada Principal apabila request tidak menghantar branchId.
+     *
+     * Scope masih fail-closed:
+     * - HQ mesti pilih target branch sendiri bila diperlukan.
+     * - Branch user hanya boleh menggunakan branch miliknya.
+     * - Doctor tetap ditolak oleh permission matrix untuk create/edit.
      */
     if (
-      principal.role === 'branch_manager' &&
+      principal.role !== 'hq' &&
       required.domain === 'appointments' &&
-      required.action === 'edit' &&
+      (
+        required.action === 'create' ||
+        required.action === 'edit'
+      ) &&
       target.branchId == null &&
       principal.branchId
     ) {
