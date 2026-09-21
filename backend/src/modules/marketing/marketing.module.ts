@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../../core/auth/auth.module';
+import { AiManagerModule } from '../ai-manager/ai-manager.module';
 import { PatientsReadPort } from '../../shared/ports/patients.read-port';
 import { AppointmentsReadPort } from '../../shared/ports/appointments.read-port';
 import { ClinicalReadPort } from '../../shared/ports/clinical.read-port';
 import { MarketingController } from './presentation/marketing.controller';
 import { ScrubbingController } from './presentation/scrubbing.controller';
+import { ScrubbingAiController } from './presentation/scrubbing-ai.controller';
 import { MarketingContentController } from './presentation/marketing-content.controller';
 import { MarketingService } from './application/marketing.service';
 import { ScrubbingService } from './application/scrubbing.service';
+import { ScrubbingAiService } from './application/scrubbing-ai.service';
 import { MarketingContentService } from './application/marketing-content.service';
 import { MarketingRepository } from './infrastructure/marketing.repository';
 import { MarketingContentRepository } from './infrastructure/marketing-content.repository';
@@ -34,11 +37,12 @@ const RECALL_RECOVERY_SWEEP = {
 };
 
 @Module({
-  imports: [AuthModule],
-  controllers: [MarketingController, MarketingContentController, ScrubbingController],
+  imports: [AuthModule, AiManagerModule],
+  controllers: [MarketingController, MarketingContentController, ScrubbingController, ScrubbingAiController],
   providers: [
     MarketingService, MarketingRepository,
     ScrubbingService,
+    ScrubbingAiService,
     MarketingContentService, MarketingContentRepository,
     PatientsReadPort, AppointmentsReadPort, ClinicalReadPort,
     RecallScheduler, RecallWorker, RECALL_RECOVERY_SWEEP,

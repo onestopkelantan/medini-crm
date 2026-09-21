@@ -51,6 +51,18 @@ interface ScrubbingCandidate {
   suggestedReason: string;
 }
 
+interface ScrubbingMessageDraft {
+  patientId: string;
+  name: string;
+  contactPhone: string;
+  lastVisitDate: string;
+  monthsSinceLastVisit: number;
+  lastTreatment: string;
+  suggestedReason: string;
+  message: string;
+  source: "ai" | "fallback";
+}
+
 type Mode = "scrubbing" | "marketing";
 
 export default function WhatsAppBlast() {
@@ -80,6 +92,12 @@ export default function WhatsAppBlast() {
 
   const [lastResult, setLastResult] =
     useState<BlastResult | null>(null);
+
+  const [drafts, setDrafts] =
+    useState<ScrubbingMessageDraft[]>([]);
+
+  const [followupConsent, setFollowupConsent] =
+    useState(false);
 
   const channelsQuery = useQuery({
     queryKey: ["whatsapp-campaign", "channels"],
@@ -123,6 +141,8 @@ export default function WhatsAppBlast() {
 
   useEffect(() => {
     setSelected([]);
+    setDrafts([]);
+    setFollowupConsent(false);
   }, [months]);
 
   const selectedSet =
@@ -193,9 +213,152 @@ export default function WhatsAppBlast() {
     },
   });
 
+  const generateDrafts = useMutation({
+    mutationFn: () =>
+      api.post<ScrubbingMessageDraft[]>(
+        "/marketing/scrubbing-message-drafts",
+        {
+          branchId: user?.branchId,
+          patientIds: selected,
+        },
+      ),
+
+    onSuccess: (rows) => {
+      setDrafts(rows);
+      setFollowupConsent(false);
+
+      if (!rows.length) {
+        toast.error(
+          "Tiada mesej follow-up dapat dijana.",
+        );
+        return;
+      }
+
+      const aiCount = rows.filter(
+        (row) => row.source === "ai",
+      ).length;
+
+      toast.success(
+        aiCount > 0
+          ? `${rows.length} mesej follow-up dijana untuk semakan`
+          : `${rows.length} mesej fallback dijana untuk semakan`,
+      );
+    },
+
+    onError: (error) => {
+      toast.error(
+        errorMessage(
+          error,
+          "Gagal menjana mesej follow-up",
+        ),
+      );
+    },
+  });
+
+  const sendFollowups = useMutation({
+    mutationFn: async () => {
+      let last: BlastResult | null = null;
+      let queued = 0;
+
+      for (const draft of drafts) {
+        const result =
+          await api.post<BlastResult>(
+            "/whatsapp/blast",
+            {
+              branchId: user?.branchId,
+              channelId,
+              recipients: [
+                draft.contactPhone,
+              ],
+              body: draft.message.trim(),
+              consentConfirmed:
+                followupConsent,
+            },
+          );
+
+        queued += result.queued;
+        last = result;
+      }
+
+      return {
+        queued,
+        last,
+      };
+    },
+
+    onSuccess: ({ queued, last }) => {
+      if (last) {
+        setLastResult(last);
+      }
+
+      setDrafts([]);
+      setSelected([]);
+      setFollowupConsent(false);
+
+      qc.invalidateQueries({
+        queryKey: [
+          "whatsapp-campaign",
+          "channels",
+        ],
+      });
+
+      qc.invalidateQueries({
+        queryKey: [
+          "whatsapp-campaign",
+          "scrubbing",
+        ],
+      });
+
+      toast.success(
+        `${queued} mesej follow-up dimasukkan ke WhatsApp queue`,
+      );
+    },
+
+    onError: (error) => {
+      toast.error(
+        errorMessage(
+          error,
+          "Penghantaran follow-up terhenti. Semak queue WhatsApp sebelum cuba semula.",
+        ),
+      );
+    },
+  });
+
+  const updateDraftMessage = (
+    patientId: string,
+    value: string,
+  ) => {
+    setDrafts((current) =>
+      current.map((draft) =>
+        draft.patientId === patientId
+          ? {
+              ...draft,
+              message: value.slice(
+                0,
+                4096,
+              ),
+            }
+          : draft,
+      ),
+    );
+  };
+
   const togglePatient = (
     patientId: string,
   ) => {
+    if (
+      !selectedSet.has(patientId) &&
+      selected.length >= 50
+    ) {
+      toast.error(
+        "Maksimum 50 pesakit untuk satu penghantaran.",
+      );
+      return;
+    }
+
+    setDrafts([]);
+    setFollowupConsent(false);
+
     setSelected((current) =>
       current.includes(patientId)
         ? current.filter(
@@ -206,21 +369,48 @@ export default function WhatsAppBlast() {
   };
 
   const selectAll = () => {
-    if (
-      selected.length ===
-      candidates.length
-    ) {
+    const selectable =
+      candidates
+        .slice(0, 50)
+        .map(
+          (candidate) =>
+            candidate.patientId,
+        );
+
+    const allSelected =
+      selectable.length > 0 &&
+      selectable.every((id) =>
+        selectedSet.has(id),
+      );
+
+    setDrafts([]);
+    setFollowupConsent(false);
+
+    if (allSelected) {
       setSelected([]);
       return;
     }
 
-    setSelected(
-      candidates.map(
-        (candidate) =>
-          candidate.patientId,
-      ),
-    );
+    setSelected(selectable);
+
+    if (candidates.length > 50) {
+      toast.info(
+        "50 pesakit pertama sahaja dipilih kerana had penghantaran harian.",
+      );
+    }
   };
+
+  const followupSendInvalid =
+    !channelId ||
+    drafts.length < 1 ||
+    drafts.length > 50 ||
+    drafts.some(
+      (draft) =>
+        !draft.message.trim(),
+    ) ||
+    !followupConsent ||
+    selectedChannel?.status !==
+      "working";
 
   const blastInvalid =
     !channelId ||
@@ -390,9 +580,12 @@ export default function WhatsAppBlast() {
                   className="rounded-xl"
                 >
                   {selected.length ===
-                  candidates.length
+                    Math.min(
+                      candidates.length,
+                      50,
+                    )
                     ? "Kosongkan Semua"
-                    : "Pilih Semua"}
+                    : "Pilih Semua (Maks 50)"}
                 </Button>
               )}
             </div>
@@ -533,18 +726,251 @@ export default function WhatsAppBlast() {
             </div>
 
             {selected.length > 0 && (
-              <div className="mt-5 rounded-xl border border-teal-100 bg-teal-50 p-4">
-                <p className="font-semibold text-teal-800">
-                  {selected.length} pesakit
-                  dipilih.
-                </p>
+              <div className="mt-5 space-y-4">
+                <div className="rounded-xl border border-teal-100 bg-teal-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-teal-800">
+                        {selected.length} pesakit
+                        dipilih.
+                      </p>
 
-                <p className="mt-1 text-xs text-teal-700">
-                  Belum ada WhatsApp dihantar.
-                  Langkah seterusnya kita akan
-                  generate mesej follow-up dan
-                  preview sebelum dihantar.
-                </p>
+                      <p className="mt-1 text-xs text-teal-700">
+                        AI akan menyediakan
+                        draf sahaja. Tiada
+                        WhatsApp dihantar
+                        sehingga anda semak
+                        dan tekan Hantar.
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={() =>
+                        generateDrafts.mutate()
+                      }
+                      disabled={
+                        generateDrafts.isPending ||
+                        selected.length < 1 ||
+                        selected.length > 50
+                      }
+                      className="rounded-xl bg-teal-600 hover:bg-teal-700"
+                    >
+                      <Brain className="mr-2 h-4 w-4" />
+
+                      {generateDrafts.isPending
+                        ? "AI sedang menjana..."
+                        : "Jana Mesej Follow-up"}
+                    </Button>
+                  </div>
+                </div>
+
+                {drafts.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="font-bold text-slate-800">
+                          Preview Mesej
+                        </h3>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          Semak dan edit setiap
+                          mesej sebelum masuk
+                          WhatsApp queue.
+                        </p>
+                      </div>
+
+                      <span className="w-fit rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+                        {drafts.length} draf
+                      </span>
+                    </div>
+
+                    <div className="mt-5 space-y-4">
+                      {drafts.map(
+                        (draft, index) => (
+                          <div
+                            key={
+                              draft.patientId
+                            }
+                            className="rounded-xl border border-slate-200 p-4"
+                          >
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="font-semibold text-slate-800">
+                                  {index + 1}.{" "}
+                                  {draft.name}
+                                </p>
+
+                                <p className="text-xs text-slate-400">
+                                  {
+                                    draft.contactPhone
+                                  }{" "}
+                                  · Lawatan terakhir{" "}
+                                  {
+                                    draft.lastVisitDate
+                                  }
+                                </p>
+                              </div>
+
+                              <span
+                                className={
+                                  draft.source ===
+                                  "ai"
+                                    ? "w-fit rounded-full bg-violet-50 px-3 py-1 text-[11px] font-semibold text-violet-700"
+                                    : "w-fit rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-700"
+                                }
+                              >
+                                {draft.source ===
+                                "ai"
+                                  ? "AI Generated"
+                                  : "Fallback"}
+                              </span>
+                            </div>
+
+                            <p className="mt-3 text-xs text-slate-500">
+                              {
+                                draft.suggestedReason
+                              }
+                            </p>
+
+                            <Textarea
+                              value={
+                                draft.message
+                              }
+                              onChange={(
+                                event,
+                              ) =>
+                                updateDraftMessage(
+                                  draft.patientId,
+                                  event.target
+                                    .value,
+                                )
+                              }
+                              rows={5}
+                              className="mt-3"
+                            />
+
+                            <p className="mt-1 text-right text-[11px] text-slate-400">
+                              {
+                                draft.message
+                                  .length
+                              }
+                              /4096
+                            </p>
+                          </div>
+                        ),
+                      )}
+                    </div>
+
+                    <div className="mt-6 border-t border-slate-100 pt-5">
+                      <Label>
+                        WhatsApp Channel
+                      </Label>
+
+                      <select
+                        value={channelId}
+                        onChange={(event) =>
+                          setChannelId(
+                            event.target
+                              .value,
+                          )
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
+                      >
+                        <option value="">
+                          Pilih Channel
+                        </option>
+
+                        {channels.map(
+                          (channel) => (
+                            <option
+                              key={
+                                channel.id
+                              }
+                              value={
+                                channel.id
+                              }
+                            >
+                              {
+                                channel.phone
+                              }{" "}
+                              -{" "}
+                              {
+                                channel.status
+                              }
+                            </option>
+                          ),
+                        )}
+                      </select>
+
+                      <label className="mt-4 flex gap-3 rounded-xl bg-teal-50 p-4">
+                        <input
+                          type="checkbox"
+                          checked={
+                            followupConsent
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            setFollowupConsent(
+                              event.target
+                                .checked,
+                            )
+                          }
+                          className="mt-1 h-4 w-4"
+                        />
+
+                        <div>
+                          <p className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <ShieldCheck className="h-4 w-4 text-teal-600" />
+                            Pengesahan
+                            penghantaran
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            Saya telah menyemak
+                            draf mesej dan
+                            mengesahkan penerima
+                            dibenarkan menerima
+                            mesej susulan
+                            daripada klinik.
+                          </p>
+                        </div>
+                      </label>
+
+                      {drafts.length >
+                        remaining && (
+                        <div className="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+                          Draf dipilih melebihi
+                          baki kuota yang
+                          dipaparkan hari ini.
+                          Kurangkan penerima
+                          sebelum menghantar.
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex justify-end">
+                        <Button
+                          disabled={
+                            followupSendInvalid ||
+                            sendFollowups.isPending ||
+                            drafts.length >
+                              remaining
+                          }
+                          onClick={() =>
+                            sendFollowups.mutate()
+                          }
+                          className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500"
+                        >
+                          <Send className="mr-2 h-4 w-4" />
+
+                          {sendFollowups.isPending
+                            ? "Menghantar ke Queue..."
+                            : `Hantar ${drafts.length} Follow-up`}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

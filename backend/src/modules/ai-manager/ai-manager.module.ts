@@ -43,6 +43,7 @@ import { MinimaxAdapter } from './infrastructure/minimax.adapter';
     AiManagerRepository,
     AiPolicyPort,
     WhatsappPromptService,
+    MinimaxAdapter,
   ],
 })
 export class AiManagerModule {}
