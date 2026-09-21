@@ -270,6 +270,27 @@ export default function DoctorSchedule() {
     }
   };
 
+  const deleteHoliday = (
+    date: string,
+    reason: string,
+  ) => {
+    if (!canManage) return;
+
+    const ok = window.confirm(
+      `Padam cuti "${reason}" pada ${date}?`,
+    );
+
+    if (!ok) return;
+
+    setHolidays((current) => {
+      const next = { ...current };
+      delete next[date];
+      return next;
+    });
+
+    setMessage("Cuti berjaya dipadam.");
+  };
+
   return (
     <main className="min-h-full bg-[#F4F7FA] p-4 sm:p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -418,9 +439,30 @@ export default function DoctorSchedule() {
                 ))}
 
                 {holidayText && (
-                  <div className="mb-1 text-[10px] font-semibold leading-tight text-amber-900">
-                    CUTI: {holidayText}
-                  </div>
+                  holidays[date] && canManage ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        deleteHoliday(
+                          date,
+                          holidayText,
+                        );
+                      }}
+                      className="mb-1 flex w-full items-center justify-between gap-1 rounded-md bg-amber-100 px-1 py-1 text-left text-[10px] font-semibold leading-tight text-amber-900 hover:bg-red-100 hover:text-red-700"
+                      title="Klik untuk padam cuti"
+                    >
+                      <span>
+                        CUTI: {holidayText}
+                      </span>
+
+                      <Trash2 className="h-3 w-3 shrink-0" />
+                    </button>
+                  ) : (
+                    <div className="mb-1 text-[10px] font-semibold leading-tight text-amber-900">
+                      CUTI: {holidayText}
+                    </div>
+                  )
                 )}
               </div>
             );
