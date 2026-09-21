@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -73,7 +73,7 @@ export default function DoctorSchedule() {
   const doctorsQuery = useQuery({
     queryKey: ["branch-doctors"],
     queryFn: () =>
-      api.get<Doctor[]>("/appointments/doctors/list"),
+      api.get<Doctor[]>("/doctor-registration/doctors/list"),
   });
 
   const doctors = (doctorsQuery.data ?? []).filter(
