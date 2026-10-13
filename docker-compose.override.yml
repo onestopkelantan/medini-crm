@@ -1,0 +1,27 @@
+# Local override: expose DB ports for migrations/dev access only.
+# Loaded automatically when compose is invoked with the default file name,
+# or explicitly with -f docker-compose.prod.yml -f docker-compose.override.yml.
+# DO NOT USE in production.
+
+services:
+  mysql:
+    ports:
+      - "127.0.0.1:3307:3306"
+  redis:
+    ports:
+      - "127.0.0.1:6380:6379"
+
+  # Test seam for FASA 5D-B verification.
+  #
+  # The notification path is only reachable from an inbound WhatsApp message, and
+  # no number is linked yet, so without this the feature cannot be verified at
+  # all. The flag lives HERE, not in docker-compose.prod.yml: the prod file must
+  # never carry it, or a deployed clinic would expose an endpoint that lets a
+  # stray request fill its notification bell.
+  #
+  # The endpoint stays locked in production because this file is excluded there
+  # (see "DO NOT USE in production"). Remove or leave — it does nothing unless
+  # this override is explicitly loaded.
+  backend:
+    environment:
+      WA_NOTIFICATION_SEED: "1"

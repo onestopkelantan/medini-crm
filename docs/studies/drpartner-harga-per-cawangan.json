@@ -1,0 +1,156 @@
+{
+ "Metropoint": {
+  "total": 41,
+  "nonzero": [
+   {
+    "t": "VENEER",
+    "p": "1500.00"
+   },
+   {
+    "t": "ALVEOLOPLASTY",
+    "p": "150.00"
+   },
+   {
+    "t": "CLEAR ALIGNER",
+    "p": "8000.00"
+   },
+   {
+    "t": "COMPOSITE VENEER",
+    "p": "200.00"
+   },
+   {
+    "t": "CONSULTATION (ADULT)",
+    "p": "30.00"
+   },
+   {
+    "t": "CONSULTATION (KIDS)",
+    "p": "20.00"
+   },
+   {
+    "t": "CROWN",
+    "p": "900.00"
+   },
+   {
+    "t": "DECIDUOUS EXTRACTION",
+    "p": "60.00"
+   },
+   {
+    "t": "DIFFICULT EXTRACTION",
+    "p": "300.00"
+   },
+   {
+    "t": "DRY SOCKET MX",
+    "p": "50.00"
+   },
+   {
+    "t": "EMERGENCY TREATMENT",
+    "p": "150.00"
+   },
+   {
+    "t": "EXPRESS WHITENING",
+    "p": "180.00"
+   },
+   {
+    "t": "FIBER REINFORCED COMPOSITE",
+    "p": "700.00"
+   },
+   {
+    "t": "FLOURIDE",
+    "p": "40.00"
+   },
+   {
+    "t": "GIC FILLING (ADULT)",
+    "p": "100.00"
+   },
+   {
+    "t": "GIC FILLING (KIDS)",
+    "p": "70.00"
+   },
+   {
+    "t": "LOCAL ANESTHESIA",
+    "p": "10.00"
+   },
+   {
+    "t": "MINOR ORAL SUGERY",
+    "p": "800.00"
+   },
+   {
+    "t": "OPERCULECTOMY",
+    "p": "150.00"
+   },
+   {
+    "t": "OPG XRAY",
+    "p": "100.00"
+   },
+   {
+    "t": "PA XRAY",
+    "p": "50.00"
+   },
+   {
+    "t": "POLISHING (KIDS)",
+    "p": "60.00"
+   },
+   {
+    "t": "PULPOTOMY / PULPECTOMY",
+    "p": "300.00"
+   },
+   {
+    "t": "RETAINER",
+    "p": "300.00"
+   },
+   {
+    "t": "ROOT CANAL TREATMENT (ANTERIOR)",
+    "p": "700.00"
+   },
+   {
+    "t": "ROOT CANAL TREATMENT (MOLAR)",
+    "p": "1300.00"
+   },
+   {
+    "t": "ROOT CANAL TREATMENT (PRE-MOLAR)",
+    "p": "900.00"
+   },
+   {
+    "t": "SCALING & POLISHING",
+    "p": "150.00"
+   },
+   {
+    "t": "SUTURE",
+    "p": "50.00"
+   },
+   {
+    "t": "WHITENING",
+    "p": "699.00"
+   }
+  ]
+ },
+ "UDA": {
+  "total": 23,
+  "nonzero": [
+   {
+    "t": "BRACES / ORTHO",
+    "p": "200.00"
+   },
+   {
+    "t": "CONSULTATION",
+    "p": "80.00"
+   },
+   {
+    "t": "EXTRACTION",
+    "p": "150.00"
+   },
+   {
+    "t": "PA XRAY",
+    "p": "50.00"
+   },
+   {
+    "t": "ROOT CANAL TREATMENT / ENDO",
+    "p": "800.00"
+   },
+   {
+    "t": "SCALING + POLISHING",
+    "p": "150.00"
+   }
+  ]
+ }
+}

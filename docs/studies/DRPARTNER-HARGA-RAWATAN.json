@@ -1,0 +1,1620 @@
+{
+ "master_48": [
+  [
+   "ALVEOLOPLASTY",
+   ""
+  ],
+  [
+   "AMALGAM FILLING",
+   ""
+  ],
+  [
+   "BLANC ONE WHITENING",
+   ""
+  ],
+  [
+   "CBCT",
+   "1"
+  ],
+  [
+   "COMPOSITE FILLING",
+   ""
+  ],
+  [
+   "CONSULTATION",
+   ""
+  ],
+  [
+   "DENTURE",
+   ""
+  ],
+  [
+   "DRY SOCKET MX",
+   ""
+  ],
+  [
+   "EXTRACTION",
+   ""
+  ],
+  [
+   "F/F DENTURE ACRYLIC",
+   ""
+  ],
+  [
+   "F/F DENTURE FLEXIBLE",
+   ""
+  ],
+  [
+   "FILLING",
+   ""
+  ],
+  [
+   "FISSURE SEALANT",
+   ""
+  ],
+  [
+   "FLUORIDE APPLICATION",
+   ""
+  ],
+  [
+   "FULL METAL CROWN",
+   ""
+  ],
+  [
+   "GIC FILLING",
+   ""
+  ],
+  [
+   "IMPLANT CROWN ISSUED",
+   ""
+  ],
+  [
+   "IMPLANT IMPRESSION",
+   ""
+  ],
+  [
+   "INVISALIGN",
+   ""
+  ],
+  [
+   "INVISALIGN MODERATE",
+   ""
+  ],
+  [
+   "INVISALIGN REVIEW",
+   ""
+  ],
+  [
+   "LASER EMUNDO",
+   ""
+  ],
+  [
+   "LASER GINGIVECTOMY",
+   ""
+  ],
+  [
+   "MFT + EXPANDER",
+   ""
+  ],
+  [
+   "MFT + TRAINER",
+   ""
+  ],
+  [
+   "MFT REVIEW",
+   ""
+  ],
+  [
+   "MILK TOOTH EXTRACTION",
+   ""
+  ],
+  [
+   "OPG",
+   "1"
+  ],
+  [
+   "ORTHO DEBOND",
+   ""
+  ],
+  [
+   "ORTHO REVIEW",
+   ""
+  ],
+  [
+   "PA RADIOGRAPH",
+   "1"
+  ],
+  [
+   "PARTIAL DENTURE ACRYLIC",
+   ""
+  ],
+  [
+   "PARTIAL DENTURE THERMOSENSE",
+   ""
+  ],
+  [
+   "PFM BRIDGE",
+   ""
+  ],
+  [
+   "PFM CROWN",
+   ""
+  ],
+  [
+   "PULPOTOMY",
+   ""
+  ],
+  [
+   "RETAINER",
+   ""
+  ],
+  [
+   "ROOT CANAL - ANTERIOR",
+   ""
+  ],
+  [
+   "ROOT CANAL - MOLAR",
+   ""
+  ],
+  [
+   "ROOT CANAL - PREMOLAR",
+   ""
+  ],
+  [
+   "SCALING AND POLISHING",
+   ""
+  ],
+  [
+   "STO",
+   ""
+  ],
+  [
+   "STRAUMANN IMPLANT",
+   ""
+  ],
+  [
+   "WHITENING",
+   ""
+  ],
+  [
+   "WISDOM TOOTH EXTRACTION",
+   ""
+  ],
+  [
+   "WISDOM TOOTH SURGERY",
+   ""
+  ],
+  [
+   "ZIRCONIA BRIDGE",
+   ""
+  ],
+  [
+   "ZIRCONIA CROWN",
+   ""
+  ]
+ ],
+ "per_cawangan": {
+  "Setia Tropika": {
+   "33": {
+    "name": "APPLIANCE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "7": {
+    "name": "BRACES / ORTHO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "15": {
+    "name": "BRIDGE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "20": {
+    "name": "CBCT XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "32": {
+    "name": "CLEAR ALIGNER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "2": {
+    "name": "CONSULTATION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "14": {
+    "name": "CROWN",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "16": {
+    "name": "DENTURE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "6": {
+    "name": "EXTRACTION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "31": {
+    "name": "FIBER REINFORCED COMPOSITE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "4": {
+    "name": "FILLING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "9": {
+    "name": "FLUORIDE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "30": {
+    "name": "GINGEVECTOMY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "34": {
+    "name": "LA CEPH XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "36": {
+    "name": "LOCAL ANESTHESIA",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "8": {
+    "name": "MEDICATIONS",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "21": {
+    "name": "MINOR ORAL SURGERY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "10": {
+    "name": "OPG X-RAY",
+    "price": "100.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "11": {
+    "name": "PA X-RAY",
+    "price": "50.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "24": {
+    "name": "ROOT CANAL TREATMENT",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "3": {
+    "name": "SCALING AND POLISHING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "22": {
+    "name": "STO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "19": {
+    "name": "VENEER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "29": {
+    "name": "WHITENING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "35": {
+    "name": "IMPLANT",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   }
+  },
+  "Molek": {
+   "20": {
+    "name": "APPLIANCE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "21": {
+    "name": "BRACES / ORTHO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "12": {
+    "name": "BRIDGE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "5": {
+    "name": "CBCT X-RAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "15": {
+    "name": "CLEAR ALIGNER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "1": {
+    "name": "CONSULTATION",
+    "price": "80.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "11": {
+    "name": "CROWN",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "9": {
+    "name": "DENTURE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "6": {
+    "name": "EXTRACTION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "19": {
+    "name": "FIBER REINFORCED COMPOSITE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "7": {
+    "name": "FILLING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "17": {
+    "name": "FLOURIDE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "16": {
+    "name": "GINGIVECTOMY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "14": {
+    "name": "IMPLANT",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "4": {
+    "name": "LA CEPH XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "23": {
+    "name": "LOCAL ANESTHESIA",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "2": {
+    "name": "OPG XRAY",
+    "price": "120.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "3": {
+    "name": "PA XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "10": {
+    "name": "ROOT CANAL  TREATMENT / ENDO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "8": {
+    "name": "SCALING & POLISHING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "18": {
+    "name": "STO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "13": {
+    "name": "VENEER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "22": {
+    "name": "WHITENING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   }
+  },
+  "Sentosa": {
+   "14": {
+    "name": "APPLIANCE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "19": {
+    "name": "BRACES / ORTHO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "7": {
+    "name": "BRIDGE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "15": {
+    "name": "CBCT X-RAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "13": {
+    "name": "CLEAR ALIGNER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "1": {
+    "name": "CONSULTATION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "6": {
+    "name": "CROWN",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "5": {
+    "name": "DENTURE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "2": {
+    "name": "EXTRACTION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "20": {
+    "name": "FIBER REINFORCED COMPOSITE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "3": {
+    "name": "FILLING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "10": {
+    "name": "FLUORIDE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "12": {
+    "name": "IMPLANT",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "17": {
+    "name": "LA CEPH XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "23": {
+    "name": "LOCAL ANESTHESIA",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "22": {
+    "name": "MINOR ORAL SURGERY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "18": {
+    "name": "OPG XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "16": {
+    "name": "PA XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "21": {
+    "name": "ROOT CANAL  TREATMENT / ENDO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "4": {
+    "name": "SCALING & POLISHING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "9": {
+    "name": "STO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "8": {
+    "name": "VENEER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "11": {
+    "name": "WHITENING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   }
+  },
+  "UBC": {
+   "9": {
+    "name": "APPLIANCE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "11": {
+    "name": "BRACES / ORTHO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "10": {
+    "name": "BRIDGE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "18": {
+    "name": "CBCT X-RAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "22": {
+    "name": "CLEAR ALIGNER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "1": {
+    "name": "CONSULTATION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "12": {
+    "name": "CROWN",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "5": {
+    "name": "DENTURE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "2": {
+    "name": "EXTRACTION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "13": {
+    "name": "FIBER REINFORCED COMPOSITE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "3": {
+    "name": "FILLING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "21": {
+    "name": "FLOURIDE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "23": {
+    "name": "GINGIVECTOMY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "7": {
+    "name": "IMPLANT",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "17": {
+    "name": "LA CEPH XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "24": {
+    "name": "LOCAL ANESTHESIA",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "20": {
+    "name": "MINOR ORAL SUGERY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "15": {
+    "name": "OPG XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "16": {
+    "name": "PA XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "6": {
+    "name": "ROOT CANAL  TREATMENT / ENDO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "4": {
+    "name": "SCALING & POLISHING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "19": {
+    "name": "STO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "14": {
+    "name": "VENEER",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "8": {
+    "name": "WHITENING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   }
+  },
+  "Kajang": {
+   "31": {
+    "name": "APPLIANCE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "32": {
+    "name": "VENEER",
+    "price": "1500.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "39": {
+    "name": "ALVEOLOPLASTY",
+    "price": "150.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "22": {
+    "name": "BRACES / ORTHO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "26": {
+    "name": "BRIDGE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "36": {
+    "name": "CBCT XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "20": {
+    "name": "CLEAR ALIGNER",
+    "price": "8000.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "45": {
+    "name": "COMPOSITE VENEER",
+    "price": "200.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "1": {
+    "name": "CONSULTATION (ADULT)",
+    "price": "30.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "40": {
+    "name": "CONSULTATION (KIDS)",
+    "price": "20.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "25": {
+    "name": "CROWN",
+    "price": "900.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "42": {
+    "name": "DECIDUOUS EXTRACTION",
+    "price": "60.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "24": {
+    "name": "DENTURE",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "51": {
+    "name": "DIFFICULT EXTRACTION",
+    "price": "300.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "41": {
+    "name": "DRY SOCKET MX",
+    "price": "50.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "56": {
+    "name": "EMERGENCY TREATMENT",
+    "price": "150.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "44": {
+    "name": "EXPRESS WHITENING",
+    "price": "180.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "13": {
+    "name": "EXTRACTION",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "33": {
+    "name": "FIBER REINFORCED COMPOSITE",
+    "price": "700.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "8": {
+    "name": "FILLING",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "38": {
+    "name": "FLOURIDE",
+    "price": "40.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "46": {
+    "name": "GIC FILLING (ADULT)",
+    "price": "100.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "47": {
+    "name": "GIC FILLING (KIDS)",
+    "price": "70.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "29": {
+    "name": "GINGIVECTOMY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "5": {
+    "name": "IMPLANT",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "37": {
+    "name": "LA CEPH XRAY",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "49": {
+    "name": "LOCAL ANESTHESIA",
+    "price": "10.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "27": {
+    "name": "MINOR ORAL SUGERY",
+    "price": "800.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "43": {
+    "name": "OPERCULECTOMY",
+    "price": "150.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "35": {
+    "name": "OPG XRAY",
+    "price": "100.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "34": {
+    "name": "PA XRAY",
+    "price": "50.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "55": {
+    "name": "POLISHING (KIDS)",
+    "price": "60.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "50": {
+    "name": "PULPOTOMY / PULPECTOMY",
+    "price": "300.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "54": {
+    "name": "RETAINER",
+    "price": "300.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "23": {
+    "name": "ROOT CANAL TREATMENT (ANTERIOR)",
+    "price": "700.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "53": {
+    "name": "ROOT CANAL TREATMENT (MOLAR)",
+    "price": "1300.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "52": {
+    "name": "ROOT CANAL TREATMENT (PRE-MOLAR)",
+    "price": "900.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "6": {
+    "name": "SCALING & POLISHING",
+    "price": "150.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "18": {
+    "name": "STO",
+    "price": "0.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "48": {
+    "name": "SUTURE",
+    "price": "50.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   },
+   "21": {
+    "name": "WHITENING",
+    "price": "699.00",
+    "price2": "0.00",
+    "panel": "0.00",
+    "cost": "0.00",
+    "sst": "0.00",
+    "fsst": null,
+    "class": ""
+   }
+  }
+ },
+ "autofill": {
+  "Setia Tropika": {
+   "OPG": "0.00",
+   "SCALING AND POLISHING": "100.00",
+   "CONSULTATION": "50.00",
+   "FILLING": "25.00",
+   "EXTRACTION": "0.00",
+   "WHITENING": "0.00",
+   "CROWN": "0.00",
+   "PA RADIOGRAPH": "0.00"
+  },
+  "Molek": {
+   "OPG": "0.00",
+   "SCALING AND POLISHING": "100.00",
+   "CONSULTATION": "50.00",
+   "FILLING": "25.00",
+   "EXTRACTION": "0.00",
+   "WHITENING": "0.00",
+   "CROWN": "0.00",
+   "PA RADIOGRAPH": "0.00"
+  },
+  "Sentosa": {
+   "OPG": "0.00",
+   "SCALING AND POLISHING": "100.00",
+   "CONSULTATION": "50.00",
+   "FILLING": "25.00",
+   "EXTRACTION": "0.00",
+   "WHITENING": "0.00",
+   "CROWN": "0.00",
+   "PA RADIOGRAPH": "0.00"
+  },
+  "UBC": {
+   "OPG": "0.00",
+   "SCALING AND POLISHING": "100.00",
+   "CONSULTATION": "50.00",
+   "FILLING": "25.00",
+   "EXTRACTION": "0.00",
+   "WHITENING": "0.00",
+   "CROWN": "0.00",
+   "PA RADIOGRAPH": "0.00"
+  },
+  "Kajang": {
+   "OPG": "0.00",
+   "SCALING AND POLISHING": "100.00",
+   "CONSULTATION": "50.00",
+   "FILLING": "25.00",
+   "EXTRACTION": "0.00",
+   "WHITENING": "0.00",
+   "CROWN": "0.00",
+   "PA RADIOGRAPH": "0.00"
+  }
+ }
+}

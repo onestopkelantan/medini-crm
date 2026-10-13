@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    color: var(--foreground);
+    font-family: inherit;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; letter-spacing: .01em; }
+  .sub { color: var(--muted-foreground); font-size: 12px; margin-bottom: 14px; }
+
+  .sec {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: var(--card);
+  }
+  .sec.now { border-color: var(--accent); border-width: 2px; }
+  .sechead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; flex-wrap: wrap; }
+  .secname { font-weight: 600; font-size: 13px; }
+  .mods { color: var(--muted-foreground); font-size: 11.5px; }
+  .pct { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted-foreground); font-size: 11.5px; }
+
+  .phases { display: grid; grid-template-columns: repeat(3, minmax(90px, 1fr)); gap: 7px; }
+  .ph {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 9px;
+    font-size: 11.5px;
+    background: transparent;
+  }
+  .ph .n { font-weight: 600; display: block; margin-bottom: 2px; }
+  .ph .w { color: var(--muted-foreground); }
+  .ph.done { border-color: var(--accent); }
+  .ph.done .n { color: var(--accent); }
+  .ph.next { border-color: var(--accent); border-style: dashed; border-width: 1.5px; }
+  .ph.todo { opacity: .55; }
+
+  .here {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+  .note {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-left: 2px solid var(--accent);
+    color: var(--muted-foreground);
+    font-size: 12px;
+  }
+  .note b { color: var(--foreground); font-weight: 600; }
+  table { border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+  th, td { text-align: left; padding: 4px 14px 4px 0; vertical-align: top; }
+  th { color: var(--muted-foreground); font-weight: 500; border-bottom: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<h2>3 Seksyen × 3 Fasa = 9 Fasa</h2>
+<div class="sub">Fasa 0 itu tambahan aku (semakan) — bukan sebahagian 9 fasa ini.</div>
+
+<div class="sec now">
+  <div class="sechead">
+    <span class="secname">SEKSYEN 1 — Boleh Guna (≥70%)</span>
+    <span class="here">KITA DI SINI</span>
+    <span class="pct">83% purata</span>
+  </div>
+  <div class="mods" style="margin-bottom:9px">Dashboard · Patients · Clinical · Forms · Marketing · WhatsApp Hub · WhatsApp Blast</div>
+  <div class="phases">
+    <div class="ph done"><span class="n">Fasa 0 · Sahkan</span><span class="w">✅ SIAP — 4 bug dijumpai</span></div>
+    <div class="ph next"><span class="n">Fasa 1 · Betul + sambung</span><span class="w">⬜ SETERUSNYA · ~6 jam</span></div>
+    <div class="ph todo"><span class="n">Fasa 2 · Medan + tab</span><span class="w">2 hari</span></div>
+  </div>
+  <div class="phases" style="margin-top:7px">
+    <div class="ph todo"><span class="n">Fasa 3 · Data + E2E</span><span class="w">1 hari → 100%</span></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sechead">
+    <span class="secname">SEKSYEN 2 — Hampir Boleh Guna (50–69%)</span>
+    <span class="pct">55% purata</span>
+  </div>
+  <div class="mods" style="margin-bottom:9px">Reports · Operations · AI Manager · Settings</div>
+  <div class="phases">
+    <div class="ph todo"><span class="n">Fasa 1</span><span class="w">Reports 30 laporan · 3 hari</span></div>
+    <div class="ph todo"><span class="n">Fasa 2</span><span class="w">Operations + AI Manager · 3 hari</span></div>
+    <div class="ph todo"><span class="n">Fasa 3</span><span class="w">Settings lengkap · 2 hari</span></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sechead">
+    <span class="secname">SEKSYEN 3 — Belum Boleh Guna (&lt;50%)</span>
+    <span class="pct">17% purata</span>
+  </div>
+  <div class="mods" style="margin-bottom:9px">Appointments · Documents · Finance · Booking Requests · Administration · Payors · System Admin · Users · Doctor Schedule</div>
+  <div class="phases">
+    <div class="ph todo"><span class="n">Fasa 1</span><span class="w">Documents + Appointments · 1.5 hari</span></div>
+    <div class="ph todo"><span class="n">Fasa 2</span><span class="w">Finance + Administration · 4 hari</span></div>
+    <div class="ph todo"><span class="n">Fasa 3</span><span class="w">Payors + System + Schedule · 3 hari</span></div>
+  </div>
+</div>
+
+<div class="note">
+  <b>Kenapa "Fasa 1" muncul 3 kali?</b> Sebab setiap seksyen ada 3 fasa sendiri.
+  Bila aku cakap "Fasa 1", maksudnya <b>Seksyen 1 Fasa 1</b>.
+  Kalau aku maksudkan yang lain, aku akan tulis "Seksyen 2 Fasa 1" penuh.
+</div>
+
+</body>
+</html>

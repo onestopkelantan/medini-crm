@@ -1,0 +1,55 @@
+# Local/dev add-on: the WhatsApp transport (WAHA).
+#
+# Why a separate file: docker-compose.prod.yml ships WAHA COMMENTED OUT on purpose
+# ("Uncomment ONLY when WhatsApp is in launch scope"). WhatsApp is now in scope, but we
+# keep the prod file untouched and opt in explicitly so prod behaviour is unchanged.
+#
+# Usage (all three files, in this order):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.override.yml \
+#                  -f docker-compose.waha.yml up -d
+#
+# Requires WAHA_API_KEY in the ROOT .env (Compose interpolates from there).
+
+services:
+  waha:
+    image: devlikeapro/waha:noweb
+    container_name: waha-medini
+    restart: unless-stopped
+    environment:
+      WAHA_API_KEY: ${WAHA_API_KEY:?set WAHA_API_KEY in root .env}
+      # Dev convenience only. Production keeps both false (smaller attack surface).
+      WAHA_DASHBOARD_ENABLED: "true"
+      WHATSAPP_SWAGGER_ENABLED: "true"
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WAHA_NAMESPACE: all
+      WAHA_LOG_FORMAT: JSON
+      WAHA_LOG_LEVEL: info
+      WAHA_PRINT_QR: "false"
+      WAHA_MEDIA_STORAGE: LOCAL
+      WHATSAPP_FILES_LIFETIME: 0
+      WHATSAPP_FILES_FOLDER: /app/.media
+      # Webhook HMAC (optional in dev). Must equal backend/.env WAHA_WEBHOOK_HMAC_SECRET.
+      WHATSAPP_HOOK_HMAC_KEY: ${WAHA_WEBHOOK_HMAC_SECRET:-}
+    volumes:
+      - waha_sessions:/app/.sessions
+    # WAHA needs BOTH networks, and this is the crux of the whole setup:
+    #   * medini -internal  is `internal: true` — NO outbound internet by design
+    #     (DB/Redis/workers stay private). A container ONLY on it can never reach
+    #     web.whatsapp.com; the session hangs in STARTING and /auth/qr returns 422.
+    #   * medini -public    has internet, which is what WhatsApp requires.
+    # WAHA sits on both: outward to WhatsApp, inward to the backend on the private net.
+    networks:
+      - medini-public
+      - medini-internal
+    healthcheck:
+      # The WAHA image ships NO `wget`/`curl` — a wget-based check ALWAYS fails and
+      # reports "unhealthy" while the API is perfectly fine (verified: the backend
+      # gets 200 from http://waha:3000/api/sessions). Use node, which the image has.
+      test: ["CMD-SHELL", "node -e \"require('http').get({host:'localhost',port:3000,path:'/api/sessions',headers:{'X-Api-Key':process.env.WAHA_API_KEY}},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  waha_sessions:

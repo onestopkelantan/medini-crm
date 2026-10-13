@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#0B132B; color:#e2e8f0; padding:28px; }
+  h1 { font-size:20px; margin:0 0 4px; color:#fff; }
+  .sub { font-size:12px; color:#94a3b8; margin-bottom:22px; }
+  .box { border-radius:14px; padding:16px; border:1.5px solid; }
+  .settings { background:#13203f; border-color:#38bdf8; }
+  .hub { background:#0f2b2a; border-color:#2dd4bf; }
+  .inbox { background:#2a1a2e; border-color:#a78bfa; }
+  .ai { background:#2b2110; border-color:#fbbf24; }
+  .box h2 { font-size:13px; margin:0 0 8px; }
+  .item { background:rgba(255,255,255,.05); border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:11.5px; }
+  .item b { color:#fff; }
+  .pill { display:inline-block; border-radius:99px; padding:1px 8px; font-size:9.5px; font-weight:700; }
+  .p-teal { background:#134e4a; color:#5eead4; }
+  .p-amber { background:#4b3a10; color:#fcd34d; }
+  .p-red { background:#4c1414; color:#fca5a5; }
+  .p-blue { background:#123250; color:#7dd3fc; }
+  .p-violet { background:#3b2560; color:#c4b5fd; }
+  .arrow { text-align:center; color:#64748b; font-size:15px; padding:6px 0; letter-spacing:1px; }
+  .arrow-label { font-size:9.5px; color:#94a3b8; }
+  .grid14 { display:grid; grid-template-columns:repeat(2,1fr); gap:5px; }
+  .phone { font-size:10px; color:#94a3b8; }
+  .note { margin-top:18px; font-size:10.5px; color:#64748b; line-height:1.6; }
+  .flow-tag { font-size:9px; font-weight:800; color:#38bdf8; letter-spacing:1px; margin-bottom:10px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<h1>📱 MediniOne — WhatsApp Connect (14 Fon / 14 Branch)</h1>
+<p class="sub">Inter-domain flow: Settings → WhatsApp Hub → Inbox · real transport post-P9 (production)</p>
+
+<!-- LAYER 1: SETTINGS -->
+<div class="box settings">
+  <div class="flow-tag">① Settings → Integrations &nbsp;·&nbsp; HQ only · setup SEKALI</div>
+  <h2>⚙️ Settings → Integrations</h2>
+  <div class="item">🔗 <b>Bukku Accounting</b> &nbsp; subdomain · base URL · API key (masked) &nbsp;<span class="pill p-teal">CONNECTED</span></div>
+  <div class="item">💬 <b>WhatsApp Hub (WAHA) — BARU</b> &nbsp; base URL: <span style="font-family:monospace">http://vps:3000</span> · API key (masked) &nbsp;<span class="pill p-amber">AWAITING_CREDENTIALS</span><br>
+    <span class="phone">[Save Integration] [Test Connection] → audit: integration_configured / integration_tested</span></div>
+</div>
+
+<div class="arrow">▼ &nbsp;<span class="arrow-label">1 config → 14 channel guna sama</span> &nbsp;▼</div>
+
+<!-- LAYER 2: WHATSAPP HUB CHANNELS -->
+<div class="box hub">
+  <div class="flow-tag">② WhatsApp Hub → Channels &nbsp;·&nbsp; setiap branch SATU fon = SATU WAHA session</div>
+  <h2>💬 WhatsApp Hub → Channels (14)</h2>
+  <div class="grid14">
+    <div class="item">🏥 Gelang Patah<br><span class="phone">+60 12-345 6789 · medini-gp</span> &nbsp;<span class="pill p-teal">WORKING</span></div>
+    <div class="item">🏥 Sentosa<br><span class="phone">+60 12-345 6790 · medini-st</span> &nbsp;<span class="pill p-teal">WORKING</span></div>
+    <div class="item">🏥 Taman Mutiara Mas<br><span class="phone">+60 12-345 6791 · medini-mm</span> &nbsp;<span class="pill p-amber">NEED_QR</span> <span style="font-size:9px">[Connect]</span></div>
+    <div class="item">🏥 Taman Daya<br><span class="phone">+60 12-345 6792 · medini-td</span> &nbsp;<span class="pill p-amber">NEED_QR</span> <span style="font-size:9px">[Connect]</span></div>
+    <div class="item">🏥 … 10 branch lagi<br><span class="phone">+60 12-… · medini-…</span> &nbsp;<span class="pill p-blue">PENDING</span></div>
+    <div class="item">🏥 Branch ke-14<br><span class="phone">+60 12-345 6802 · medini-14</span> &nbsp;<span class="pill p-blue">PENDING</span></div>
+  </div>
+  <div class="note">Connect flow per fon: klik [Connect] → QR scan (simulated) → status WORKING → audit: channel_connected.<br>
+  Kalau WAHA config kosong → blok: "Configure WAHA in Settings → Integrations first" (inter-domain check).</div>
+</div>
+
+<div class="arrow">▼ &nbsp;<span class="arrow-label">mesej masuk dari channel branch mana</span> &nbsp;▼</div>
+
+<!-- LAYER 3: INBOX + AI -->
+<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:14px">
+  <div class="box inbox">
+    <div class="flow-tag">③ WhatsApp Hub → Inbox</div>
+    <h2>💬 Conversation Inbox</h2>
+    <div class="item">👤 Nurul Izzah · <b>Gelang Patah</b> · "Boleh tukar appointment?"<br><span class="phone">2 pending · AI draft ready</span></div>
+    <div class="item">👤 Hakim Yusof · <b>Sentosa</b> · "Berapa harga braces?"<br><span class="phone">unassigned · escalate option</span></div>
+    <div class="item">👤 Aishah · <b>Mutiara Mas</b> · "Terima kasih!"<br><span class="phone">resolved ✓</span></div>
+  </div>
+  <div class="box ai">
+    <div class="flow-tag">④ AI Manager (governance)</div>
+    <h2>🤖 AI Receptionist</h2>
+    <div class="item">📞 Agent: AI Receptionist<br><span class="pill p-violet">WhatsApp Hub</span> <span class="pill p-teal">ENABLED</span></div>
+    <div class="item">🛡️ Guardrail: no medical advice<br><span class="pill p-red">HARD_BLOCK</span></div>
+    <div class="item">✅ Auto-reply: risk LOW<br><span class="pill p-teal">AUTO</span></div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:22px;border-top:1px solid #1e293b;padding-top:14px">
+  <b>Inter-domain dependency:</b> Settings (config) → WhatsApp Hub Channels (connect) → Inbox (conversation) → AI Manager (auto-reply governance).<br>
+  <b>Post-P9 (production):</b> server create session via WAHA API → QR real → fon scan → transport real. Prototype = simulation, zero real API calls.
+</div>
+</body>
+</html>

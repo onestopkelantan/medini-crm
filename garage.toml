@@ -1,0 +1,55 @@
+# ============================================================================
+# Garage — self-hosted S3-compatible object storage (X-ray images + documents)
+#
+# WHY GARAGE AND NOT MINIO
+#
+# The original plan was MinIO. It is no longer an option: MinIO's Docker Hub
+# repositories (`minio/minio`, `minio/mc`) were deleted on 11 September 2026 and
+# the GitHub project is archived and read-only ("THIS REPOSITORY IS NO LONGER
+# MAINTAINED"). Community edition now ships as SOURCE ONLY, and the newest
+# published tag predates the fix for CVE-2025-62506 (CVSS 8.1). The Quay mirror
+# answers 401. A product that cannot receive a security fix is not something to
+# put patient X-rays in.
+#
+# Garage is a different project, not a fork: S3-compatible object store written
+# in Rust by Deuxfleurs, actively maintained, designed for exactly this shape of
+# deployment (small self-hosted footing rather than a hyperscale filesystem).
+#
+# THE ADAPTER NEEDS NO CODE CHANGE. `DocumentStorageService` builds an
+# `@aws-sdk/client-s3` client with `forcePathStyle: true`, and Garage serves
+# path-style S3 with presigned URLs — so this is configuration, not a rewrite.
+# Moving to cloud S3/R2 later remains four environment variables.
+#
+# SECRETS COME FROM THE ENVIRONMENT (.env), never from this file.
+# ============================================================================
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir      = "/var/lib/garage/data"
+db_engine     = "sqlite"
+
+replication_factor = 1        # single node
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "${GARAGE_RPC_SECRET}"
+
+[s3_api]
+# Literal, NOT `${S3_REGION}`. Garage performs its own env substitution for
+# ${VAR}, and when the variable resolves empty the region falls back to
+# something the client does not send — producing a misleading
+# `AuthorizationHeaderMalformed: unexpected scope: .../us-east-1/s3/aws4_request`
+# that looks like a credentials problem and is not. A hardcoded literal cannot
+# drift from what the client signs.
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+# root_domain is deliberately NOT set. Setting it enables virtual-host-style
+# addressing; the backend's S3 client uses `forcePathStyle: true`, so path-style
+# is the supported shape and leaving this unset keeps the two in agreement.
+#
+# [s3_web] is therefore absent as well — the static web endpoint requires
+# root_domain and serves no purpose here (X-rays are fetched through the
+# backend's presigned URLs, never listed from a browser).
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "${GARAGE_ADMIN_TOKEN}"

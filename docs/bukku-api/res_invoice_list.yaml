@@ -1,0 +1,143 @@
+type: array
+items:
+  type: object
+  properties:
+    id:
+      type: integer
+      example: 1
+    number:
+      type: string
+      example: IV-00231
+    number2:
+      type: string
+      example: KC20001001
+    contact_id:
+      type: integer
+      example: 1
+    contact_code:
+      type: string
+      example: C-A0001
+    contact_name:
+      type: string
+      example: Alex Wong
+    contact_email:
+      type: string
+      example: alex@gmail.com
+    date:
+      type: string
+      format: date
+      example: '2022-02-01'
+    billing_party:
+      type: string
+      example: |
+        Alex Wong
+        10, Jalan Perak,
+        Taman Salak Tinggi,
+        57200 Kuala Lumpur
+    shipping_party:
+      type: string
+      example: |
+        Winson Tey
+        20, Jalan Hijau,
+        Taman Universiti,
+        80700 Johor Bahru
+    tag_names:
+      type: array
+      items:
+        type: string
+      example:
+        - Kuala Lumpur
+        - IT
+    title:
+      type: string
+      example: Proposal To Revamp The Server Farm
+    description:
+      type: string
+      example: 3x Intel Server
+    currency_code:
+      type: string
+      example: MYR
+    currency_symbol:
+      type: string
+      example: RM
+    exchange_rate:
+      type: number
+      example: 4.766581
+    amount:
+      type: number
+      example: 2000
+    status:
+      type: string
+      example: ready
+    email_status:
+      type: string
+      example: NOT_SENT
+    file_count:
+      type: integer
+      example: 2
+    short_link:
+      type: string
+      example: https://demo.bukku.my/v/123x5
+    created_by:
+      type: string
+      example: Charles
+    created_at:
+      type: string
+      format: date-time
+      example: '2022-06-23 15:42:41'
+    updated_at:
+      type: string
+      format: date-time
+      example: '2022-06-23 15:42:41'
+    customs_form_no:
+      type: string
+      nullable: true
+      example: '0912300582846278021'
+    customs_k2_form_no:
+      type: string
+      nullable: true
+      example: '091230058284'
+    incoterms:
+      type: string
+      nullable: true
+      example: FOB
+    myinvois_action:
+      type: string
+      nullable: true
+      example: VALIDATE
+    myinvois_document_uuid:
+      type: string
+      nullable: true
+      example: AAA000AAA000AAA000AAA000AA
+    myinvois_document_long_id:
+      type: string
+      nullable: true
+      example: LIJAF97HJJKH8298KHADH09908570FDKK9S2LSIUHB377373
+    myinvois_document_status:
+      type: string
+      nullable: true
+      example: VALID
+    issued_at:
+      type: string
+      nullable: true
+      example: '2024-08-08 00:00:00'
+    validated_at:
+      type: string
+      nullable: true
+      example: '2024-08-08 08:08:08'
+    rejected_at:
+      type: string
+      nullable: true
+      example: null
+    reject_message:
+      type: string
+      nullable: true
+      example: null
+    cancelled_at:
+      type: string
+      nullable: true
+      example: null
+    cancel_message:
+      type: string
+      nullable: true
+      example: null

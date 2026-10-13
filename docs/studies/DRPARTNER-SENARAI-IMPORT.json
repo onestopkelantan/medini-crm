@@ -1,0 +1,351 @@
+{
+ "nota": "Data sedia masuk CRM. Sahkan dengan Bos sebelum masukkan. JANGAN reka harga.",
+ "kategori_rawatan": [
+  "APPLICATION",
+  "BRACES",
+  "BRIDGE",
+  "CLEAR ALIGNER",
+  "CONSULTATION",
+  "CROWN",
+  "DENTAL SURGICAL",
+  "DENTURE",
+  "EXTRACTION",
+  "FIBER REINFORCED COMPOSITE",
+  "FILLING",
+  "IMPLANT",
+  "MINOR ORAL SUGERY",
+  "ROOT CANAL TREATMENT",
+  "SCALING",
+  "VENEER",
+  "WHITENING"
+ ],
+ "kod_rawatan": [
+  {
+   "kod": "APPLIANCE",
+   "nama": "APPLIANCE",
+   "harga": null
+  },
+  {
+   "kod": "BRACES_ORTHO",
+   "nama": "BRACES / ORTHO",
+   "harga": null
+  },
+  {
+   "kod": "BRIDGE",
+   "nama": "BRIDGE",
+   "harga": null
+  },
+  {
+   "kod": "CBCT_XRAY",
+   "nama": "CBCT XRAY",
+   "harga": null
+  },
+  {
+   "kod": "CLEAR_ALIGNER",
+   "nama": "CLEAR ALIGNER",
+   "harga": null
+  },
+  {
+   "kod": "CONSULTATION",
+   "nama": "CONSULTATION",
+   "harga": null
+  },
+  {
+   "kod": "CROWN",
+   "nama": "CROWN",
+   "harga": null
+  },
+  {
+   "kod": "DENTURE",
+   "nama": "DENTURE",
+   "harga": null
+  },
+  {
+   "kod": "EXTRACTION",
+   "nama": "EXTRACTION",
+   "harga": null
+  },
+  {
+   "kod": "FIBER_REINFORCED_COMPOSITE",
+   "nama": "FIBER REINFORCED COMPOSITE",
+   "harga": null
+  },
+  {
+   "kod": "FILLING",
+   "nama": "FILLING",
+   "harga": null
+  },
+  {
+   "kod": "FLUORIDE",
+   "nama": "FLUORIDE",
+   "harga": null
+  },
+  {
+   "kod": "GINGEVECTOMY",
+   "nama": "GINGEVECTOMY",
+   "harga": null
+  },
+  {
+   "kod": "LA_CEPH_XRAY",
+   "nama": "LA CEPH XRAY",
+   "harga": null
+  },
+  {
+   "kod": "LOCAL_ANESTHESIA",
+   "nama": "LOCAL ANESTHESIA",
+   "harga": null
+  },
+  {
+   "kod": "MEDICATIONS",
+   "nama": "MEDICATIONS",
+   "harga": null
+  },
+  {
+   "kod": "MINOR_ORAL_SURGERY",
+   "nama": "MINOR ORAL SURGERY",
+   "harga": null
+  },
+  {
+   "kod": "OPG_XRAY",
+   "nama": "OPG X-RAY",
+   "harga": 100.0,
+   "sumber_harga": "Dr Partner Setia Tropika"
+  },
+  {
+   "kod": "PA_XRAY",
+   "nama": "PA X-RAY",
+   "harga": 50.0,
+   "sumber_harga": "Dr Partner Setia Tropika"
+  },
+  {
+   "kod": "ROOT_CANAL_TREATMENT",
+   "nama": "ROOT CANAL TREATMENT",
+   "harga": null
+  },
+  {
+   "kod": "SCALING_POLISHING",
+   "nama": "SCALING AND POLISHING",
+   "harga": null
+  },
+  {
+   "kod": "STO",
+   "nama": "STO",
+   "harga": null
+  },
+  {
+   "kod": "VENEER",
+   "nama": "VENEER",
+   "harga": null
+  },
+  {
+   "kod": "WHITENING",
+   "nama": "WHITENING",
+   "harga": null
+  },
+  {
+   "kod": "IMPLANT",
+   "nama": "IMPLANT",
+   "harga": null
+  }
+ ],
+ "panel": [
+  "AIA",
+  "E-MAS",
+  "HealthMetrics",
+  "MBJB",
+  "MediDent",
+  "MedKad",
+  "MEDNEFITS",
+  "MiCare",
+  "PM CARE",
+  "UTM"
+ ],
+ "kategori_ubat": [
+  "ANTIBIOTIC",
+  "BENGKAK",
+  "PAINKILLER"
+ ],
+ "ubat": [
+  {
+   "nama": "AMOXY 250MG",
+   "kategori": "ANTIBIOTIC",
+   "uom": "PCS"
+  },
+  {
+   "nama": "AMOXY 500mg",
+   "kategori": "ANTIBIOTIC",
+   "uom": "PCS"
+  },
+  {
+   "nama": "AUGMENTIN 625MG",
+   "kategori": "ANTIBIOTIC",
+   "uom": "PCS"
+  },
+  {
+   "nama": "METRO 400MG",
+   "kategori": "ANTIBIOTIC",
+   "uom": "PCS"
+  },
+  {
+   "nama": "SYRUP AMOXY 250MG",
+   "kategori": "ANTIBIOTIC",
+   "uom": "BOTTLE"
+  },
+  {
+   "nama": "PAPASE",
+   "kategori": "BENGKAK",
+   "uom": "PCS"
+  },
+  {
+   "nama": "ARCOXIA 120MG",
+   "kategori": "PAINKILLER",
+   "uom": "PCS"
+  },
+  {
+   "nama": "ARCOXIA 90MG",
+   "kategori": "PAINKILLER",
+   "uom": "PCS"
+  },
+  {
+   "nama": "IBUFERN 400MG",
+   "kategori": "PAINKILLER",
+   "uom": "PCS"
+  },
+  {
+   "nama": "IBUPROFEN 200MG",
+   "kategori": "PAINKILLER",
+   "uom": "PCS"
+  },
+  {
+   "nama": "PCM 500MG",
+   "kategori": "PAINKILLER",
+   "uom": "PCS"
+  },
+  {
+   "nama": "PONSTAN 500MG",
+   "kategori": "PAINKILLER",
+   "uom": "PCS"
+  },
+  {
+   "nama": "SYRUP PCM 250MG",
+   "kategori": "PAINKILLER",
+   "uom": "BOTTLE"
+  }
+ ],
+ "pembekal": [
+  "ACME MD GLOBAL SDN BHD",
+  "APEX PHARMACY",
+  "AZYM SYNERGY SDN BHD",
+  "DENTOPIA",
+  "dksh",
+  "EVEREST DENTAL SUPPLY SDN BHD",
+  "GALLA DENTAL CORPORATION SDN BHD",
+  "GREEN ORTHO SDN BHD",
+  "In house stock",
+  "IST DENTAL SUPPLIES SDN BHD",
+  "JSI GLOBAL SDN BHD",
+  "KENG YEW DENTAL SUPPLIERS SDN BHD",
+  "MEDES (M) SDN",
+  "MR BUR SDN BHD",
+  "MSLI DENTAL SUPPLIES",
+  "N DENT SDN BHD",
+  "NTC DENTAL SUPPLIERS SDN BHD",
+  "ONE DENTAL SUPPLY & MARKETING SDN BHD",
+  "ORTHO DENTAL SUPPLY SDN",
+  "PAHANG PHARMACY SDN BHD",
+  "Pharmaniaga",
+  "SMR",
+  "SUTRAMEDIC SDN BHD",
+  "T&K PREMIUM RESOURCES SDN BHD",
+  "ZUELLIG PHARMA"
+ ],
+ "uom": [
+  "BOTTLE",
+  "BOX",
+  "CATTON",
+  "PCS",
+  "UNIT"
+ ],
+ "tujuan_temujanji": [
+  {
+   "tujuan": "CHECK UP",
+   "minit": 30
+  },
+  {
+   "tujuan": "DENTURE IMPRESSION",
+   "minit": 30
+  },
+  {
+   "tujuan": "EXTRACTION",
+   "minit": 30
+  },
+  {
+   "tujuan": "FILLING",
+   "minit": 60
+  },
+  {
+   "tujuan": "MOS",
+   "minit": 90
+  },
+  {
+   "tujuan": "RCT",
+   "minit": 90
+  },
+  {
+   "tujuan": "REV ORTHO",
+   "minit": 30
+  },
+  {
+   "tujuan": "SCALING POLISHING",
+   "minit": 30
+  },
+  {
+   "tujuan": "WHITENING",
+   "minit": 90
+  }
+ ],
+ "jenis_staf": [
+  "Doctor",
+  "Front desk",
+  "Management"
+ ],
+ "medan_pesakit_baharu": [
+  "title",
+  "nationality",
+  "blood_type",
+  "marital_status",
+  "race",
+  "occupation",
+  "preferred_language",
+  "preferred_message_language",
+  "refer_by",
+  "vegetarian",
+  "emergency_contact_name",
+  "emergency_contact_phone",
+  "id_type",
+  "id_number",
+  "father_name",
+  "father_ic",
+  "father_phone",
+  "mother_name",
+  "mother_ic",
+  "mother_phone",
+  "guardian_name",
+  "guardian_ic",
+  "guardian_phone",
+  "second_address",
+  "pregnant",
+  "temperature",
+  "vaccine_dose"
+ ],
+ "lajur_harga_rawatan": [
+  "price",
+  "price_2",
+  "panel_price",
+  "cost",
+  "local_sst_pct",
+  "foreigner_sst_pct",
+  "classification_code",
+  "keyboard_letter"
+ ]
+}

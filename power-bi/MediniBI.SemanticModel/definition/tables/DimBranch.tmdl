@@ -1,0 +1,47 @@
+/// Branch dimension — 14 canonical Medini branches (soft-delete excluded).
+table DimBranch
+	lineageTag: 9f0a1b2c-0030-4a11-9a01-000000000030
+
+	/// Branch UUID (key, hidden).
+	column BranchId
+		dataType: string
+		isKey
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0031-4a11-9a01-000000000031
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Stable branch code.
+	column Code
+		dataType: string
+		lineageTag: 9f0a1b2c-0032-4a11-9a01-000000000032
+		summarizeBy: none
+		sourceColumn: code
+
+	/// Branch short display name.
+	column ShortName
+		dataType: string
+		lineageTag: 9f0a1b2c-0033-4a11-9a01-000000000033
+		summarizeBy: none
+		sourceColumn: short_name
+
+	/// Branch full name.
+	column FullName
+		dataType: string
+		lineageTag: 9f0a1b2c-0034-4a11-9a01-000000000034
+		summarizeBy: none
+		sourceColumn: full_name
+
+	partition DimBranch = m
+		mode: import
+		queryGroup: Dimensions
+		source =
+				let
+					Source = #"MediniSource Query",
+					Data = Source{[Name = "branches"]}[Data],
+					Active = Table.SelectRows(Data, each [deleted_at] = null)
+				in
+					Active
+
+	annotation PBI_ResultType = Table

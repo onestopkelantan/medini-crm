@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+*.log
+coverage
+.DS_Store
+patients.json
+import-patients.js

@@ -1,0 +1,59 @@
+/// Calendar dimension (calculated, CALENDARAUTO). Conformed date for all facts.
+table DimDate
+	dataCategory: Time
+	lineageTag: 9f0a1b2c-0020-4a11-9a01-000000000020
+
+	/// Calendar date (key).
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: dd/mm/yyyy
+		lineageTag: 9f0a1b2c-0021-4a11-9a01-000000000021
+		summarizeBy: none
+		sourceColumn: Date
+
+	/// Calendar year.
+	column Year
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 9f0a1b2c-0022-4a11-9a01-000000000022
+		summarizeBy: none
+		sourceColumn: Year
+
+	/// Month number 1-12 (sort key).
+	column Month
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 9f0a1b2c-0023-4a11-9a01-000000000023
+		summarizeBy: none
+		sourceColumn: Month
+
+	/// Month name, sorted by Month.
+	column MonthName
+		dataType: string
+		lineageTag: 9f0a1b2c-0024-4a11-9a01-000000000024
+		summarizeBy: none
+		sourceColumn: MonthName
+		sortByColumn: Month
+
+	/// Day of month.
+	column Day
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 9f0a1b2c-0025-4a11-9a01-000000000025
+		summarizeBy: none
+		sourceColumn: Day
+
+	partition DimDate = calculated
+		mode: import
+		source = ```
+				ADDCOLUMNS (
+				    CALENDARAUTO(),
+				    "Year", YEAR ( [Date] ),
+				    "Month", MONTH ( [Date] ),
+				    "MonthName", FORMAT ( [Date], "MMMM" ),
+				    "Day", DAY ( [Date] )
+				)
+				```
+
+	annotation PBI_ResultType = Table

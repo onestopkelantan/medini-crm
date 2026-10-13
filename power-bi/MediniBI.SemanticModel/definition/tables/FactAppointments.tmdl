@@ -1,0 +1,62 @@
+/// Appointments fact — all statuses (booked…completed/no-show).
+table FactAppointments
+	lineageTag: 9f0a1b2c-0070-4a11-9a01-000000000070
+
+	/// Appointment UUID (hidden).
+	column AppointmentId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0071-4a11-9a01-000000000071
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Branch FK (hidden).
+	column BranchId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0072-4a11-9a01-000000000072
+		summarizeBy: none
+		sourceColumn: branch_id
+
+	/// Doctor FK (hidden).
+	column DoctorId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0073-4a11-9a01-000000000073
+		summarizeBy: none
+		sourceColumn: doctor_id
+
+	/// Scheduled date FK (hidden).
+	column ScheduledDate
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0074-4a11-9a01-000000000074
+		summarizeBy: none
+		sourceColumn: scheduled_date
+
+	/// appointment_status enum: booked|confirmed|checked-in|waiting|called|in-progress|completed|cancelled|no-show
+	/// Appointment status enum.
+	column Status
+		dataType: string
+		lineageTag: 9f0a1b2c-0075-4a11-9a01-000000000075
+		summarizeBy: none
+		sourceColumn: status
+
+	partition FactAppointments = m
+		mode: import
+		queryGroup: Facts
+		source =
+				let
+					Source = #"MediniSource Query",
+					Data = Source{[Name = "appointments"]}[Data],
+					Active = Table.SelectRows(Data, each [deleted_at] = null)
+				in
+					Active
+
+	annotation PBI_ResultType = Table
+
+	annotation TabularEditor_TableGroup = 02. Fact Tables

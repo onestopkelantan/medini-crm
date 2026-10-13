@@ -1,0 +1,397 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { and, asc, eq, inArray } from 'drizzle-orm';
+import { z } from 'zod';
+import { DbContextService } from '../../../core/auth/db-context.service';
+import { Principal } from '../../../core/auth/principal';
+import { ForbiddenError, ValidationError } from '../../../shared/errors/errors';
+import { branches as branchesTable, doctorHolidays, doctorSchedules, staff } from '../../../infrastructure/database/schema';
+
+const scheduleSchema = z.object({
+  doctorId: z.string().uuid().nullish(),
+  doctorName: z.string().trim().min(2).max(256).nullish(),
+  scheduleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  notes: z.string().max(1000).nullish(),
+});
+
+@Injectable()
+export class DoctorScheduleService {
+  private readonly logger = new Logger(DoctorScheduleService.name);
+
+  constructor(private readonly dbCtx: DbContextService) {}
+
+  /**
+   * FASA 6E — the branches a READER may see.
+   *
+   * HQ oversees 14 branches; branch managers see their own. Until now even the
+   * READ path called branch(), which throws for anyone who is not a branch
+   * manager — so HQ could not see a single schedule, and the failure was
+   * indistinguishable from "no schedules exist".
+   *
+   * Returns null for "every branch", a single-element array otherwise. Writes
+   * stay manager-only (branch() below).
+   *
+   * Note on a manager passing another branch's id: the platform PermissionGuard
+   * reads a `branchId` query param as the target of the request and refuses with
+   * 403 before this method runs. That is the correct outcome and it is asserted
+   * in verify-hq-schedule.sh — what matters is that no other branch's rows are
+   * ever returned. This method only needs to be right for the roles that reach
+   * it.
+   */
+  private readBranches(principal: Principal, requested?: string): string[] | null {
+    if (principal.role === 'hq') {
+      return requested ? [requested] : null;
+    }
+    return [this.branch(principal)];
+  }
+
+  async list(principal: Principal, requestedBranchId?: string) {
+    const branches = this.readBranches(principal, requestedBranchId);
+
+    try {
+      return await this.dbCtx.runAs(principal, async (tx) =>
+        tx
+          .select({
+            id: doctorSchedules.id,
+            doctorId: doctorSchedules.doctorId,
+            branchId: doctorSchedules.branchId,
+            branchName: branchesTable.shortName,
+            scheduleDate: doctorSchedules.scheduleDate,
+            startTime: doctorSchedules.startTime,
+            endTime: doctorSchedules.endTime,
+            notes: doctorSchedules.notes,
+            doctorName: staff.name,
+          })
+          .from(doctorSchedules)
+          .innerJoin(staff, eq(doctorSchedules.doctorId, staff.id))
+          .leftJoin(branchesTable, eq(doctorSchedules.branchId, branchesTable.id))
+          .where(
+            and(
+              eq(doctorSchedules.orgId, principal.orgId),
+              branches ? inArray(doctorSchedules.branchId, branches) : undefined,
+            ),
+          )
+          .orderBy(
+            asc(doctorSchedules.scheduleDate),
+            asc(doctorSchedules.startTime),
+          ),
+      );
+    } catch (error) {
+      this.logger.error(
+        `doctor schedule list failed: ${this.errorText(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  async create(principal: Principal, raw: unknown) {
+    const parsed = scheduleSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.flatten().fieldErrors);
+    }
+
+    if (parsed.data.endTime <= parsed.data.startTime) {
+      throw new ValidationError({
+        endTime: ['endTime must be after startTime'],
+      });
+    }
+
+    const branchId = this.branch(principal);
+
+    try {
+      return await this.dbCtx.runAs(principal, async (tx) => {
+        let doctorId = parsed.data.doctorId ?? null;
+
+        if (!doctorId && parsed.data.doctorName) {
+          const name = parsed.data.doctorName.toUpperCase();
+
+          const doctors = await tx
+            .select()
+            .from(staff)
+            .where(
+              and(
+                eq(staff.orgId, principal.orgId),
+                eq(staff.role, 'doctor'),
+              ),
+            );
+
+          const doctor = doctors.find((row: typeof staff.$inferSelect) =>
+            name === 'DR HANI'
+              ? row.username === 'farhanimzln' ||
+                row.name.toUpperCase().includes('FARHANI')
+              : row.name
+                  .toUpperCase()
+                  .includes(name.replace(/^DR\s+/, '')),
+          );
+
+          doctorId = doctor?.id ?? null;
+        }
+
+        if (!doctorId) {
+          throw new ValidationError({
+            doctorId: ['Doctor not found'],
+          });
+        }
+
+        const slotWhere = and(
+          eq(doctorSchedules.orgId, principal.orgId),
+          eq(doctorSchedules.branchId, branchId),
+          eq(doctorSchedules.doctorId, doctorId),
+          eq(doctorSchedules.scheduleDate, parsed.data.scheduleDate),
+          eq(doctorSchedules.startTime, parsed.data.startTime),
+          eq(doctorSchedules.endTime, parsed.data.endTime),
+        );
+
+        const existing = await tx
+          .select({ id: doctorSchedules.id })
+          .from(doctorSchedules)
+          .where(slotWhere)
+          .limit(1);
+
+        if (existing[0]) return null;
+
+        try {
+          const rows = await tx
+            .insert(doctorSchedules)
+            .values({
+              orgId: principal.orgId,
+              branchId,
+              doctorId,
+              scheduleDate: parsed.data.scheduleDate,
+              startTime: parsed.data.startTime,
+              endTime: parsed.data.endTime,
+              notes: parsed.data.notes ?? null,
+            })
+            .returning();
+
+          return rows[0] ?? null;
+        } catch (error) {
+          // A concurrent request may have created the same unique slot after
+          // the pre-check. Preserve the old ON CONFLICT DO NOTHING behavior.
+          if (this.isDuplicateKey(error)) return null;
+          throw error;
+        }
+      });
+    } catch (error) {
+      this.logger.error(
+        `doctor schedule create failed: ${this.errorText(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  async update(principal: Principal, id: string, raw: unknown) {
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new ValidationError({ id: ['Invalid schedule id'] });
+    }
+
+    const parsed = scheduleSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.flatten().fieldErrors);
+    }
+
+    if (parsed.data.endTime <= parsed.data.startTime) {
+      throw new ValidationError({
+        endTime: ['endTime must be after startTime'],
+      });
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx
+        .update(doctorSchedules)
+        .set({
+          doctorId: parsed.data.doctorId!,
+          scheduleDate: parsed.data.scheduleDate,
+          startTime: parsed.data.startTime,
+          endTime: parsed.data.endTime,
+          notes: parsed.data.notes ?? null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(doctorSchedules.id, id),
+            eq(doctorSchedules.orgId, principal.orgId),
+            eq(doctorSchedules.branchId, branchId),
+          ),
+        )
+        .returning();
+
+      if (!rows[0]) {
+        throw new ValidationError({ id: ['Schedule not found'] });
+      }
+
+      return rows[0];
+    });
+  }
+
+  async remove(principal: Principal, id: string) {
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new ValidationError({ id: ['Invalid schedule id'] });
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx
+        .delete(doctorSchedules)
+        .where(
+          and(
+            eq(doctorSchedules.id, id),
+            eq(doctorSchedules.orgId, principal.orgId),
+            eq(doctorSchedules.branchId, branchId),
+          ),
+        )
+        .returning({ id: doctorSchedules.id });
+
+      if (!rows[0]) {
+        throw new ValidationError({ id: ['Schedule not found'] });
+      }
+
+      return rows[0];
+    });
+  }
+  async listHolidays(principal: Principal, requestedBranchId?: string) {
+    const branches = this.readBranches(principal, requestedBranchId);
+    return this.dbCtx.runAs(principal, async (tx) =>
+      tx.select({
+        id: doctorHolidays.id,
+        branchId: doctorHolidays.branchId,
+        branchName: branchesTable.shortName,
+        holidayDate: doctorHolidays.holidayDate,
+        reason: doctorHolidays.reason,
+      }).from(doctorHolidays)
+        .leftJoin(branchesTable, eq(doctorHolidays.branchId, branchesTable.id))
+        .where(
+          and(
+            eq(doctorHolidays.orgId, principal.orgId),
+            branches ? inArray(doctorHolidays.branchId, branches) : undefined,
+          ),
+        ),
+    );
+  }
+
+  async createHoliday(principal: Principal, raw: unknown) {
+    const data = z.object({
+      holidayDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      reason: z.string().trim().min(2).max(255),
+    }).safeParse(raw);
+
+    if (!data.success) {
+      throw new ValidationError(data.error.flatten().fieldErrors);
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const holidayWhere = and(
+        eq(doctorHolidays.orgId, principal.orgId),
+        eq(doctorHolidays.branchId, branchId),
+        eq(doctorHolidays.holidayDate, data.data.holidayDate),
+      );
+
+      const updateExisting = async () => {
+        const found = await tx
+          .select({ id: doctorHolidays.id })
+          .from(doctorHolidays)
+          .where(holidayWhere)
+          .limit(1);
+
+        if (!found[0]) return null;
+        const rows = await tx
+          .update(doctorHolidays)
+          .set({ reason: data.data.reason, updatedAt: new Date() })
+          .where(eq(doctorHolidays.id, found[0].id))
+          .returning();
+        return rows[0] ?? null;
+      };
+
+      const existing = await updateExisting();
+      if (existing) return existing;
+
+      try {
+        const rows = await tx
+          .insert(doctorHolidays)
+          .values({
+            orgId: principal.orgId,
+            branchId,
+            holidayDate: data.data.holidayDate,
+            reason: data.data.reason,
+          })
+          .returning();
+        return rows[0];
+      } catch (error) {
+        // Concurrent insert: the unique key guarantees one row per branch/day.
+        if (!this.isDuplicateKey(error)) throw error;
+        const row = await updateExisting();
+        if (row) return row;
+        throw error;
+      }
+    });
+  }
+
+  async removeHoliday(principal: Principal, id: string) {
+    if (!z.string().uuid().safeParse(id).success) {
+      throw new ValidationError({ id: ['Invalid holiday id'] });
+    }
+
+    const branchId = this.branch(principal);
+
+    return this.dbCtx.runAs(principal, async (tx) => {
+      const rows = await tx.delete(doctorHolidays).where(
+        and(
+          eq(doctorHolidays.id, id),
+          eq(doctorHolidays.orgId, principal.orgId),
+          eq(doctorHolidays.branchId, branchId),
+        ),
+      ).returning({ id: doctorHolidays.id });
+
+      if (!rows[0]) {
+        throw new ValidationError({ id: ['Holiday not found'] });
+      }
+
+      return rows[0];
+    });
+  }
+  private isDuplicateKey(error: unknown): boolean {
+    const root = (error as { cause?: unknown })?.cause ?? error;
+    const e = root as { code?: string; errno?: number; sqlState?: string };
+    return e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062 || e?.sqlState === '23000';
+  }
+
+  private errorText(error: unknown): string {
+    if (error instanceof Error) {
+      const cause = (error as Error & { cause?: unknown }).cause;
+
+      if (cause instanceof Error) {
+        return `${error.message}; cause: ${cause.message}`;
+      }
+
+      return cause
+        ? `${error.message}; cause: ${String(cause)}`
+        : error.message;
+    }
+
+    return String(error);
+  }
+
+  private branch(principal: Principal): string {
+    if (principal.role !== 'branch_manager') {
+      throw new ForbiddenError(
+        'Only branch managers can manage doctor schedules',
+      );
+    }
+
+    if (!principal.branchId) {
+      throw new ForbiddenError('No branch context — access denied');
+    }
+
+    return principal.branchId;
+  }
+}
+
+

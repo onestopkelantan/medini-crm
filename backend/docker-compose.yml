@@ -1,0 +1,52 @@
+# Development / test orchestration ONLY. Not production.
+# MySQL 8.4 + Redis match the active runtime and root GitHub Actions workflow.
+services:
+  backend:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: mysql://medini:medini_dev_password@mysql:3306/medini_dev
+      DATABASE_RUNTIME_URL: mysql://medini:medini_dev_password@mysql:3306/medini_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev_only_insecure_jwt_secret_change_me
+      JWT_REFRESH_SECRET: dev_only_insecure_refresh_secret_change_me
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  mysql:
+    image: mysql:8.4
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: medini_root_password
+      MYSQL_DATABASE: medini_dev
+      MYSQL_USER: medini
+      MYSQL_PASSWORD: medini_dev_password
+    ports:
+      # Localhost only; never expose the dev database to the LAN.
+      - "127.0.0.1:3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pmedini_root_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      # Localhost only — dev Redis has no authentication.
+      - "127.0.0.1:6379:6379"
+
+volumes:
+  mysqldata:

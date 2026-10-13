@@ -1,0 +1,42 @@
+/// Doctor dimension — staff with role=doctor (soft-delete excluded).
+table DimDoctor
+	lineageTag: 9f0a1b2c-0040-4a11-9a01-000000000040
+
+	/// Staff UUID (key, hidden).
+	column DoctorId
+		dataType: string
+		isKey
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0041-4a11-9a01-000000000041
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Doctor display name.
+	column Name
+		dataType: string
+		lineageTag: 9f0a1b2c-0042-4a11-9a01-000000000042
+		summarizeBy: none
+		sourceColumn: name
+
+	/// Home branch UUID (hidden).
+	column BranchId
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-0043-4a11-9a01-000000000043
+		summarizeBy: none
+		sourceColumn: branch_id
+
+	partition DimDoctor = m
+		mode: import
+		queryGroup: Dimensions
+		source =
+				let
+					Source = #"MediniSource Query",
+					Data = Source{[Name = "staff"]}[Data],
+					Doctors = Table.SelectRows(Data, each [role] = "doctor" and [deleted_at] = null)
+				in
+					Doctors
+
+	annotation PBI_ResultType = Table

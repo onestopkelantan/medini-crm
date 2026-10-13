@@ -1,0 +1,82 @@
+/// Canonical KPI measures — mirror RPT_KPIS registry. Do not add parallel revenue definitions.
+table _Measures
+	lineageTag: 9f0a1b2c-00b0-4a11-9a01-0000000000b0
+
+	column Value
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f0a1b2c-00b1-4a11-9a01-0000000000b1
+		isNameInferred
+		sourceColumn: [Value]
+
+	partition _Measures = calculated
+		mode: import
+		source = {1}
+
+	/// RPT_KPIS: revenue (sourceDomain=finance). Confirmed sales, in-scope branches.
+	/// RPT_KPIS revenue (finance): SUM confirmed sales in scope.
+	measure 'Total Revenue' =
+			SUM ( FactRevenue[Amount] )
+		formatString: #,##0.00
+		displayFolder: 1. KPIs
+		lineageTag: 9f0a1b2c-00b2-4a11-9a01-0000000000b2
+
+	/// Completed appointments in scope.
+	measure 'Appointments Completed' =
+			CALCULATE ( COUNTROWS ( FactAppointments ), FactAppointments[Status] = "completed" )
+		formatString: #,##0
+		displayFolder: 2. Appointments
+		lineageTag: 9f0a1b2c-00b3-4a11-9a01-0000000000b3
+
+	/// No-show appointments in scope.
+	measure 'Appointments No-Show' =
+			CALCULATE ( COUNTROWS ( FactAppointments ), FactAppointments[Status] = "no-show" )
+		formatString: #,##0
+		displayFolder: 2. Appointments
+		lineageTag: 9f0a1b2c-00b4-4a11-9a01-0000000000b4
+
+	/// Pipeline appointments (booked…in-progress) in scope.
+	measure 'Appointments Booked' =
+			CALCULATE ( COUNTROWS ( FactAppointments ), FactAppointments[Status] IN { "booked", "confirmed", "checked-in", "waiting", "called", "in-progress" } )
+		formatString: #,##0
+		displayFolder: 2. Appointments
+		lineageTag: 9f0a1b2c-00b5-4a11-9a01-0000000000b5
+
+	/// RPT_KPIS: revenue_per_appointment. BLANK when no completed appointments (honest, never fabricated).
+	measure 'Revenue per Appointment' =
+			DIVIDE ( [Total Revenue], [Appointments Completed] )
+		formatString: #,##0.00
+		displayFolder: 1. KPIs
+		lineageTag: 9f0a1b2c-00b6-4a11-9a01-0000000000b6
+
+	/// RPT_KPIS: no_show_rate = no-show / (completed + no-show). BLANK when denominator = 0.
+	measure 'No-Show Rate %' =
+			DIVIDE ( [Appointments No-Show], [Appointments Completed] + [Appointments No-Show] )
+		formatString: 0.0%
+		displayFolder: 1. KPIs
+		lineageTag: 9f0a1b2c-00b7-4a11-9a01-0000000000b7
+
+	measure 'Recall Completed' =
+			CALCULATE ( COUNTROWS ( FactRecallCases ), FactRecallCases[Status] = "completed" )
+		formatString: #,##0
+		displayFolder: 3. Recall
+		lineageTag: 9f0a1b2c-00b8-4a11-9a01-0000000000b8
+
+	measure 'Recall Total' =
+			COUNTROWS ( FactRecallCases )
+		formatString: #,##0
+		displayFolder: 3. Recall
+		lineageTag: 9f0a1b2c-00b9-4a11-9a01-0000000000b9
+
+	/// RPT_KPIS: recall_rate = completed / all due in period. BLANK when denominator = 0.
+	measure 'Recall Rate %' =
+			DIVIDE ( [Recall Completed], [Recall Total] )
+		formatString: 0.0%
+		displayFolder: 1. KPIs
+		lineageTag: 9f0a1b2c-00ba-4a11-9a01-0000000000ba
+
+	measure 'Treatment Items' =
+			SUM ( FactTreatmentItems[Quantity] )
+		formatString: #,##0
+		displayFolder: 4. Clinical
+		lineageTag: 9f0a1b2c-00bb-4a11-9a01-0000000000bb

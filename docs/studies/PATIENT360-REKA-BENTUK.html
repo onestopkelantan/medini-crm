@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient 360 — Reka Bentuk & Wayering</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 24px 60px;
+    background: #f6f8fa; color: #0f172a;
+    font-family: -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: #64748b; font-size: 12.5px; margin-bottom: 26px; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: #64748b; margin: 30px 0 12px; font-weight: 600;
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  .card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+
+  /* ---------- patient header ---------- */
+  .phead { padding: 16px 18px; display: flex; gap: 16px; align-items: flex-start; }
+  .avatar {
+    width: 46px; height: 46px; border-radius: 12px; flex: 0 0 auto;
+    background: linear-gradient(135deg,#14b8a6,#0891b2); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px;
+  }
+  .pmain { flex: 1; min-width: 0; }
+  .pname { font-size: 16px; font-weight: 700; }
+  .pmeta { color: #64748b; font-size: 12.5px; margin-top: 1px; }
+  .chip {
+    display: inline-block; padding: 1px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; border: 1px solid;
+  }
+  .chip.active { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .pbtn {
+    border: 1px solid #e2e8f0; background: #fff; border-radius: 10px;
+    padding: 6px 11px; font-size: 12.5px; font-weight: 600; color: #0f172a;
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .pbtn.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+
+  .banner {
+    margin: 0 14px 14px; padding: 9px 12px; border-radius: 10px;
+    background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+    font-size: 12.5px; font-weight: 600;
+  }
+
+  /* ---------- summary strip ---------- */
+  .strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: #e2e8f0;
+           border-top: 1px solid #e2e8f0; border-radius: 0 0 14px 14px; overflow: hidden; }
+  .strip div { background: #fff; padding: 11px 14px; }
+  .strip b { display: block; font-size: 16px; }
+  .strip span { color: #64748b; font-size: 11.5px; }
+
+  /* ---------- tabs ---------- */
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px; border-bottom: 1px solid #e2e8f0; }
+  .tab {
+    padding: 6px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    color: #475569; border: 1px solid transparent; white-space: nowrap;
+  }
+  .tab.on { background: #0f172a; color: #fff; }
+  .tab.new::after { content: " baru"; color: #14b8a6; font-size: 10px; }
+  .tab.on.new::after { color: #5eead4; }
+
+  /* ---------- family list ---------- */
+  .body { padding: 16px 18px 18px; }
+  .rel {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .rel:last-child { border-bottom: 0; }
+  .reltype {
+    flex: 0 0 108px; font-size: 12px; font-weight: 700; color: #0f172a;
+  }
+  .relname { flex: 1; font-size: 13.5px; }
+  .relid { color: #94a3b8; font-size: 11.5px; font-family: ui-monospace, monospace; }
+  .relage { color: #64748b; font-size: 12px; }
+  .relx { color: #cbd5e1; font-size: 15px; }
+  .pending { color: #b45309; font-size: 11.5px; font-weight: 600; }
+
+  /* ---------- dialog ---------- */
+  .dlg { padding: 18px; }
+  .dlg h3 { margin: 0 0 2px; font-size: 14.5px; }
+  .dlg .hint { color: #64748b; font-size: 12px; margin-bottom: 16px; }
+  .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase;
+         letter-spacing: .05em; color: #64748b; margin-bottom: 7px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .preset {
+    border: 1px solid #e2e8f0; background: #fff; border-radius: 9px;
+    padding: 7px 13px; font-size: 12.5px; font-weight: 600; color: #0f172a;
+  }
+  .preset.on { background: #ecfeff; border-color: #5eead4; color: #0e7490; }
+  .free {
+    width: 100%; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 9px 12px; font-size: 13px; color: #0f172a; background: #fff;
+  }
+  .free::placeholder { color: #94a3b8; }
+  .note { color: #64748b; font-size: 11.5px; margin-top: 6px; }
+  .radio { display: flex; gap: 9px; align-items: center; margin: 7px 0; font-size: 13px; }
+  .dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #cbd5e1; flex: 0 0 auto; }
+  .dot.on { border-color: #0d9488; background: radial-gradient(circle,#0d9488 0 40%,#fff 45%); }
+  .divider { height: 1px; background: #f1f5f9; margin: 15px 0; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  /* ---------- auto reciprocal ---------- */
+  .auto { display: grid; grid-template-columns: 1fr 44px 1fr; gap: 0; align-items: center; margin-top: 4px; }
+  .auto .box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 13px 15px; background: #fff; }
+  .auto .box .who { font-size: 10.5px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+  .auto .box .what { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .auto .box .what em { font-style: normal; color: #0d9488; }
+  .auto .arrow { text-align: center; color: #94a3b8; font-size: 19px; }
+  .typed { background: #ecfeff; border-color: #99f6e4; }
+  .derived { background: #f0fdf4; border-color: #bbf7d0; }
+
+  /* ---------- wiring map ---------- */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+       color: #64748b; padding: 9px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 700; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12.5px; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.click { font-weight: 600; white-space: nowrap; }
+  td.go { color: #0f766e; font-family: ui-monospace, monospace; font-size: 12px; }
+  .bad { color: #b91c1c; font-weight: 600; }
+  .good { color: #047857; font-weight: 600; }
+
+  .legend { margin-top: 9px; color: #64748b; font-size: 12px; }
+  .legend b { color: #0f172a; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } .strip { grid-template-columns: repeat(2,1fr); } }
+  .why { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+         border-radius: 10px; padding: 11px 14px; font-size: 12.5px; margin-top: 12px; }
+  .why b { color: #1e3a8a; }
+</style>
+</head>
+<body>
+
+<h1>Patient 360 — Reka Bentuk &amp; Wayering</h1>
+<div class="sub">Seksyen 1 · Fasa 2 · satu pesakit = satu skrin · setiap butang mesti jelas pergi mana</div>
+
+<h2>1 · Skrin pesakit (satu pesakit, semua sejarah)</h2>
+<div class="card">
+  <div class="phead">
+    <div class="avatar">AF</div>
+    <div class="pmain">
+      <div class="pname">Ahmad Faizal <span class="chip active">Active</span></div>
+      <div class="pmeta">DEMO-1 · 34L · Lelaki · 60111111001 · Daftar di Setia Tropika</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <span class="pbtn primary">＋ Buka Sesi</span>
+      <span class="pbtn">💳 Caj</span>
+      <span class="pbtn">🖨 Borang / MC</span>
+      <span class="pbtn">📅 Temujanji</span>
+    </div>
+  </div>
+  <div class="banner">⚠️ ALERGIA — Penicillin (teruk). Blok ubat ini pada setiap preskripsi.</div>
+  <div class="strip">
+    <div><b>4</b><span>Lawatan</span></div>
+    <div><b>2</b><span>Rawatan</span></div>
+    <div><b>RM150</b><span>Tertunggak</span></div>
+    <div><b>1</b><span>Alahan</span></div>
+  </div>
+</div>
+
+<h2>2 · Tab — di mana setiap benda tinggal</h2>
+<div class="card">
+  <div class="tabs">
+    <span class="tab on">📋 Sejarah</span>
+    <span class="tab new">🦷 Carta Gigi</span>
+    <span class="tab new">💰 Rawatan &amp; Bil</span>
+    <span class="tab new">💊 Preskripsi</span>
+    <span class="tab new">⚠️ Kesan Buruk</span>
+    <span class="tab new">📅 Temujanji</span>
+    <span class="tab new">🖼 X-Ray</span>
+    <span class="tab new">🧪 Lab</span>
+    <span class="tab">📄 Borang</span>
+    <span class="tab">✍️ Kebenaran</span>
+    <span class="tab">👨‍👩‍👧 Keluarga</span>
+  </div>
+  <div class="body">
+    <div class="lbl">Sejarah — satu senarai, susun ikut masa, dari dia mula daftar</div>
+    <div style="font-size:12.5px;line-height:2;color:#334155">
+      <div><span style="color:#94a3b8;font-family:ui-monospace,monospace;font-size:11.5px">28 Sep</span> &nbsp; Doktor Aina buka sesi — sakit gigi belakang</div>
+      <div><span style="color:#94a3b8;font-family:ui-monospace,monospace;font-size:11.5px">28 Sep</span> &nbsp; Carta: gigi 36 — tampalan komposit</div>
+      <div><span style="color:#94a3b8;font-family:ui-monospace,monospace;font-size:11.5px">28 Sep</span> &nbsp; Preskripsi: Amoxicillin 500mg</div>
+      <div><span style="color:#94a3b8;font-family:ui-monospace,monospace;font-size:11.5px">26 Sep</span> &nbsp; Pelan TPL-0019 dicipta — 2 rawatan</div>
+      <div><span style="color:#94a3b8;font-family:ui-monospace,monospace;font-size:11.5px">24 Sep</span> &nbsp; <b>Daftar masuk</b> — alahan Penicillin direkod</div>
+    </div>
+    <div class="legend">↑ <b>386 peristiwa</b> sudah wujud dalam pangkalan data. Sekarang cuma tiada skrin membacanya.</div>
+  </div>
+</div>
+
+<h2>3 · Tab Keluarga — soalan yang paling penting</h2>
+<div class="two">
+  <div class="card">
+    <div class="body">
+      <div class="lbl">Keluarga &amp; penjaga</div>
+      <div class="rel"><div class="reltype">isteri</div><div class="relname">Nurul Aisyah</div><div class="relid">DEMO-4</div><div class="relage">31L</div><div class="relx">✏️</div></div>
+      <div class="rel"><div class="reltype">anak</div><div class="relname">Ibrahim Faizal</div><div class="relid">DEMO-5</div><div class="relage">9L</div><div class="relx">✏️</div></div>
+      <div class="rel"><div class="reltype">anak angkat</div><div class="relname">Fatihah Faizal</div><div class="relid">DEMO-6</div><div class="relage">6L</div><div class="relx">✏️</div></div>
+      <div class="rel"><div class="reltype">wakil NGO</div><div class="relname">Puan Zainab <span class="pending">belum daftar</span></div><div class="relx">✏️</div></div>
+      <div style="margin-top:14px"><span class="pbtn primary">＋ Tambah ahli</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="dlg">
+      <h3>Siapa orang ini kepada Ahmad?</h3>
+      <div class="hint">Taip sekali sahaja — sistem isi sebelah lagi sendiri.</div>
+
+      <div class="lbl">Pilihan lazim</div>
+      <div class="presets">
+        <span class="preset on">isteri / suami</span>
+        <span class="preset">anak</span>
+        <span class="preset">ibu</span>
+        <span class="preset">bapa</span>
+        <span class="preset">adik-beradik</span>
+        <span class="preset">penjaga</span>
+        <span class="preset">anak angkat</span>
+      </div>
+
+      <div class="lbl">Lain-lain — taip sendiri</div>
+      <input class="free" placeholder="anak saudara / wakil NGO / ibu saudara / …">
+      <div class="note">Tak jumpa pilihan di atas? Taip je apa dia. Jenis yang pernah ditaip akan muncul sebagai butang kemudian.</div>
+
+      <div class="divider"></div>
+
+      <div class="lbl">Orang ini</div>
+      <div class="radio"><span class="dot on"></span> Sudah ada dalam sistem &nbsp; <span style="flex:1;border:1px solid #e2e8f0;border-radius:9px;padding:7px 11px;color:#94a3b8;font-size:12.5px">cari nama…</span></div>
+      <div class="radio"><span class="dot"></span> Belum daftar — nama sahaja &nbsp; <input class="free" style="flex:1;width:auto" placeholder="Puan Zainab"></div>
+
+      <div class="actions">
+        <span class="pbtn">Batal</span>
+        <span class="pbtn primary">Simpan</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+  <b>Kenapa 7 butang + kotak taip bebas.</b> 90% kes cukup satu tekan. Baki 10% — anak angkat, wakil NGO, ibu saudara — tiada dinding. Sekarang API hanya terima 7 jenis tetap, jadi staff tersekat pada kes ke-3 yang dia cuba. DB sudah boleh simpan apa sahaja; kita cuma buka apa yang DB sudah boleh simpan.
+</div>
+
+<h2>4 · Satu entri → dua arah</h2>
+<div class="card" style="padding:18px">
+  <div class="lbl">Staff taip sekali</div>
+  <div class="auto">
+    <div class="box typed">
+      <div class="who">Ditulis oleh staff</div>
+      <div class="what">Ibrahim <em>anak</em> Ahmad</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box" style="border-style:dashed;background:#fafafa">
+      <div class="who">Sistem terus tahu</div>
+      <div class="what" style="color:#94a3b8">…</div>
+    </div>
+  </div>
+  <div style="height:10px"></div>
+  <div class="lbl">Hasilnya — dua skrin, dua-dua betul</div>
+  <div class="auto">
+    <div class="box derived">
+      <div class="who">Skrin Ahmad</div>
+      <div class="what">Ibrahim <em>anak</em></div>
+    </div>
+    <div class="arrow">↔</div>
+    <div class="box derived">
+      <div class="who">Skrin Ibrahim</div>
+      <div class="what">Ahmad <em>bapa</em></div>
+    </div>
+  </div>
+  <div class="legend" style="margin-top:13px">
+    “bapa” atau “ibu” dipilih ikut jantina orang itu — jadi staff <b>tak perlu</b> daftar dua kali.
+    Untuk anak kecil, skrin Ibrahim akan tunjuk <b>“penjaga: Ahmad Faizal — ibu bapa mesti hadir”</b>.
+  </div>
+</div>
+
+<h2>5 · Wayering — klik ini, keluar di mana</h2>
+<div class="card">
+  <table>
+    <tr><th style="width:34%">Klik</th><th style="width:32%">Pergi mana</th><th>Catatan</th></tr>
+    <tr><td class="click">Patients → Ahmad Faizal</td><td class="go">/patients/:id</td><td>Patient 360 — satu skrin</td></tr>
+    <tr><td class="click">＋ Buka Sesi</td><td class="go">POST /clinical/encounters</td><td>Encounter = pintu; preskripsi &amp; nota bergantung padanya</td></tr>
+    <tr><td class="click">💳 Caj</td><td class="go">GET /clinical/plans?patientId</td><td>Pilih pelan → dialog caj → <span class="go">POST /finance/treatment-costs</span></td></tr>
+    <tr><td class="click">＋ Tambah ahli</td><td class="go">POST /patients/:id/relationships</td><td>Satu entri, sistem isi arah balik</td></tr>
+    <tr><td class="click">Tab Sejarah</td><td class="go">GET /patients/:id/timeline</td><td>Sekarang baca jadual kosong — kena sambung ke 386 peristiwa</td></tr>
+    <tr><td class="click">Tab Carta Gigi</td><td class="go">GET /clinical/patients/:id/chart</td><td>Odontogram — sudah ada, masukkan ke skrin pesakit</td></tr>
+    <tr><td class="click">Tab Preskripsi</td><td class="go">GET /clinical/prescriptions?patientId</td><td>Ada API, belum ada tab</td></tr>
+    <tr><td class="click">Tab Temujanji</td><td class="go">GET /appointments?patientId</td><td>Sekarang <span class="bad">placeholder</span> — bukan fungsi</td></tr>
+    <tr><td class="click">Butang Caj di Clinical</td><td class="go">→ Patient 360</td><td><span class="good">Baru</span> — sekarang butang caj hanya ada dalam Patient 360, doktor tak jumpa</td></tr>
+  </table>
+</div>
+
+<div class="why" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">
+  <b>Dua wayar putus yang paling merugikan.</b>
+  ① <b>Sejarah pesakit baca jadual kosong</b> (<span style="font-family:ui-monospace,monospace">patient_timeline_events</span> = 0) sedangkan 386 peristiwa sebenar tersimpan dalam <span style="font-family:ui-monospace,monospace">clinical_timeline_events</span> dan <b>tiada sesiapa membacanya</b>. ② <b>Butang “Caj” hanya ada dalam Patient 360</b> — doktor habis rawatan di halaman Clinical, cari bil, tak jumpa.
+</div>
+
+</body>
+</html>

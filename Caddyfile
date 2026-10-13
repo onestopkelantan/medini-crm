@@ -1,0 +1,83 @@
+# Medini CRM — Caddy reverse proxy (medinident.com.my + www)
+# HTTPS auto-provisioned by Let's Encrypt
+
+medinident.com.my, www.medinident.com.my {
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # /metrics: internal monitoring only
+    @metrics path /metrics
+    respond @metrics 404
+
+    # /health: liveness/readiness
+    @health path /health/*
+    reverse_proxy @health backend:3000
+
+    # API: /api/v1 → NestJS backend
+    @api path /api/*
+    reverse_proxy @api backend:3000
+
+    # Object storage (Garage)
+    handle /medini-prod/* {
+        reverse_proxy garage:3900 {
+            header_up Host {host}
+        }
+    }
+
+    # Everything else → frontend static SPA
+    reverse_proxy frontend:80
+
+    log {
+        output file /data/access.log
+        format json
+    }
+}
+
+# HTTP → HTTPS redirect for domain
+http://medinident.com.my, http://www.medinident.com.my {
+    redir https://{host}{uri} permanent
+}
+
+# Fallback for IP access (no SSL)
+:80 {
+    # Security headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # /metrics: internal monitoring only
+    @metrics path /metrics
+    respond @metrics 404
+
+    # /health: liveness/readiness
+    @health path /health/*
+    reverse_proxy @health backend:3000
+
+    # API: /api/v1 → NestJS backend
+    @api path /api/*
+    reverse_proxy @api backend:3000
+
+    # Object storage (Garage)
+    handle /medini-prod/* {
+        reverse_proxy garage:3900 {
+            header_up Host {host}
+        }
+    }
+
+    # Everything else → frontend static SPA
+    reverse_proxy frontend:80
+
+    log {
+        output file /data/access.log
+        format json
+    }
+}

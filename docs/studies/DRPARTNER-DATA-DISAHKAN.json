@@ -1,0 +1,310 @@
+{
+ "sumber": "thedrpartner.com | Medini Dental Group > Klinik Pergigian Medini Setia Tropika (branch=8) | READ ONLY",
+ "kaedah": "Setiap halaman memuat data via AJAX ke <nama>_init.php atau <nama>_list.php -> JSON {kotak: html}",
+ "disahkan": {
+  "katalog_rawatan": {
+   "bil": 24,
+   "berharga": 2,
+   "harga": {
+    "OPG X-RAY": 100.0,
+    "PA X-RAY": 50.0
+   },
+   "lajur": [
+    "Category",
+    "Treatment",
+    "Classification code",
+    "Price",
+    "Price 2",
+    "Panel price",
+    "Cost",
+    "Local SST %",
+    "Foreigner SST"
+   ],
+   "medan_borang": [
+    "Category",
+    "Treatment",
+    "Classification code (eInvoice)",
+    "Keyboard letter / Item code",
+    "Price",
+    "Price 2",
+    "Panel price",
+    "Cost",
+    "Tax %",
+    "Dental chart symbol",
+    "Xray"
+   ]
+  },
+  "kategori_rawatan": [
+   "APPLICATION",
+   "BRACES",
+   "BRIDGE",
+   "CLEAR ALIGNER",
+   "CONSULTATION",
+   "CROWN",
+   "DENTAL SURGICAL",
+   "DENTURE",
+   "EXTRACTION",
+   "FIBER REINFORCED COMPOSITE",
+   "FILLING",
+   "IMPLANT",
+   "MINOR ORAL SUGERY",
+   "ROOT CANAL TREATMENT",
+   "SCALING",
+   "VENEER",
+   "WHITENING"
+  ],
+  "panel": {
+   "bil": 10,
+   "senarai": [
+    "AIA",
+    "E-MAS",
+    "HealthMetrics",
+    "MBJB",
+    "MediDent",
+    "MedKad",
+    "MEDNEFITS",
+    "MiCare",
+    "PM CARE",
+    "UTM"
+   ],
+   "medan": [
+    "Panel name",
+    "Person in charge",
+    "Contact",
+    "Address",
+    "Status"
+   ]
+  },
+  "ubat": {
+   "bil": 14,
+   "kategori": [
+    "ANTIBIOTIC",
+    "BENGKAK",
+    "PAINKILLER"
+   ],
+   "senarai": [
+    "AMOXY 250MG",
+    "AMOXY 500mg",
+    "AUGMENTIN 625MG",
+    "METRO 400MG",
+    "SYRUP AMOXY 250MG",
+    "PAPASE",
+    "ARCOXIA 120MG",
+    "ARCOXIA 90MG",
+    "IBUFERN 400MG",
+    "IBUPROFEN 200MG",
+    "PCM 500MG",
+    "PONSTAN 500MG",
+    "SYRUP PCM 250MG"
+   ],
+   "medan": [
+    "Item code",
+    "Medicine",
+    "Keyboard letter",
+    "Selling price",
+    "Tax %",
+    "Category",
+    "Maximum dose",
+    "Min order",
+    "UOM",
+    "Grade",
+    "Attribute",
+    "Alert",
+    "Controlled drug",
+    "Meal",
+    "Usage",
+    "Dosage"
+   ]
+  },
+  "pembekal": {
+   "bil": 27,
+   "medan": [
+    "Supplier name",
+    "Person in charge",
+    "Contact",
+    "Address",
+    "Status"
+   ]
+  },
+  "tujuan_temujanji": {
+   "bil": 8,
+   "ada_tempoh": true,
+   "senarai": [
+    [
+     "CHECK UP",
+     0,
+     30
+    ],
+    [
+     "DENTURE IMPRESSION",
+     0,
+     30
+    ],
+    [
+     "EXTRACTION",
+     0,
+     30
+    ],
+    [
+     "FILLING",
+     1,
+     0
+    ],
+    [
+     "MOS",
+     1,
+     30
+    ],
+    [
+     "RCT",
+     1,
+     30
+    ],
+    [
+     "REV ORTHO",
+     0,
+     30
+    ],
+    [
+     "SCALING POLISHING",
+     0,
+     30
+    ],
+    [
+     "WHITENING",
+     1,
+     30
+    ]
+   ]
+  },
+  "borang_pesakit": {
+   "bil_medan": 76,
+   "medan": [
+    "Title (11 pilihan)",
+    "Name*",
+    "schemeID (NRIC/BRN/PASSPORT/ARMY)",
+    "IC no",
+    "Gender*",
+    "DOB*",
+    "Age",
+    "Mobile* (+6 untuk eInvoice)",
+    "Phone",
+    "Blood type",
+    "Marital status",
+    "Know about clinic (10 sumber)",
+    "Email",
+    "Panel company (10)",
+    "Nationality* (untuk SST)",
+    "Emergency contact name/no",
+    "Occupation",
+    "Race",
+    "Prefer language",
+    "Prefer message language (English/BM/中文)",
+    "Prefer communication",
+    "Refer by",
+    "Vegetarian",
+    "Father name/ic/phone",
+    "Mother name/ic/phone",
+    "Guardian name/ic/phone",
+    "Allergy / Medical history (TEKS BEBAS)",
+    "Remark",
+    "Address*",
+    "State",
+    "Postcode",
+    "City",
+    "Country",
+    "Second address",
+    "ADMIN AI DOC",
+    "Purpose",
+    "Procedure",
+    "Dose of vaccine",
+    "Temperature",
+    "Pregnant?"
+   ],
+   "butang": [
+    "Save patient profile",
+    "IC reader",
+    "Cancel",
+    "Search patient"
+   ],
+   "ic_reader": [
+    "Port",
+    "SSL",
+    "License",
+    "Reader",
+    "Read Photo",
+    "Verify Fingerprint",
+    "Scanner",
+    "Timeout",
+    "Hand Code"
+   ]
+  },
+  "uom": [
+   "BOTTLE",
+   "BOX",
+   "CATTON",
+   "PCS",
+   "UNIT"
+  ],
+  "jenis_staf": [
+   "Doctor",
+   "Front desk",
+   "Management"
+  ],
+  "voucher": {
+   "bil": 1,
+   "contoh": [
+    "GOOGLE REVIEW",
+    "%",
+    10.0
+   ],
+   "medan": [
+    "Voucher name",
+    "Discount method (%/$)",
+    "Discount amount"
+   ]
+  },
+  "roster_appt": {
+   "slot": 8,
+   "nota": "bapptroster_init.php -> 8 slot masa"
+  }
+ },
+ "KOSONG_di_Setia_Tropika": {
+  "bilik_rawatan": 0,
+  "paket_rawatan": 0,
+  "insurans": 0,
+  "mod_bayaran": 0,
+  "custom_forms_semua": 0,
+  "soap_options_semua": 0,
+  "ubat_grade_alert_meal_dosage": 0,
+  "produk": 0,
+  "bahan": 0,
+  "kategori_produk": 0,
+  "kategori_bahan": 0,
+  "cuti_klinik": 0,
+  "referral": 0,
+  "nota": "Modul BERFUNGSI tetapi cawangan ini belum isi data"
+ },
+ "tidak_dijumpai_endpoint": [
+  "proceduresetup",
+  "branchtaxedit",
+  "dpsetting",
+  "apptinterfacesetup",
+  "bcommsetup",
+  "messagesetting",
+  "messagecampsetting",
+  "branchlogo",
+  "branchedit"
+ ],
+ "BUKTI_tiada": {
+  "bilik_rawatan": 0,
+  "stock": 0,
+  "packages": 0,
+  "insurans": 0,
+  "custom_forms": 0,
+  "soap_options": 0,
+  "product": 0,
+  "material": 0,
+  "layan_sendiri": 0
+ }
+}

@@ -1,0 +1,1261 @@
+openapi: 3.1.0
+info:
+  title: Bukku API - Sales
+  version: v1.0
+servers:
+  $ref: ./shared/common/servers.yaml
+tags:
+  - name: Quotation
+  - name: Sales Order
+  - name: Delivery Order
+  - name: Invoice
+  - name: Credit Note
+  - name: Payment
+  - name: Refund
+paths:
+  /sales/quotes:
+    post:
+      tags:
+        - Quotation
+      summary: Create Quotation
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/quotes/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/quotes/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/quotes/res_quotation.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+    get:
+      tags:
+        - Quotation
+      summary: Read Quotation List
+      parameters:
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./domains/sales/parameters/query/transfer_status.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_quotation.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/quotes/res_quotation_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/quotes/{transactionId}:
+    get:
+      tags:
+        - Quotation
+      summary: Read Quotation
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/quotes/res_quotation.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Quotation
+      summary: Update Quotation
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/quotes/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/quotes/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/quotes/res_quotation.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Quotation
+      summary: Update Quotation Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/quotes/res_quotation.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Quotation
+      summary: Delete Quotation
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/orders:
+    post:
+      tags:
+        - Sales Order
+      summary: Create Sales Order
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/orders/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/orders/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/orders/res_sales_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+    get:
+      tags:
+        - Sales Order
+      summary: Read Sales Order List
+      parameters:
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./domains/sales/parameters/query/transfer_status.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_sales_order.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/orders/res_sales_order_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/orders/{transactionId}:
+    get:
+      tags:
+        - Sales Order
+      summary: Read Sales Order
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/orders/res_sales_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Sales Order
+      summary: Update Sales Order
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/orders/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/orders/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/orders/res_sales_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Sales Order
+      summary: Update Sales Order Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/orders/res_sales_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Sales Order
+      summary: Delete Sales Order
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/delivery_orders:
+    post:
+      tags:
+        - Delivery Order
+      summary: Create Delivery Order
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/delivery_orders/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/delivery_orders/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/delivery_orders/res_delivery_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+    get:
+      tags:
+        - Delivery Order
+      summary: Read Delivery Order List
+      parameters:
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./domains/sales/parameters/query/transfer_status.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_delivery_order.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/delivery_orders/res_delivery_order_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/delivery_orders/{transactionId}:
+    get:
+      tags:
+        - Delivery Order
+      summary: Read Delivery Order
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/delivery_orders/res_delivery_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Delivery Order
+      summary: Update Delivery Order
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/delivery_orders/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/delivery_orders/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/delivery_orders/res_delivery_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Delivery Order
+      summary: Update Delivery Order Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/delivery_orders/res_delivery_order.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Delivery Order
+      summary: Delete Delivery Order
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/invoices:
+    post:
+      tags:
+        - Invoice
+      summary: Create Invoice
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/invoices/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/invoices/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/invoices/res_invoice.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+    get:
+      tags:
+        - Invoice
+      summary: Read Invoice List
+      parameters:
+        - $ref: ./domains/sales/parameters/query/payment_status.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./domains/sales/parameters/query/payment_mode_sales.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_invoice.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/invoices/res_invoice_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/invoices/{transactionId}:
+    get:
+      tags:
+        - Invoice
+      summary: Read Invoice
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/invoices/res_invoice.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Invoice
+      summary: Update Invoice
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/invoices/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/invoices/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/invoices/res_invoice.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Invoice
+      summary: Update Invoice Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status_myinvois.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/invoices/res_invoice.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Invoice
+      summary: Delete Invoice
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/credit_notes:
+    post:
+      tags:
+        - Credit Note
+      summary: Create Credit Note
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/credit_notes/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/credit_notes/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/credit_notes/res_credit_note.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+    get:
+      tags:
+        - Credit Note
+      summary: Read Credit Note List
+      parameters:
+        - $ref: ./domains/sales/parameters/query/payment_status.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_credit_note.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/credit_notes/res_credit_note_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/credit_notes/{transactionId}:
+    get:
+      tags:
+        - Credit Note
+      summary: Read Credit Note
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/credit_notes/res_credit_note.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Credit Note
+      summary: Update Credit Note
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/credit_notes/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/credit_notes/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/credit_notes/res_credit_note.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Credit Note
+      summary: Update Credit Note Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status_myinvois.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/credit_notes/res_credit_note.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Credit Note
+      summary: Delete Credit Note
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/payments:
+    post:
+      tags:
+        - Payment
+      summary: Create Payment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/payments/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/payments/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/payments/res_payment.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    get:
+      tags:
+        - Payment
+      summary: Read Payment List
+      parameters:
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/payment_status2.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_payment.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+        - $ref: ./domains/sales/parameters/query/account_ids.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/payments/res_payment_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/payments/{transactionId}:
+    get:
+      tags:
+        - Payment
+      summary: Read Payment
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/payments/res_payment.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Payment
+      summary: Update Payment
+      description: Update any information (except its 'status') on the payment.
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/payments/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/payments/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/payments/res_payment.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Payment
+      summary: Update Payment Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/payments/res_payment.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Payment
+      summary: Delete Payment
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/refunds:
+    post:
+      tags:
+        - Refund
+      summary: Create Refund
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/refunds/create.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/refunds/create.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/refunds/res_refund.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    get:
+      tags:
+        - Refund
+      summary: Read Refund List
+      parameters:
+        - $ref: ./shared/parameters/query/search_sale_purchase.yaml
+        - $ref: ./domains/sales/parameters/query/custom_search.yaml
+        - $ref: ./domains/sales/parameters/query/contact_id.yaml
+        - $ref: ./shared/parameters/query/date_from.yaml
+        - $ref: ./shared/parameters/query/date_to.yaml
+        - $ref: ./shared/parameters/query/status.yaml
+        - $ref: ./domains/sales/parameters/query/payment_status2.yaml
+        - $ref: ./domains/sales/parameters/query/email_status.yaml
+        - $ref: ./shared/parameters/query/page.yaml
+        - $ref: ./shared/parameters/query/page_size.yaml
+        - $ref: ./domains/sales/parameters/query/sort_by_refund.yaml
+        - $ref: ./shared/parameters/query/sort_dir.yaml
+        - $ref: ./domains/sales/parameters/query/account_ids.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paging:
+                    $ref: ./domains/sales/responses/schemas/paging/res_paging.yaml
+                  transactions:
+                    $ref: ./domains/sales/responses/schemas/refunds/res_refund_list.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+  /sales/refunds/{transactionId}:
+    get:
+      tags:
+        - Refund
+      summary: Read Refund
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/refunds/res_refund.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    put:
+      tags:
+        - Refund
+      summary: Update Refund
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./domains/sales/requests/schemas/refunds/update.yaml
+            examples:
+              example:
+                $ref: ./domains/sales/requests/examples/refunds/update.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/refunds/res_refund.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    patch:
+      tags:
+        - Refund
+      summary: Update Refund Status
+      description:
+        $ref: ./shared/descriptions/transactions/update_transaction_status.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./shared/requests/schemas/transaction_update_status.yaml
+            example:
+              $ref: ./shared/requests/examples/transaction_update_status.yaml
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: ./domains/sales/responses/schemas/refunds/res_refund.yaml
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+    delete:
+      tags:
+        - Refund
+      summary: Delete Refund
+      description:
+        $ref: ./shared/descriptions/transactions/delete_transaction.yaml
+      parameters:
+        - $ref: ./shared/parameters/path/transactionId.yaml
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: ./shared/responses/errors/general/general-error.yaml
+        '401':
+          $ref: ./shared/responses/errors/general/unauthenticated.yaml
+        '403':
+          $ref: ./shared/responses/errors/general/unauthorised.yaml
+      security:
+        - BearerToken: []
+components:
+  securitySchemes:
+    $ref: ./shared/common/bearer_token.yaml

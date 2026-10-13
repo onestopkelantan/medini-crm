@@ -1,0 +1,65 @@
+# ============================================================================
+# Medini CRM — Alertmanager routing (Tier 1, P7-F8; F11-1 remediated)
+#
+# Alertmanager does NOT perform shell-style ${VAR:-default} expansion inside
+# its YAML configuration (F11-1). This file is therefore fully STATIC —
+# no runtime environment interpolation, no shell expansion, no secrets.
+#
+# Behaviour:
+#   - Default receiver = localhost blackhole (alerts FIRE, visible in UI,
+#     never silently disappear).
+#   - Optional webhook receiver is defined but only reachable via an explicit
+#     operator override at deploy time (see docs/MONITORING.md).
+#
+# To enable a real notification channel (Slack/Telegram/email relay):
+#   1. Copy this file to alertmanager.override.yml (or mount a new volume).
+#   2. Replace the blackhole URL below with your real webhook URL.
+#   3. Update docker-compose.prod.yml alertmanager volume to point to the
+#      override file.
+#
+# NEVER commit real webhook URLs, tokens, or secrets.
+# ============================================================================
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ['alertname', 'area', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: default
+      repeat_interval: 1h
+    - matchers:
+        - area = "backup"
+      receiver: default
+      repeat_interval: 12h
+
+receivers:
+  # Default receiver: harmless localhost blackhole. Alerts still fire and are
+  # visible in Prometheus/Alertmanager UI; they are simply not forwarded to
+  # an external channel unless the operator overrides this file.
+  - name: default
+    webhook_configs:
+      - url: 'http://localhost:9/alert-blackhole'
+        send_resolved: true
+
+  # Placeholder for optional operator webhook. This receiver is NOT routed to
+  # by default; it exists so that an override file can reference it without
+  # changing the route tree above. To use it, override the receiver URL and
+  # change the route receiver to 'webhook' (or add a route matcher).
+  - name: webhook
+    webhook_configs:
+      - url: 'http://localhost:9/alert-blackhole'
+        send_resolved: true
+
+inhibit_rules:
+  # If the backend is down, suppress the readiness/5xx noise it causes.
+  - source_match:
+      alertname: BackendDown
+    target_matchers:
+      - alertname =~ "Api5xxRate|BackendNotReady|ApiLatencyHigh"
+    equal: ['service']

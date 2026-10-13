@@ -1,0 +1,414 @@
+# ============================================================================
+# Medini CRM — PRODUCTION Docker Compose (MySQL 8.4)
+#
+# Architecture:
+#   Internet → Caddy (443/HTTPS) → frontend (static SPA)
+#                              ↘ /api/v1 → backend (NestJS)
+#                                            ↓
+#                                    MySQL 8.4 (internal) + Redis (internal)
+#                                            ↓
+#                                    Workers (BullMQ)
+#
+# MySQL/Redis are NOT exposed to the public internet.
+# Backup runs as a sidecar container writing to a persistent volume.
+# ============================================================================
+
+name: medini-prod
+
+services:
+  # ---- Reverse proxy / HTTPS termination ----
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"   # plain-HTTP local preview listener (dev/test only)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      # MinIO's public host. Set in .env when the DNS record exists; the
+      # Caddyfile falls back to files.localhost so this is optional.
+      FILES_DOMAIN: ${FILES_DOMAIN:-files.localhost}
+    depends_on:
+      - frontend
+      - backend
+      - garage
+    networks:
+      - medini-public
+      - medini-internal
+
+  # ---- Frontend (static SPA via nginx) ----
+  frontend:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    networks:
+      - medini-internal
+    # No public port — Caddy proxies to this.
+
+  # ---- Backend (NestJS + MySQL) ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      # Zon masa klinik. Semua temujanji, jadual dan laporan membaca masa
+      # tempatan Malaysia. Tanpa ini pelayan berjalan dalam UTC dan panel
+      # masa-nyata mengira tetingkap 8 jam terlalu awal — temujanji yang
+      # sedang berlaku kelihatan "tiada aktiviti".
+      TZ: ${TZ:-Asia/Kuala_Lumpur}
+      DATABASE_URL: mysql://medini:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      DATABASE_RUNTIME_URL: mysql://medini_app:${MYSQL_APP_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
+      # ---- Object storage (documents + X-ray images) ----
+      # Pointed at the self-hosted MinIO service below. DocumentStorageService
+      # already builds a real S3Client with `forcePathStyle: true`, which is the
+      # exact switch MinIO needs — so this is CONFIGURATION, not new code.
+      #
+      # Migrating to cloud S3 / Cloudflare R2 later is these same four variables
+      # and nothing else, which is why self-hosting now is not a dead end.
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://garage:3900}
+      # Hos yang ditandatangan utk URL presigned. RELATIVE diperbolehkan: S3 SDK
+      # menerima host tanpa skema, dan pelayar melengkapkannya dgn asalan
+      # halaman. Inilah yg membetulkan URL garage:3900 yg tak boleh dibuka pelayar.
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:8080}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-medini-prod}
+      S3_ACCESS_KEY: ${GARAGE_S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${GARAGE_S3_SECRET_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      garage:
+        condition: service_started
+    networks:
+      # medini-public gives OUTBOUND internet only (no ports: mapping below —
+      # nothing is exposed inbound; Caddy remains the sole entrypoint).
+      # The backend must reach MiniMax (api.minimax.io) for AI replies and Bukku
+      # (api.bukku.my) for accounting sync. On medini-internal alone, which is
+      # `internal: true`, those calls failed with EAI_AGAIN/fetch failed.
+      # Same pattern as caddy: public for egress, internal for private services.
+      - medini-public
+      - medini-internal
+    # No public port — Caddy proxies /api/v1 to this.
+
+  # ---- Garage: self-hosted S3-compatible object storage (X-ray / documents) ----
+  #
+  # WHY SELF-HOSTED RATHER THAN CLOUD S3:
+  #  - Zero code change. The adapter already builds a path-style S3Client.
+  #  - A doctor opens an X-ray DURING a consultation. If the bytes live at a
+  #    remote provider, a clinic internet outage makes yesterday's X-ray
+  #    unopenable at the exact moment the patient is in the chair.
+  #  - X-ray images are medical data under PDPA; keeping them inside the clinic
+  #    is the easier position to defend.
+  #  - Capacity is free: host has ~260GB spare and 14 branches at ~500KB per
+  #    image is roughly 18GB/year.
+  #
+  # WHY GARAGE AND NOT MINIO: MinIO's Docker Hub repos were deleted 11 Sep 2026
+  # and the project is archived, source-only, with no security fixes. See
+  # garage.toml. Garage is a separate, actively maintained project.
+  #
+  # NOT publicly exposed. Caddy proxies the file subdomain to the S3 API port;
+  # the admin port stays internal.
+  garage:
+    image: dxflrs/garage:v1.1.0
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      S3_REGION: ${S3_REGION:-us-east-1}
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garagedata:/var/lib/garage
+    networks:
+      - medini-internal
+      - medini-public      # Caddy must reach this to proxy the file subdomain
+    healthcheck:
+      # Garage's image is DISTROLESS: there is no /bin/sh at all, so a
+      # `CMD-SHELL` healthcheck cannot even start ("exec: /bin/sh: no such file
+      # or directory" — exit -1, reported as unhealthy forever). Use `CMD` with
+      # the binary the image actually ships.
+      #
+      # `/garage status` queries the running node over its own RPC admin
+      # interface, so it fails if the server is not truly serving — unlike
+      # probing a port, which only proves something is listening.
+      test: ["CMD", "/garage", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ---- MySQL 8.4 (production) ----
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Kuala_Lumpur}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: medini
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=200
+      - --innodb-buffer-pool-size=512M
+      - --innodb-log-file-size=256M
+      - --slow-query-log=1
+      - --long-query-time=2
+      - --binlog-expire-logs-seconds=604800
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ./backup/mysql-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - medini-internal
+    # NO public port — internal only.
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---- Redis 7 (queue + cache) ----
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - redisdata:/data
+    networks:
+      - medini-internal
+    # NO public port — internal only.
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Backup sidecar (mysqldump every 6h) ----
+  backup:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: medini
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-21600}
+      RETAIN_INTERVAL_SECONDS: ${RETAIN_INTERVAL_SECONDS:-3600}
+      SCHEDULER_POLL_SECONDS: ${SCHEDULER_POLL_SECONDS:-15}
+      FIRST_RETRY_SECONDS: ${FIRST_RETRY_SECONDS:-20}
+    volumes:
+      - ./backup/backup.sh:/backup.sh:ro
+      - ./backup/scheduler.sh:/scheduler.sh:ro
+      - ./backup/wal-retain.sh:/wal-retain.sh:ro
+      - backupdata:/backups
+    networks:
+      - medini-internal
+    # See backup/scheduler.sh for why this is a shell loop and NOT crontab.
+    # Short version: `mysql:8.4` contains no cron daemon, so the previous
+    # `crontab -` / `crond -f` command failed with "command not found" and the
+    # container restart-looped — meaning NO backup ran while `docker ps` still
+    # showed a "backup" container. The loop starts with an immediate backup so a
+    # fresh deploy is protected within minutes rather than up to 6 hours.
+    #
+    # Intervals are env-overridable so the schedule can be verified in a test
+    # without waiting six hours for a second run.
+    command: ["/bin/sh", "/scheduler.sh"]
+    healthcheck:
+      # FAILS if no backup has COMPLETED in 26h, surfacing a broken backup as an
+      # unhealthy container.
+      #
+      # It reads the success marker that `backup.sh` itself writes
+      # (`metrics/backup.prom`, also scraped by the BackupStale alert) rather
+      # than a heartbeat touched by the scheduler. A heartbeat proves only that
+      # a process is breathing — the old container would have reported healthy
+      # forever if it had been given one, while writing no backups at all. This
+      # asserts the thing we actually care about.
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(sed -n 's/^medini_backup_last_success_timestamp_seconds //p' /backups/metrics/backup.prom 2>/dev/null || echo 0) )) -lt 93600"]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+      # 26h stale-limit, so a 6-hourly schedule trips this after ~4 missed runs.
+      # start_period covers the first run: a fresh deploy is unhealthy-but-
+      # starting until its initial backup lands, which is honest.
+      start_period: 1h
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ==========================================================================
+  # MONITORING STACK — internal only, NO public ports.
+  # ==========================================================================
+
+  # ---- Prometheus: metrics TSDB + alert evaluation ----
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheusdata:/prometheus
+    networks:
+      - medini-internal
+    depends_on:
+      - backend
+
+  # ---- Alertmanager: alert routing/notification ----
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanagerdata:/alertmanager
+    networks:
+      - medini-internal
+
+  # ---- Blackbox exporter: HTTP probes (health/readiness/WAHA) ----
+  blackbox:
+    image: prom/blackbox-exporter:v0.25.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    networks:
+      - medini-internal
+
+  # ---- MySQL exporter (read-only metrics) ----
+  mysql-exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    restart: unless-stopped
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MYSQL_PASSWORD}
+    command:
+      - --mysqld.address=mysql:3306
+      - --mysqld.username=medini
+    networks:
+      - medini-internal
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ---- Redis exporter ----
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - medini-internal
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ---- node exporter: host disk/CPU/mem + backup textfile metrics ----
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+    volumes:
+      - /:/host:ro,rslave
+      - backupdata:/textfile:ro
+    networks:
+      - medini-internal
+
+  # ---- cAdvisor: container restart-loop / resource metrics ----
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - medini-internal
+
+  # ---- Grafana: dashboards (optional operator UI, internal only) ----
+  grafana:
+    image: grafana/grafana:10.4.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafanadata:/var/lib/grafana
+    networks:
+      - medini-internal
+    depends_on:
+      - prometheus
+
+  # ==========================================================================
+  # WAHA (WhatsApp transport) — PRODUCTION-READY but DISABLED by default.
+  # Uncomment ONLY when WhatsApp is in launch scope.
+  # ==========================================================================
+  # waha:
+  #   image: devlikeapro/waha:noweb
+  #   restart: unless-stopped
+  #   environment:
+  #     WAHA_API_KEY: ${WAHA_API_KEY}
+  #     WAHA_DASHBOARD_ENABLED: "false"
+  #     WHATSAPP_SWAGGER_ENABLED: "false"
+  #     WHATSAPP_DEFAULT_ENGINE: NOWEB
+  #     WAHA_NAMESPACE: all
+  #     WAHA_LOG_FORMAT: JSON
+  #     WAHA_LOG_LEVEL: info
+  #     WAHA_PRINT_QR: "false"
+  #     WAHA_MEDIA_STORAGE: LOCAL
+  #     WHATSAPP_FILES_LIFETIME: 0
+  #     WHATSAPP_FILES_FOLDER: /app/.media
+  #   volumes:
+  #     - waha_sessions:/app/.sessions
+  #   networks:
+  #     - medini-internal
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget -qO- --header='X-Api-Key: ${WAHA_API_KEY}' http://localhost:3000/api/sessions >/dev/null 2>&1 || exit 1"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 20s
+
+networks:
+  medini-public:
+    driver: bridge
+  medini-internal:
+    driver: bridge
+    internal: true   # no outbound internet — DB/Redis/workers stay private
+
+volumes:
+  mysqldata:
+  redisdata:
+  backupdata:
+  garagedata:
+  prometheusdata:
+  alertmanagerdata:
+  grafanadata:
+  caddy_data:
+  caddy_config:
+  # waha_sessions:
